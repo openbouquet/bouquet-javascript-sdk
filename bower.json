@@ -1,0 +1,25 @@
+{
+  "name": "squid_api",
+  "version": "2.0.0",
+  "authors": [
+    "obalbous <oba@squid>"
+  ],
+  "main": "dist/squid_api.js",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "build",
+    "src",
+    "js",
+    "Gruntfile.js"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.1",
+    "underscore": "~1.6.0",
+    "backbone": "~1.1.2"
+  }
+}
