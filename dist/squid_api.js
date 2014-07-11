@@ -165,7 +165,7 @@
             
             // init the Login URL
             var loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
-            loginUrl += "/api/oauth?response_type=code";
+            loginUrl += "/"+api+"/api/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
             }
