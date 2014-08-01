@@ -970,7 +970,7 @@
                             if ((!facet.dimension.type || facet.dimension.type=="CATEGORICAL" || facet.dimension.type=="INDEX") && facet.selectedItems && facet.selectedItems.length>0) {
                                 var temp = [];
                                 if (facet.items) {
-                                    for (var i2=0;j<facet.items.length;i2++) {
+                                    for (var i2=0;i2<facet.items.length;i2++) {
                                         item = facet.items[i2];
                                         if (item.type=="v") {
                                             temp[item.id] = item.value;
@@ -993,7 +993,7 @@
                                             sel = group.selection;
                                         }
                                         var value = (item.id>=0 && item.id<temp.length)?temp[item.id]:item.value;
-                                        if (unique[value] === null) {
+                                        if (!unique[value]) {
                                             unique[value] = true;
                                             sel.push({"name":facet.dimension.name?facet.dimension.name:facet.dimension.id.dimensionId,
                                                     "value":value,
