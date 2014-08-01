@@ -163,6 +163,56 @@
 
                 isDone : function() {
                     return (this.get("status") == "DONE");
+                },
+                
+                getSelection : function() {
+                    // extract the selectedItem from the filters in a more usable form
+                    var data = {}, item;
+                    var selection = this.get("selection");
+                    if (selection && selection.facets) {
+                        var index = 0;
+                        var facets = selection.facets;
+                        for (var i=facets.length-1;i>=0;i--) {
+                            var facet = facets[i];
+                            if ((!facet.dimension.type || facet.dimension.type=="CATEGORICAL" || facet.dimension.type=="INDEX") && facet.selectedItems && facet.selectedItems.length>0) {
+                                var temp = [];
+                                if (facet.items) {
+                                    for (var i2=0;j<facet.items.length;i2++) {
+                                        item = facet.items[i2];
+                                        if (item.type=="v") {
+                                            temp[item.id] = item.value;
+                                        }
+                                    }
+                                }
+                                var unique = [];
+                                for (var j=0;j<facet.selectedItems.length;j++) {
+                                    item = facet.selectedItems[j];
+                                    if (item.type=="v") {
+                                        var sel = null;
+                                        var oid = facet.dimension.id.dimensionId;
+                                        var group = data[oid];
+                                        if (!group) {
+                                            sel = [];
+                                            data[oid] = 
+                                            {"dimension":facet.dimension,
+                                                    "selection":sel};
+                                        } else {
+                                            sel = group.selection;
+                                        }
+                                        var value = (item.id>=0 && item.id<temp.length)?temp[item.id]:item.value;
+                                        if (unique[value] === null) {
+                                            unique[value] = true;
+                                            sel.push({"name":facet.dimension.name?facet.dimension.name:facet.dimension.id.dimensionId,
+                                                    "value":value,
+                                                    "item":item,
+                                                    "index":index++});
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return data;
                 }
             })
     };
