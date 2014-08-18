@@ -71,7 +71,7 @@
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
-        computeAnalysis: function(analysisModel, filters) {
+        compute: function(analysisModel, filters) {
             var observer = $.Deferred();
             this.createAnalysisJob(analysisModel, filters)
                 .done(function(model, response) {
@@ -90,6 +90,11 @@
                 });
                 
             return observer;
+        },
+        
+        // backward compatibility
+        computeAnalysis: function(analysisModel, filters) {
+            return compute(analysisModel, filters);
         },
         
         /**
