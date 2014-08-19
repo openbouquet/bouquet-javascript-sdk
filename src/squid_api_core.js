@@ -218,8 +218,14 @@
             }
             
             // log
-            console.log("squid_api.controller : "+squid_api.controller);
-            console.log("squid_api.view : "+squid_api.view);
+            console.log("squid_api.controller : ");
+            for (var i1 in squid_api.controller) {
+                console.log(i1);
+            }
+            console.log("squid_api.view : ");
+            for (var i2 in squid_api.view) {
+                console.log(i2);
+            }
         }
     };
 
