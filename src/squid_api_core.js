@@ -129,18 +129,18 @@
                 });
             }
         },
-
+        
         /**
-         * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
-         * @param a loginModel (will use the default one if null)
+         * Init the API default settings.
+         * @param a config json object
          */
-        init: function(args) {
-            var me = this;
-            args = args || {
-                "customerId" : null,
-                "clientId" : null,
-                "projectId" : null,
-            };
+        setup : function(args) {
+            var api, apiUrl, loginUrl, timeoutMillis;
+            
+            args = args || {};
+            args.customerId = args.customerId || null;
+            args.clientId = args.clientId || null;
+            args.projectId = args.projectId || null;
             
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
@@ -158,13 +158,13 @@
             }
             
             // init the api server URL
-            var api = squid_api.utils.getParamValue("api","release");
-            var apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
+            api = squid_api.utils.getParamValue("api","release");
+            apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
             apiUrl += "/"+api+"/v4.2/rs";
             this.setApiURL(apiUrl);
             
             // init the Login URL
-            var loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
+            loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
             loginUrl += "/"+api+"/api/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
@@ -176,15 +176,24 @@
             console.log("loginURL : "+this.loginURL);
 
             // init the timout
-            var timeoutMillis = args.timeoutMillis;
+            timeoutMillis = args.timeoutMillis;
             if (!timeoutMillis) {
                 timeoutMillis = 10*1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
 
-            var loginModel = args.loginModel;
-            if (!loginModel) {
-                loginModel = this.model.login;
+        },
+
+        /**
+         * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
+         * @param a config json object (if present will call the setup method).
+         */
+        init: function(args) {
+            var me = this, loginModel;
+            
+            if (args) {
+                this.setup(args);
+                loginModel = args.loginModel;
             }
             
             // handle session expiration
@@ -194,6 +203,10 @@
                     me.utils.clearLogin();
                 }
             });
+            
+            if (!loginModel) {
+                loginModel = this.model.login;
+            }
             
             // set the access_token (to start the login model update)      
             var code = squid_api.utils.getParamValue("code", null);

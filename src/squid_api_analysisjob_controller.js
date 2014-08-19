@@ -94,7 +94,7 @@
         
         // backward compatibility
         computeAnalysis: function(analysisModel, filters) {
-            return compute(analysisModel, filters);
+            return this.compute(analysisModel, filters);
         },
         
         /**
@@ -163,6 +163,13 @@
 
         AnalysisModel: Backbone.Model.extend({
             results: null,
+            
+            initialize: function() {
+                this.set("id", {
+                    "projectId": squid_api.projectId,
+                    "analysisJobId": null
+                });
+            },
             
             setProjectId : function(projectId) {
                 this.set("id", {

@@ -111,6 +111,13 @@
             },
 
             FiltersModel: Backbone.Model.extend({
+                
+                initialize: function() {
+                    this.set("id", {
+                        "projectId": squid_api.projectId
+                    });
+                },
+                
                 setProjectId : function(projectId) {
                     this.set("id", {
                         "projectId": projectId
