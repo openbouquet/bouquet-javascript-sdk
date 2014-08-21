@@ -32,8 +32,8 @@
             // create a new AnalysisJob
             var analysisJob = new controller.ProjectAnalysisJob();
             var projectId;
-            if (analysisModel.id.projectId) {
-                projectId = analysisModel.id.projectId;
+            if (analysisModel.get("id").projectId) {
+                projectId = analysisModel.get("id").projectId;
             } else {
                 projectId = analysisModel.get("projectId");
             }
@@ -54,7 +54,8 @@
             analysisJob.save({}, {
                 success : function(model, response) {
                     console.log("createAnalysis success");
-                    analysisModel.set("jobId", model.get("id"));
+                    analysisModel.set("id", model.get("id"));
+                    analysisModel.set("oid", model.get("id").analysisJobId);
                     observer.resolve(model, response);
                 },
                 error : function(model, response) {
@@ -103,7 +104,8 @@
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new controller.ProjectAnalysisJobResult();
-            analysisJobResults.set("id", analysisModel.get("jobId"));
+            analysisJobResults.set("id", analysisModel.get("id"));
+            analysisJobResults.set("oid", analysisModel.get("oid"));
 
             // get the results from API
             analysisJobResults.fetch({
@@ -204,6 +206,18 @@
                 return this;
             },
             
+            setDimensionId : function(dimensionId, index) {
+                var dims = this.get("dimensions");
+                index = index || 0;
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+                this.set("dimensions", dims);
+                return this;
+            },
+            
             setMetricIds : function(metricIdList) {
                 var metrics = [];
                 for (var i=0; i<metricIdList.length; i++) {
@@ -233,7 +247,7 @@
     // ProjectAnalysisJob Model
     controller.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.id.analysisJobId ? this.id.analysisJobId : "");
+                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
             },
             error: null,
             domains: null,

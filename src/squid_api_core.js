@@ -230,6 +230,9 @@
     };
 
     squid_api.model.BaseModel = Backbone.Model.extend({
+        
+        idAttribute: "oid",
+        
         baseRoot: function() {
             return squid_api.apiURL;
         },
@@ -310,6 +313,9 @@
     });
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
+        initialize : function(model, options) {
+            this.parentId = options.parentId;
+        },
         baseRoot: function() {
             return squid_api.apiURL;
         },
@@ -534,6 +540,12 @@
      * --- Meta Model ---
      */
 
+    squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/projects/" + this.get("id").projectId;
+        }
+    });
+    
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.ProjectModel,
         urlRoot: function() {
@@ -541,26 +553,43 @@
         }
     });
 
-    squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
-            return this.baseRoot() + "/projects/" + this.id.projectId;
-        }
-    });
-
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.id.domainId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.get("id").domainId;
+        }
+    });
+    
+    squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.DomainModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/domains";
+        }
+    });
+    
+    squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
+        urlRoot: function() {
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.get("id").dimensionId;
+        }
+    });
+    
+    squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.DimensionModel,
+        urlRoot: function() {
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/dimensions";
         }
     });
 
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.id.metricId;
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.get("id").metricId;
         }
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.MetricModel
+        model : squid_api.model.MetricModel,
+        urlRoot: function() {
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
+        }
     });
 
     return squid_api;

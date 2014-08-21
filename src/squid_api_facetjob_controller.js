@@ -27,8 +27,8 @@
 
                 var job = new controller.ProjectFacetJob();
                 var projectId;
-                if (jobModel.id.projectId) {
-                    projectId = jobModel.id.projectId;
+                if (jobModel.get("id").projectId) {
+                    projectId = jobModel.get("id").projectId;
                 } else {
                     projectId = jobModel.get("projectId");
                 }
@@ -61,7 +61,8 @@
             },
 
             jobCreationCallback : function(model, jobModel) {
-                jobModel.set("jobId", model.get("id"));
+                jobModel.set("id", model.get("id"));
+                jobModel.set("oid", model.get("oid"));
                 if (model.get("status") == "DONE") {
                     jobModel.set("error", model.get("error"));
                     jobModel.set("selection", {"facets" : model.get("results").facets});
@@ -85,7 +86,8 @@
             getJobResults: function(jobModel) {
                 console.log("get JobResults");
                 var jobResults = new controller.ProjectFacetJobResult();
-                jobResults.set("id", jobModel.get("jobId"));
+                jobResults.set("id", jobModel.get("id"));
+                jobResults.set("oid", jobModel.get("oid"));
 
                 // get the results from API
                 jobResults.fetch({
@@ -226,7 +228,7 @@
 
     controller.ProjectFacetJob = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id.facetJobId ? this.id.facetJobId : "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id ? this.id : "");
         },
         error: null,
         domains: null,
