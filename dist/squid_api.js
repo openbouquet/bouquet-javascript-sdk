@@ -799,6 +799,7 @@
                     });
                 }
                 this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
                 return this;
             },
             
@@ -811,6 +812,7 @@
                     "dimensionId": dimensionId
                 };
                 this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
                 return this;
             },
             
