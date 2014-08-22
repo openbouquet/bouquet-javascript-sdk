@@ -21,6 +21,17 @@
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
+        customerId: null,
+        projectId: null,
+        clientId: null,
+        fakeServer: null,
+        
+        // declare some namespaces
+        model: {},
+        view: {},
+        collection: {},
+        controller: {},
+        
         setApiURL: function(a1) {
             if (a1 && a1[a1.length - 1] == "/") {
                 a1 = a1.substring(0, a1.length - 1);
@@ -29,19 +40,23 @@
             console.log("apiURL : "+this.apiURL);
             return this;
         },
+        
         setTimeoutMillis: function(t) {
             this.timeoutMillis = t;
             return this;
         },
-        customerId: null,
-        projectId: null,
-        clientId: null,
-        fakeServer: null,
-        // declare some namespaces
-        model: {},
-        view: {},
-        collection: {},
-        controller: {},
+        
+        getProject : function() {
+            var project = this.model.project;
+            if ((!project) || (project.get("oid") != this.projectId)) {
+                // lazy deepread the project
+                project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+                project.setDeepread(true);
+                project.fetch();
+                this.model.project = project;
+            }
+            return project;
+        },
 
         utils: {
 
@@ -231,6 +246,12 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
         
+        deepread : false,
+        
+        setDeepread : function(v) {
+            this.deepread = v;
+        },
+        
         idAttribute: "oid",
         
         baseRoot: function() {
@@ -249,6 +270,9 @@
                 }
             }
             url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            if (this.deepread === true) {
+                url = this.addParam(url, "deepread", "1");
+            }
             return url;
         },
         error: null,
