@@ -149,21 +149,21 @@
             
             find : function(theObject, key, value) {
                 var result = null, i;
-                if(theObject instanceof Array) {
-                    for(i = 0; i < theObject.length; i++) {
-                        result = this.find(theObject[i], key, value);
+                if (theObject instanceof Array) {
+                    for (i = 0; i < theObject.length; i++) {
+                        result = this.find(theObject[i], key,
+                                value);
                     }
-                }
-                else
-                {
-                    for(var prop in theObject) {
-                        if(prop == key) {
-                            if(theObject[prop] == value) {
+                } else {
+                    for ( var prop in theObject) {
+                        if (prop == key) {
+                            if (theObject[prop] == value) {
                                 return theObject;
                             }
                         }
-                        if(theObject[prop] instanceof Object || theObject[prop] instanceof Array)
+                        if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
                             result = this.find(theObject[prop], key, value);
+                        }
                     }
                 }
                 return result;
@@ -254,17 +254,19 @@
             loginModel.on('change:login', function(model) {
                 if (model.get("login")) {
                     // login ok
-                    // lazy deepread the project
-                    me.model.project.setDeepread(true);
-                    me.model.project.fetch({
-                        success : function(model, response, options) {
-                            me.model.project = model;
-                            console.log("project fetched : "+model.get("name"));
-                        },
-                        error : function(model, response, options) {
-                            console.log("project fetch failed");
-                        }
-                    });
+                    if (me.projectId) {
+                        // lazy deepread the project
+                        me.model.project.setDeepread(true);
+                        me.model.project.fetch({
+                            success : function(model, response, options) {
+                                me.model.project = model;
+                                console.log("project fetched : "+model.get("name"));
+                            },
+                            error : function(model, response, options) {
+                                console.error("project fetch failed");
+                            }
+                        });
+                    }
                 }
             });
             

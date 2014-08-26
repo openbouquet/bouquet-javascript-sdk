@@ -161,10 +161,8 @@
                                 return theObject;
                             }
                         }
-                        if (theObject[prop] instanceof Object
-                                || theObject[prop] instanceof Array) {
-                            result = this.find(theObject[prop],
-                                    key, value);
+                        if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
+                            result = this.find(theObject[prop], key, value);
                         }
                     }
                 }
@@ -256,17 +254,19 @@
             loginModel.on('change:login', function(model) {
                 if (model.get("login")) {
                     // login ok
-                    // lazy deepread the project
-                    me.model.project.setDeepread(true);
-                    me.model.project.fetch({
-                        success : function(model, response, options) {
-                            me.model.project = model;
-                            console.log("project fetched : "+model.get("name"));
-                        },
-                        error : function(model, response, options) {
-                            console.log("project fetch failed");
-                        }
-                    });
+                    if (me.projectId) {
+                        // lazy deepread the project
+                        me.model.project.setDeepread(true);
+                        me.model.project.fetch({
+                            success : function(model, response, options) {
+                                me.model.project = model;
+                                console.log("project fetched : "+model.get("name"));
+                            },
+                            error : function(model, response, options) {
+                                console.error("project fetch failed");
+                            }
+                        });
+                    }
                 }
             });
             
