@@ -73,6 +73,7 @@
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
         compute: function(analysisModel, filters) {
+            filters = filters || squid_api.model.filters;
             var observer = $.Deferred();
             this.createAnalysisJob(analysisModel, filters)
                 .done(function(model, response) {
@@ -171,6 +172,9 @@
                     "projectId": squid_api.projectId,
                     "analysisJobId": null
                 });
+                if (squid_api.domainId) {
+                    this.setDomainIds([squid_api.domainId]);
+                }
             },
             
             setProjectId : function(projectId) {

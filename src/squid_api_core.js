@@ -23,6 +23,7 @@
         timeoutMillis : null,
         customerId: null,
         projectId: null,
+        domainId: null,
         clientId: null,
         fakeServer: null,
         
@@ -181,6 +182,8 @@
             args.customerId = args.customerId || null;
             args.clientId = args.clientId || null;
             args.projectId = args.projectId || null;
+            this.domainId = args.domainId || null;
+            args.selection = args.selection || null;
             
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
@@ -195,6 +198,45 @@
             this.projectId = squid_api.utils.getParamValue("projectId",null);
             if (!this.projectId) {
                 this.projectId = args.projectId;
+            }
+            
+            this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+            
+            if (args.selection) {
+                if (args.selection.date) {
+                    // setup default filters
+                    var defaultSelection = {
+                            "facets" : [ {
+                                "dimension" : {
+                                    "id" : {
+                                        "projectId" : this.projectId,
+                                        "domainId" : this.domainId,
+                                        "dimensionId" : args.selection.date.dimensionId
+                                    }
+                                },
+                                "selectedItems" : [ {
+                                    "type" : "i",
+                                    "lowerBound" : (args.selection.date.lowerBound + "T00:00:00.000Z"),
+                                    "upperBound" : (args.selection.date.upperBound + "T00:00:00.000Z")
+                                } ]
+                            } ]
+                    };
+                    var filters = new squid_api.controller.facetjob.FiltersModel();
+                    filters.setDomainIds([this.domainId]);
+                    filters.set("selection" , defaultSelection);
+                    squid_api.model.filters = filters;
+                    
+                    // check for new filter selection
+                    filters.on('change:userSelection', function() {
+                        squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
+                    });
+                    
+                    // check for project init performed
+                    squid_api.model.project.on('change', function() {
+                        // launch the filters computation
+                        squid_api.controller.facetjob.compute(filters);
+                    });
+                }
             }
             
             // init the api server URL
@@ -222,7 +264,7 @@
             }
             this.setTimeoutMillis(timeoutMillis);
             
-            this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+            
 
         },
 
