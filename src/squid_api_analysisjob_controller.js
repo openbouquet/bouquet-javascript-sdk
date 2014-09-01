@@ -32,8 +32,8 @@
             // create a new AnalysisJob
             var analysisJob = new controller.ProjectAnalysisJob();
             var projectId;
-            if (analysisModel.id.projectId) {
-                projectId = analysisModel.id.projectId;
+            if (analysisModel.get("id").projectId) {
+                projectId = analysisModel.get("id").projectId;
             } else {
                 projectId = analysisModel.get("projectId");
             }
@@ -54,7 +54,8 @@
             analysisJob.save({}, {
                 success : function(model, response) {
                     console.log("createAnalysis success");
-                    analysisModel.set("jobId", model.get("id"));
+                    analysisModel.set("id", model.get("id"));
+                    analysisModel.set("oid", model.get("id").analysisJobId);
                     observer.resolve(model, response);
                 },
                 error : function(model, response) {
@@ -71,7 +72,8 @@
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
-        computeAnalysis: function(analysisModel, filters) {
+        compute: function(analysisModel, filters) {
+            filters = filters || squid_api.model.filters;
             var observer = $.Deferred();
             this.createAnalysisJob(analysisModel, filters)
                 .done(function(model, response) {
@@ -92,13 +94,19 @@
             return observer;
         },
         
+        // backward compatibility
+        computeAnalysis: function(analysisModel, filters) {
+            return this.compute(analysisModel, filters);
+        },
+        
         /**
          * retrieve the results.
          */
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new controller.ProjectAnalysisJobResult();
-            analysisJobResults.set("id", analysisModel.get("jobId"));
+            analysisJobResults.set("id", analysisModel.get("id"));
+            analysisJobResults.set("oid", analysisModel.get("oid"));
 
             // get the results from API
             analysisJobResults.fetch({
@@ -159,6 +167,16 @@
         AnalysisModel: Backbone.Model.extend({
             results: null,
             
+            initialize: function() {
+                this.set("id", {
+                    "projectId": squid_api.projectId,
+                    "analysisJobId": null
+                });
+                if (squid_api.domainId) {
+                    this.setDomainIds([squid_api.domainId]);
+                }
+            },
+            
             setProjectId : function(projectId) {
                 this.set("id", {
                         "projectId": projectId,
@@ -189,6 +207,20 @@
                     });
                 }
                 this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
+                return this;
+            },
+            
+            setDimensionId : function(dimensionId, index) {
+                var dims = this.get("dimensions");
+                index = index || 0;
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+                this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
                 return this;
             },
             
@@ -221,7 +253,7 @@
     // ProjectAnalysisJob Model
     controller.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.id.analysisJobId ? this.id.analysisJobId : "");
+                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
             },
             error: null,
             domains: null,

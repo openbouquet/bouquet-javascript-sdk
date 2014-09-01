@@ -27,8 +27,8 @@
 
                 var job = new controller.ProjectFacetJob();
                 var projectId;
-                if (jobModel.id.projectId) {
-                    projectId = jobModel.id.projectId;
+                if (jobModel.get("id").projectId) {
+                    projectId = jobModel.get("id").projectId;
                 } else {
                     projectId = jobModel.get("projectId");
                 }
@@ -61,7 +61,8 @@
             },
 
             jobCreationCallback : function(model, jobModel) {
-                jobModel.set("jobId", model.get("id"));
+                jobModel.set("id", model.get("id"));
+                jobModel.set("oid", model.get("oid"));
                 if (model.get("status") == "DONE") {
                     jobModel.set("error", model.get("error"));
                     jobModel.set("selection", {"facets" : model.get("results").facets});
@@ -85,7 +86,8 @@
             getJobResults: function(jobModel) {
                 console.log("get JobResults");
                 var jobResults = new controller.ProjectFacetJobResult();
-                jobResults.set("id", jobModel.get("jobId"));
+                jobResults.set("id", jobModel.get("id"));
+                jobResults.set("oid", jobModel.get("oid"));
 
                 // get the results from API
                 jobResults.fetch({
@@ -111,6 +113,13 @@
             },
 
             FiltersModel: Backbone.Model.extend({
+                
+                initialize: function() {
+                    this.set("id", {
+                        "projectId": squid_api.projectId
+                    });
+                },
+                
                 setProjectId : function(projectId) {
                     this.set("id", {
                         "projectId": projectId
@@ -177,7 +186,7 @@
                             if ((!facet.dimension.type || facet.dimension.type=="CATEGORICAL" || facet.dimension.type=="INDEX") && facet.selectedItems && facet.selectedItems.length>0) {
                                 var temp = [];
                                 if (facet.items) {
-                                    for (var i2=0;j<facet.items.length;i2++) {
+                                    for (var i2=0;i2<facet.items.length;i2++) {
                                         item = facet.items[i2];
                                         if (item.type=="v") {
                                             temp[item.id] = item.value;
@@ -200,7 +209,7 @@
                                             sel = group.selection;
                                         }
                                         var value = (item.id>=0 && item.id<temp.length)?temp[item.id]:item.value;
-                                        if (unique[value] === null) {
+                                        if (!unique[value]) {
                                             unique[value] = true;
                                             sel.push({"name":facet.dimension.name?facet.dimension.name:facet.dimension.id.dimensionId,
                                                     "value":value,
@@ -219,7 +228,7 @@
 
     controller.ProjectFacetJob = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id.facetJobId ? this.id.facetJobId : "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id ? this.id : "");
         },
         error: null,
         domains: null,

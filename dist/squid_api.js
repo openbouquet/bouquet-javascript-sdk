@@ -21,6 +21,18 @@
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
+        customerId: null,
+        projectId: null,
+        domainId: null,
+        clientId: null,
+        fakeServer: null,
+        
+        // declare some namespaces
+        model: {},
+        view: {},
+        collection: {},
+        controller: {},
+        
         setApiURL: function(a1) {
             if (a1 && a1[a1.length - 1] == "/") {
                 a1 = a1.substring(0, a1.length - 1);
@@ -29,19 +41,26 @@
             console.log("apiURL : "+this.apiURL);
             return this;
         },
+        
         setTimeoutMillis: function(t) {
             this.timeoutMillis = t;
             return this;
         },
-        customerId: null,
-        projectId: null,
-        clientId: null,
-        fakeServer: null,
-        // declare some namespaces
-        model: {},
-        view: {},
-        collection: {},
-        controller: {},
+        
+        getProject : function(callback) {
+            var project = this.model.project;
+            if ((!project) || (project.get("oid") != this.projectId)) {
+                // lazy deepread the project
+                project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+                project.setDeepread(true);
+                project.fetch({
+                    success : function(model, response, options) {
+                        this.model.project = project;
+                    }
+                });
+            }
+            return project;
+        },
 
         utils: {
 
@@ -127,20 +146,44 @@
                     accessToken: null,
                     login: null
                 });
+            },
+            
+            find : function(theObject, key, value) {
+                var result = null, i;
+                if (theObject instanceof Array) {
+                    for (i = 0; i < theObject.length; i++) {
+                        result = this.find(theObject[i], key,
+                                value);
+                    }
+                } else {
+                    for ( var prop in theObject) {
+                        if (prop == key) {
+                            if (theObject[prop] == value) {
+                                return theObject;
+                            }
+                        }
+                        if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
+                            result = this.find(theObject[prop], key, value);
+                        }
+                    }
+                }
+                return result;
             }
         },
-
+        
         /**
-         * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
-         * @param a loginModel (will use the default one if null)
+         * Init the API default settings.
+         * @param a config json object
          */
-        init: function(args) {
-            var me = this;
-            args = args || {
-                "customerId" : null,
-                "clientId" : null,
-                "projectId" : null,
-            };
+        setup : function(args) {
+            var api, apiUrl, loginUrl, timeoutMillis;
+            
+            args = args || {};
+            args.customerId = args.customerId || null;
+            args.clientId = args.clientId || null;
+            args.projectId = args.projectId || null;
+            this.domainId = args.domainId || null;
+            args.selection = args.selection || null;
             
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
@@ -157,14 +200,53 @@
                 this.projectId = args.projectId;
             }
             
+            this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+            
+            if (args.selection) {
+                if (args.selection.date) {
+                    // setup default filters
+                    var defaultSelection = {
+                            "facets" : [ {
+                                "dimension" : {
+                                    "id" : {
+                                        "projectId" : this.projectId,
+                                        "domainId" : this.domainId,
+                                        "dimensionId" : args.selection.date.dimensionId
+                                    }
+                                },
+                                "selectedItems" : [ {
+                                    "type" : "i",
+                                    "lowerBound" : (args.selection.date.lowerBound + "T00:00:00.000Z"),
+                                    "upperBound" : (args.selection.date.upperBound + "T00:00:00.000Z")
+                                } ]
+                            } ]
+                    };
+                    var filters = new squid_api.controller.facetjob.FiltersModel();
+                    filters.setDomainIds([this.domainId]);
+                    filters.set("selection" , defaultSelection);
+                    squid_api.model.filters = filters;
+                    
+                    // check for new filter selection
+                    filters.on('change:userSelection', function() {
+                        squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
+                    });
+                    
+                    // check for project init performed
+                    squid_api.model.project.on('change', function() {
+                        // launch the filters computation
+                        squid_api.controller.facetjob.compute(filters);
+                    });
+                }
+            }
+            
             // init the api server URL
-            var api = squid_api.utils.getParamValue("api","release");
-            var apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
+            api = squid_api.utils.getParamValue("api","release");
+            apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
             apiUrl += "/"+api+"/v4.2/rs";
             this.setApiURL(apiUrl);
             
             // init the Login URL
-            var loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
+            loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
             loginUrl += "/"+api+"/api/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
@@ -176,15 +258,26 @@
             console.log("loginURL : "+this.loginURL);
 
             // init the timout
-            var timeoutMillis = args.timeoutMillis;
+            timeoutMillis = args.timeoutMillis;
             if (!timeoutMillis) {
                 timeoutMillis = 10*1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
+            
+            
 
-            var loginModel = args.loginModel;
-            if (!loginModel) {
-                loginModel = this.model.login;
+        },
+
+        /**
+         * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
+         * @param a config json object (if present will call the setup method).
+         */
+        init: function(args) {
+            var me = this, loginModel;
+            
+            if (args) {
+                this.setup(args);
+                loginModel = args.loginModel;
             }
             
             // handle session expiration
@@ -192,6 +285,30 @@
                 var err = model.get("error").status;
                 if ((err == 401) || (err == 403)) {
                     me.utils.clearLogin();
+                }
+            });
+            
+            if (!loginModel) {
+                loginModel = this.model.login;
+            }
+            
+            // check for login performed
+            loginModel.on('change:login', function(model) {
+                if (model.get("login")) {
+                    // login ok
+                    if (me.projectId) {
+                        // lazy deepread the project
+                        me.model.project.setDeepread(true);
+                        me.model.project.fetch({
+                            success : function(model, response, options) {
+                                me.model.project = model;
+                                console.log("project fetched : "+model.get("name"));
+                            },
+                            error : function(model, response, options) {
+                                console.error("project fetch failed");
+                            }
+                        });
+                    }
                 }
             });
             
@@ -205,12 +322,27 @@
             }
             
             // log
-            console.log("squid_api.controller : "+squid_api.controller);
-            console.log("squid_api.view : "+squid_api.view);
+            console.log("squid_api.controller : ");
+            for (var i1 in squid_api.controller) {
+                console.log(i1);
+            }
+            console.log("squid_api.view : ");
+            for (var i2 in squid_api.view) {
+                console.log(i2);
+            }
         }
     };
 
     squid_api.model.BaseModel = Backbone.Model.extend({
+        
+        deepread : false,
+        
+        setDeepread : function(v) {
+            this.deepread = v;
+        },
+        
+        idAttribute: "oid",
+        
         baseRoot: function() {
             return squid_api.apiURL;
         },
@@ -227,6 +359,9 @@
                 }
             }
             url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            if (this.deepread === true) {
+                url = this.addParam(url, "deepread", "1");
+            }
             return url;
         },
         error: null,
@@ -291,6 +426,9 @@
     });
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
+        initialize : function(model, options) {
+            this.parentId = options.parentId;
+        },
         baseRoot: function() {
             return squid_api.apiURL;
         },
@@ -515,6 +653,12 @@
      * --- Meta Model ---
      */
 
+    squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/projects/" + this.get("id").projectId;
+        }
+    });
+    
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.ProjectModel,
         urlRoot: function() {
@@ -522,26 +666,43 @@
         }
     });
 
-    squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
-            return this.baseRoot() + "/projects/" + this.id.projectId;
-        }
-    });
-
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.id.domainId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.get("id").domainId;
+        }
+    });
+    
+    squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.DomainModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/domains";
+        }
+    });
+    
+    squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
+        urlRoot: function() {
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.get("id").dimensionId;
+        }
+    });
+    
+    squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.DimensionModel,
+        urlRoot: function() {
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/dimensions";
         }
     });
 
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.id.metricId;
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.get("id").metricId;
         }
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.MetricModel
+        model : squid_api.model.MetricModel,
+        urlRoot: function() {
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
+        }
     });
 
     return squid_api;
@@ -580,8 +741,8 @@
             // create a new AnalysisJob
             var analysisJob = new controller.ProjectAnalysisJob();
             var projectId;
-            if (analysisModel.id.projectId) {
-                projectId = analysisModel.id.projectId;
+            if (analysisModel.get("id").projectId) {
+                projectId = analysisModel.get("id").projectId;
             } else {
                 projectId = analysisModel.get("projectId");
             }
@@ -602,7 +763,8 @@
             analysisJob.save({}, {
                 success : function(model, response) {
                     console.log("createAnalysis success");
-                    analysisModel.set("jobId", model.get("id"));
+                    analysisModel.set("id", model.get("id"));
+                    analysisModel.set("oid", model.get("id").analysisJobId);
                     observer.resolve(model, response);
                 },
                 error : function(model, response) {
@@ -619,7 +781,8 @@
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
-        computeAnalysis: function(analysisModel, filters) {
+        compute: function(analysisModel, filters) {
+            filters = filters || squid_api.model.filters;
             var observer = $.Deferred();
             this.createAnalysisJob(analysisModel, filters)
                 .done(function(model, response) {
@@ -640,13 +803,19 @@
             return observer;
         },
         
+        // backward compatibility
+        computeAnalysis: function(analysisModel, filters) {
+            return this.compute(analysisModel, filters);
+        },
+        
         /**
          * retrieve the results.
          */
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new controller.ProjectAnalysisJobResult();
-            analysisJobResults.set("id", analysisModel.get("jobId"));
+            analysisJobResults.set("id", analysisModel.get("id"));
+            analysisJobResults.set("oid", analysisModel.get("oid"));
 
             // get the results from API
             analysisJobResults.fetch({
@@ -707,6 +876,16 @@
         AnalysisModel: Backbone.Model.extend({
             results: null,
             
+            initialize: function() {
+                this.set("id", {
+                    "projectId": squid_api.projectId,
+                    "analysisJobId": null
+                });
+                if (squid_api.domainId) {
+                    this.setDomainIds([squid_api.domainId]);
+                }
+            },
+            
             setProjectId : function(projectId) {
                 this.set("id", {
                         "projectId": projectId,
@@ -737,6 +916,20 @@
                     });
                 }
                 this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
+                return this;
+            },
+            
+            setDimensionId : function(dimensionId, index) {
+                var dims = this.get("dimensions");
+                index = index || 0;
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+                this.set("dimensions", dims);
+                this.trigger("change:dimensions", dims);
                 return this;
             },
             
@@ -769,7 +962,7 @@
     // ProjectAnalysisJob Model
     controller.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.id.analysisJobId ? this.id.analysisJobId : "");
+                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
             },
             error: null,
             domains: null,
@@ -820,8 +1013,8 @@
 
                 var job = new controller.ProjectFacetJob();
                 var projectId;
-                if (jobModel.id.projectId) {
-                    projectId = jobModel.id.projectId;
+                if (jobModel.get("id").projectId) {
+                    projectId = jobModel.get("id").projectId;
                 } else {
                     projectId = jobModel.get("projectId");
                 }
@@ -854,7 +1047,8 @@
             },
 
             jobCreationCallback : function(model, jobModel) {
-                jobModel.set("jobId", model.get("id"));
+                jobModel.set("id", model.get("id"));
+                jobModel.set("oid", model.get("oid"));
                 if (model.get("status") == "DONE") {
                     jobModel.set("error", model.get("error"));
                     jobModel.set("selection", {"facets" : model.get("results").facets});
@@ -878,7 +1072,8 @@
             getJobResults: function(jobModel) {
                 console.log("get JobResults");
                 var jobResults = new controller.ProjectFacetJobResult();
-                jobResults.set("id", jobModel.get("jobId"));
+                jobResults.set("id", jobModel.get("id"));
+                jobResults.set("oid", jobModel.get("oid"));
 
                 // get the results from API
                 jobResults.fetch({
@@ -904,6 +1099,13 @@
             },
 
             FiltersModel: Backbone.Model.extend({
+                
+                initialize: function() {
+                    this.set("id", {
+                        "projectId": squid_api.projectId
+                    });
+                },
+                
                 setProjectId : function(projectId) {
                     this.set("id", {
                         "projectId": projectId
@@ -970,7 +1172,7 @@
                             if ((!facet.dimension.type || facet.dimension.type=="CATEGORICAL" || facet.dimension.type=="INDEX") && facet.selectedItems && facet.selectedItems.length>0) {
                                 var temp = [];
                                 if (facet.items) {
-                                    for (var i2=0;j<facet.items.length;i2++) {
+                                    for (var i2=0;i2<facet.items.length;i2++) {
                                         item = facet.items[i2];
                                         if (item.type=="v") {
                                             temp[item.id] = item.value;
@@ -993,7 +1195,7 @@
                                             sel = group.selection;
                                         }
                                         var value = (item.id>=0 && item.id<temp.length)?temp[item.id]:item.value;
-                                        if (unique[value] === null) {
+                                        if (!unique[value]) {
                                             unique[value] = true;
                                             sel.push({"name":facet.dimension.name?facet.dimension.name:facet.dimension.id.dimensionId,
                                                     "value":value,
@@ -1012,7 +1214,7 @@
 
     controller.ProjectFacetJob = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id.facetJobId ? this.id.facetJobId : "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id ? this.id : "");
         },
         error: null,
         domains: null,
