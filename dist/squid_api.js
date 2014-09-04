@@ -202,10 +202,11 @@
             
             this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
             
+            var defaultSelection = null;
             if (args.selection) {
                 if (args.selection.date) {
                     // setup default filters
-                    var defaultSelection = {
+                    defaultSelection = {
                             "facets" : [ {
                                 "dimension" : {
                                     "id" : {
@@ -221,22 +222,25 @@
                                 } ]
                             } ]
                     };
-                    var filters = new squid_api.controller.facetjob.FiltersModel();
-                    filters.setDomainIds([this.domainId]);
-                    filters.set("selection" , defaultSelection);
-                    squid_api.model.filters = filters;
-                    
-                    // check for new filter selection
-                    filters.on('change:userSelection', function() {
-                        squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-                    });
-                    
-                    // check for project init performed
-                    squid_api.model.project.on('change', function() {
-                        // launch the filters computation
-                        squid_api.controller.facetjob.compute(filters);
-                    });
                 }
+            }
+            
+            var filters = new squid_api.controller.facetjob.FiltersModel();
+            filters.setDomainIds([this.domainId]);
+            filters.set("selection" , defaultSelection);
+            squid_api.model.filters = filters;
+            
+            if ((typeof args.filtersDefaultEvents == 'undefined') || (args.filtersDefaultEvents === true)) {
+                // check for new filter selection
+                filters.on('change:userSelection', function() {
+                    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
+                });
+                
+                // check for project init performed
+                squid_api.model.project.on('change', function() {
+                    // launch the filters computation
+                    squid_api.controller.facetjob.compute(filters);
+                });
             }
             
             // init the api server URL
