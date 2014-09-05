@@ -245,12 +245,15 @@
             
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
+            version = squid_api.utils.getParamValue("version","v4.2");
             apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
-            apiUrl += "/"+api+"/v4.2/rs";
-            this.setApiURL(apiUrl);
+            if (apiUrl.indexOf("://") < 0) {
+                apiUrl = "https://"+apiUrl;
+            }
+            this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
             
             // init the Login URL
-            loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
+            loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
             loginUrl += "/"+api+"/api/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
