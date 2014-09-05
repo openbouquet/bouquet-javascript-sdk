@@ -202,10 +202,11 @@
             
             this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
             
+            var defaultSelection = null;
             if (args.selection) {
                 if (args.selection.date) {
                     // setup default filters
-                    var defaultSelection = {
+                    defaultSelection = {
                             "facets" : [ {
                                 "dimension" : {
                                     "id" : {
@@ -221,32 +222,38 @@
                                 } ]
                             } ]
                     };
-                    var filters = new squid_api.controller.facetjob.FiltersModel();
-                    filters.setDomainIds([this.domainId]);
-                    filters.set("selection" , defaultSelection);
-                    squid_api.model.filters = filters;
-                    
-                    // check for new filter selection
-                    filters.on('change:userSelection', function() {
-                        squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-                    });
-                    
-                    // check for project init performed
-                    squid_api.model.project.on('change', function() {
-                        // launch the filters computation
-                        squid_api.controller.facetjob.compute(filters);
-                    });
                 }
+            }
+            
+            var filters = new squid_api.controller.facetjob.FiltersModel();
+            filters.setDomainIds([this.domainId]);
+            filters.set("selection" , defaultSelection);
+            squid_api.model.filters = filters;
+            
+            if ((typeof args.filtersDefaultEvents == 'undefined') || (args.filtersDefaultEvents === true)) {
+                // check for new filter selection
+                filters.on('change:userSelection', function() {
+                    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
+                });
+                
+                // check for project init performed
+                squid_api.model.project.on('change', function() {
+                    // launch the filters computation
+                    squid_api.controller.facetjob.compute(filters);
+                });
             }
             
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
+            version = squid_api.utils.getParamValue("version","v4.2");
             apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
-            apiUrl += "/"+api+"/v4.2/rs";
-            this.setApiURL(apiUrl);
+            if (apiUrl.indexOf("://") < 0) {
+                apiUrl = "https://"+apiUrl;
+            }
+            this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
             
             // init the Login URL
-            loginUrl = squid_api.utils.getParamValue("loginUrl","https://api.squidsolutions.com");
+            loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
             loginUrl += "/"+api+"/api/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
