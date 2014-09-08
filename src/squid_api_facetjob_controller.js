@@ -65,7 +65,9 @@
                 jobModel.set("oid", model.get("oid"));
                 if (model.get("status") == "DONE") {
                     jobModel.set("error", model.get("error"));
-                    jobModel.set("selection", {"facets" : model.get("results").facets});
+                    if (model.get("results")) {
+                        jobModel.set("selection", {"facets" : model.get("results").facets});
+                    }
                     jobModel.set("status", "DONE");
                 } else {
                     // try to get the results
