@@ -184,6 +184,7 @@
             args.projectId = args.projectId || null;
             this.domainId = args.domainId || null;
             args.selection = args.selection || null;
+            apiUrl = args.apiUrl || null;
             
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
@@ -246,7 +247,10 @@
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
-            apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
+            
+            if (!apiUrl) {
+                apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
+            }
             if (apiUrl.indexOf("://") < 0) {
                 apiUrl = "https://"+apiUrl;
             }
