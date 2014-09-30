@@ -53,13 +53,22 @@
 
             analysisJob.save({}, {
                 success : function(model, response) {
-                    console.log("createAnalysis success");
-                    analysisModel.set("id", model.get("id"));
-                    analysisModel.set("oid", model.get("id").analysisJobId);
-                    observer.resolve(model, response);
+                    if (model.get("error")) {
+                        console.error("createAnalysis error " + model.get("error").message);
+                        analysisModel.set("results", null);
+                        analysisModel.set("error", model.get("error"));
+                        analysisModel.set("status", "DONE");
+                        observer.reject(model, response);
+                    } else {
+                        console.log("createAnalysis success");
+                        analysisModel.set("id", model.get("id"));
+                        analysisModel.set("oid", model.get("id").analysisJobId);
+                        observer.resolve(model, response);
+                    }
                 },
                 error : function(model, response) {
-                    console.log("createAnalysis error");
+                    console.error("createAnalysis error");
+                    analysisModel.set("results", null);
                     analysisModel.set("error", response);
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
@@ -159,15 +168,19 @@
             console.log("analysesCount : "+analysesCount);
             // wait for jobs completion
             var combinedPromise = $.when.apply($,jobs);
-            combinedPromise.done( function() {
+            
+            combinedPromise.fail( function() {
+                squid_api.model.status.set("message", "Computation failed");
+                squid_api.model.status.set("error", "Computation failed");
+            });
+            
+            combinedPromise.always( function() {
                 for (var i=0; i<analysesCount; i++) {
                     var analysis = analyses[i];
                     if (analysis.get("error")) {
                         multiAnalysisModel.set("error", analysis.get("error"));
                     }
                 }
-            });
-            combinedPromise.always( function() {
                 multiAnalysisModel.set("status", "DONE");
             });
         },

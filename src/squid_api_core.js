@@ -598,7 +598,7 @@
 
             request.fail(function(jqXHR, textStatus, errorThrown) {
                 squid_api.model.status.set("message", "logout failed");
-                squid_api.model.status.set("error", errorThrown);
+                squid_api.model.status.set("error", "error");
             });
         }
 
