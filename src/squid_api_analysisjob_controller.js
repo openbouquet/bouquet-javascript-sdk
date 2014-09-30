@@ -17,11 +17,11 @@
          * @returns a Jquery Deferred
          */
         createAnalysisJob: function(analysisModel, filters) {
-            
-            var observer = $.Deferred(); 
+
+            var observer = $.Deferred();
 
             analysisModel.set("status","RUNNING");
-    
+
             var selection;
             if (!filters) {
                 selection =  analysisModel.get("selection");
@@ -50,7 +50,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
-            
+
             analysisJob.save({}, {
                 success : function(model, response) {
                     console.log("createAnalysis success");
@@ -65,40 +65,48 @@
                     observer.reject(model, response);
                 }
             });
-            
+
             return observer;
         },
-        
+
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
         compute: function(analysisModel, filters) {
             filters = filters || squid_api.model.filters;
             var observer = $.Deferred();
-            this.createAnalysisJob(analysisModel, filters)
-                .done(function(model, response) {
-                    if (model.get("status") == "DONE") {
-                        analysisModel.set("error", model.get("error"));
-                        analysisModel.set("results", model.get("results"));
-                        analysisModel.set("status", "DONE");
-                        observer.resolve(model, response);
-                    } else {
-                        // try to get the results
-                        controller.getAnalysisJobResults(observer, analysisModel);
-                    }
-                })
-                .fail(function(model, response) {
-                    observer.reject(model, response);
-                });
-                
+
+            /* Run on startup and on dimension change, however this handles
+               an analysis array inside of the analysis model */
+               
+            if (analysisModel.get("analyses")) {
+                this.computeMultiAnalysis(analysisModel, filters);
+            } else {
+                this.createAnalysisJob(analysisModel, filters)
+                    .done(function(model, response) {
+                        if (model.get("status") == "DONE") {
+                            analysisModel.set("error", model.get("error"));
+                            analysisModel.set("results", model.get("results"));
+                            analysisModel.set("status", "DONE");
+                            observer.resolve(model, response);
+                        } else {
+                            // try to get the results
+                            controller.getAnalysisJobResults(observer, analysisModel);
+                        }
+                    })
+                    .fail(function(model, response) {
+                        observer.reject(model, response);
+                    });
+            }
+
             return observer;
         },
-        
+
         // backward compatibility
         computeAnalysis: function(analysisModel, filters) {
             return this.compute(analysisModel, filters);
         },
-        
+
         /**
          * retrieve the results.
          */
@@ -132,9 +140,9 @@
                 this.fakeServer.respond();
             }
         },
-        
+
         /**
-         * Create (and execute) a new MultiAnalysisJob, retrieve the results 
+         * Create (and execute) a new MultiAnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          */
         computeMultiAnalysis: function(multiAnalysisModel, selection) {
@@ -166,7 +174,7 @@
 
         AnalysisModel: Backbone.Model.extend({
             results: null,
-            
+
             initialize: function() {
                 this.set("id", {
                     "projectId": squid_api.projectId,
@@ -176,7 +184,7 @@
                     this.setDomainIds([squid_api.domainId]);
                 }
             },
-            
+
             setProjectId : function(projectId) {
                 this.set("id", {
                         "projectId": projectId,
@@ -184,7 +192,7 @@
                 });
                 return this;
             },
-            
+
             setDomainIds : function(domainIdList) {
                 var domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
@@ -196,7 +204,7 @@
                 this.set("domains", domains);
                 return this;
             },
-            
+
             setDimensionIds : function(dimensionIdList) {
                 var dims = [];
                 for (var i=0; i<dimensionIdList.length; i++) {
@@ -210,7 +218,7 @@
                 this.trigger("change:dimensions", dims);
                 return this;
             },
-            
+
             setDimensionId : function(dimensionId, index) {
                 var dims = this.get("dimensions");
                 index = index || 0;
@@ -223,7 +231,7 @@
                 this.trigger("change:dimensions", dims);
                 return this;
             },
-            
+
             setMetricIds : function(metricIdList) {
                 var metrics = [];
                 for (var i=0; i<metricIdList.length; i++) {
@@ -236,12 +244,12 @@
                 this.set("metrics", metrics);
                 return this;
             },
-            
+
             isDone : function() {
                 return (this.get("status") == "DONE");
             }
         }),
-        
+
         MultiAnalysisModel: Backbone.Model.extend({
             isDone : function() {
                 return (this.get("status") == "DONE");
@@ -249,7 +257,7 @@
         })
 
     };
-    
+
     // ProjectAnalysisJob Model
     controller.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
