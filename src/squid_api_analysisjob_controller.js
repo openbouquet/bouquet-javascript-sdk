@@ -7,6 +7,114 @@
         factory(root.Backbone, root.squid_api);
     }
 }(this, function (Backbone, squid_api) {
+    
+    // here we expose some models
+
+    squid_api.model.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
+            urlRoot: function() {
+                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+            },
+            error: null,
+            domains: null,
+            dimensions: null,
+            metrics: null,
+            selection: null
+        });
+
+    squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
+            urlRoot: function() {
+                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results" + "?" + "compression="+this.compression+ "&"+"format="+this.format;
+            },
+            error: null,
+            format: "json",
+            compression: "none"
+        });
+    
+    squid_api.model.AnalysisJob = Backbone.Model.extend({
+        results: null,
+
+        initialize: function() {
+            this.set("id", {
+                "projectId": squid_api.projectId,
+                "analysisJobId": null
+            });
+            if (squid_api.domainId) {
+                this.setDomainIds([squid_api.domainId]);
+            }
+        },
+
+        setProjectId : function(projectId) {
+            this.set("id", {
+                    "projectId": projectId,
+                    "analysisJobId": null
+            });
+            return this;
+        },
+
+        setDomainIds : function(domainIdList) {
+            var domains = [];
+            for (var i=0; i<domainIdList.length; i++) {
+                domains.push({
+                    "projectId": this.get("id").projectId,
+                    "domainId": domainIdList[i]
+                });
+            }
+            this.set("domains", domains);
+            return this;
+        },
+
+        setDimensionIds : function(dimensionIdList) {
+            var dims = [];
+            for (var i=0; i<dimensionIdList.length; i++) {
+                dims.push({
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionIdList[i]
+                });
+            }
+            this.set("dimensions", dims);
+            this.trigger("change:dimensions", dims);
+            return this;
+        },
+
+        setDimensionId : function(dimensionId, index) {
+            var dims = this.get("dimensions");
+            index = index || 0;
+            dims[index] = {
+                "projectId": this.get("id").projectId,
+                "domainId": this.get("domains")[0].domainId,
+                "dimensionId": dimensionId
+            };
+            this.set("dimensions", dims);
+            this.trigger("change:dimensions", dims);
+            return this;
+        },
+
+        setMetricIds : function(metricIdList) {
+            var metrics = [];
+            for (var i=0; i<metricIdList.length; i++) {
+                metrics.push({
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "metricId": metricIdList[i]
+                });
+            }
+            this.set("metrics", metrics);
+            return this;
+        },
+
+        isDone : function() {
+            return (this.get("status") == "DONE");
+        }
+    });
+
+    squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
+        isDone : function() {
+            return (this.get("status") == "DONE");
+        }
+    });
+
+    // Controller definition
 
     var controller = {
 
@@ -30,7 +138,7 @@
             }
 
             // create a new AnalysisJob
-            var analysisJob = new controller.ProjectAnalysisJob();
+            var analysisJob = new squid_api.model.ProjectAnalysisJob();
             var projectId;
             if (analysisModel.get("id").projectId) {
                 projectId = analysisModel.get("id").projectId;
@@ -111,17 +219,12 @@
             return observer;
         },
 
-        // backward compatibility
-        computeAnalysis: function(analysisModel, filters) {
-            return this.compute(analysisModel, filters);
-        },
-
         /**
          * retrieve the results.
          */
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
-            var analysisJobResults = new controller.ProjectAnalysisJobResult();
+            var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
             analysisJobResults.set("id", analysisModel.get("id"));
             analysisJobResults.set("oid", analysisModel.get("oid"));
 
@@ -184,114 +287,20 @@
                 multiAnalysisModel.set("status", "DONE");
             });
         },
-
-        AnalysisModel: Backbone.Model.extend({
-            results: null,
-
-            initialize: function() {
-                this.set("id", {
-                    "projectId": squid_api.projectId,
-                    "analysisJobId": null
-                });
-                if (squid_api.domainId) {
-                    this.setDomainIds([squid_api.domainId]);
-                }
-            },
-
-            setProjectId : function(projectId) {
-                this.set("id", {
-                        "projectId": projectId,
-                        "analysisJobId": null
-                });
-                return this;
-            },
-
-            setDomainIds : function(domainIdList) {
-                var domains = [];
-                for (var i=0; i<domainIdList.length; i++) {
-                    domains.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": domainIdList[i]
-                    });
-                }
-                this.set("domains", domains);
-                return this;
-            },
-
-            setDimensionIds : function(dimensionIdList) {
-                var dims = [];
-                for (var i=0; i<dimensionIdList.length; i++) {
-                    dims.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": this.get("domains")[0].domainId,
-                        "dimensionId": dimensionIdList[i]
-                    });
-                }
-                this.set("dimensions", dims);
-                this.trigger("change:dimensions", dims);
-                return this;
-            },
-
-            setDimensionId : function(dimensionId, index) {
-                var dims = this.get("dimensions");
-                index = index || 0;
-                dims[index] = {
-                    "projectId": this.get("id").projectId,
-                    "domainId": this.get("domains")[0].domainId,
-                    "dimensionId": dimensionId
-                };
-                this.set("dimensions", dims);
-                this.trigger("change:dimensions", dims);
-                return this;
-            },
-
-            setMetricIds : function(metricIdList) {
-                var metrics = [];
-                for (var i=0; i<metricIdList.length; i++) {
-                    metrics.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": this.get("domains")[0].domainId,
-                        "metricId": metricIdList[i]
-                    });
-                }
-                this.set("metrics", metrics);
-                return this;
-            },
-
-            isDone : function() {
-                return (this.get("status") == "DONE");
-            }
-        }),
-
-        MultiAnalysisModel: Backbone.Model.extend({
-            isDone : function() {
-                return (this.get("status") == "DONE");
-            }
-        })
+        
+        // backward compatibility
+        
+        computeAnalysis: function(analysisModel, filters) {
+            return this.compute(analysisModel, filters);
+        },
+        
+        AnalysisModel: squid_api.model.AnalysisJob,
+        
+        MultiAnalysisModel: squid_api.model.MultiAnalysisJob
+        
 
     };
-
-    // ProjectAnalysisJob Model
-    controller.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
-            urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
-            },
-            error: null,
-            domains: null,
-            dimensions: null,
-            metrics: null,
-            selection: null
-        });
-
-    // ProjectAnalysisJobResult Model
-    controller.ProjectAnalysisJobResult = controller.ProjectAnalysisJob.extend({
-            urlRoot: function() {
-                return controller.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results" + "?" + "compression="+this.compression+ "&"+"format="+this.format;
-            },
-            error: null,
-            format: "json",
-            compression: "none"
-        });
+    
 
     squid_api.controller.analysisjob = controller;
     return controller;
