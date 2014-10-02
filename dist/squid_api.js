@@ -68,9 +68,11 @@
         compute : function(job, filters) {
             if (this.model.AnalysisJob && this.model.FiltersJob) {
                 if (job instanceof this.model.AnalysisJob) {
-                    this.controller.analysisjob.compute(job);
-                } else if (job instanceof this.model.FacetJob) {
-                    this.controller.facetjob.compute(job);
+                    this.controller.analysisjob.compute(job, filters);
+                } else if (job instanceof this.model.MultiAnalysisJob) {
+                    this.controller.analysisjob.compute(job, filters);
+                } else if (job instanceof this.model.FiltersJob) {
+                    this.controller.facetjob.compute(job, filters);
                 } else {
                     throw Error("Cannot compute Job : "+job);
                 }
