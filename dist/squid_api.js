@@ -842,6 +842,11 @@
             this.set("metrics", metrics);
             return this;
         },
+        
+        setSelection : function(selection) {
+            this.set("selection", selection);
+            return this;
+        },
 
         isDone : function() {
             return (this.get("status") == "DONE");
@@ -864,28 +869,21 @@
          * Create (and execute) a new AnalysisJob.
          * @returns a Jquery Deferred
          */
-        createAnalysisJob: function(analysisModel, filters) {
+        createAnalysisJob: function(analysisModel, selection) {
 
             var observer = $.Deferred();
 
             analysisModel.set("status","RUNNING");
 
-            var selection;
-            if (!filters) {
-                selection =  analysisModel.get("selection");
-            } else {
-                selection =  filters.get("selection");
-            }
-
             // create a new AnalysisJob
-            var analysisJob = new squid_api.model.ProjectAnalysisJob();
+            var projectAnalysisJob = new squid_api.model.ProjectAnalysisJob();
             var projectId;
             if (analysisModel.get("id").projectId) {
                 projectId = analysisModel.get("id").projectId;
             } else {
                 projectId = analysisModel.get("projectId");
             }
-            analysisJob.set({"id" : {
+            projectAnalysisJob.set({"id" : {
                     projectId: projectId,
                     analysisJobId: null},
                     "domains" : analysisModel.get("domains"),
@@ -899,7 +897,7 @@
                 this.fakeServer.respond();
             }
 
-            analysisJob.save({}, {
+            projectAnalysisJob.save({}, {
                 success : function(model, response) {
                     if (model.get("error")) {
                         console.error("createAnalysis error " + model.get("error").message);
@@ -929,34 +927,14 @@
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          */
-        compute: function(analysisModel, filters) {
-            filters = filters || squid_api.model.filters;
-            var observer = $.Deferred();
-
-            /* Run on startup and on dimension change, however this handles
-               an analysis array inside of the analysis model */
-               
-            if (analysisModel.get("analyses")) {
-                this.computeMultiAnalysis(analysisModel, filters);
+        compute: function(analysisJob, filters) {
+            if (analysisJob.get("analyses")) {
+                // compute a multi analysis
+                this.computeMultiAnalysis(analysisJob, filters);
             } else {
-                this.createAnalysisJob(analysisModel, filters)
-                    .done(function(model, response) {
-                        if (model.get("status") == "DONE") {
-                            analysisModel.set("error", model.get("error"));
-                            analysisModel.set("results", model.get("results"));
-                            analysisModel.set("status", "DONE");
-                            observer.resolve(model, response);
-                        } else {
-                            // try to get the results
-                            controller.getAnalysisJobResults(observer, analysisModel);
-                        }
-                    })
-                    .fail(function(model, response) {
-                        observer.reject(model, response);
-                    });
+                // compute a single analysis
+                this.computeSingleAnalysis(analysisJob, filters);
             }
-
-            return observer;
         },
 
         /**
@@ -992,12 +970,51 @@
                 this.fakeServer.respond();
             }
         },
+        
+        /**
+         * Create (and execute) a new Single AnalysisJob, retrieve the results
+         * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
+         * @return Observer (Deferred)
+         */
+        computeSingleAnalysis: function(analysisJob, filters) {
+            var selection, observer = $.Deferred();
+               
+            // compute a single analysis
+            if (!filters) {
+                selection =  analysisJob.get("selection");
+                if (!selection) {
+                    // use default filters
+                    filters = squid_api.model.filters;
+                    selection =  filters.get("selection");
+                }
+            } else {
+                selection =  filters.get("selection");
+            }
+            
+            this.createAnalysisJob(analysisJob, selection)
+                .done(function(model, response) {
+                    if (model.get("status") == "DONE") {
+                        analysisJob.set("error", model.get("error"));
+                        analysisJob.set("results", model.get("results"));
+                        analysisJob.set("status", "DONE");
+                        observer.resolve(model, response);
+                    } else {
+                        // try to get the results
+                        controller.getAnalysisJobResults(observer, analysisJob);
+                    }
+                })
+                .fail(function(model, response) {
+                    observer.reject(model, response);
+                });
+
+            return observer;
+        },
 
         /**
          * Create (and execute) a new MultiAnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          */
-        computeMultiAnalysis: function(multiAnalysisModel, selection) {
+        computeMultiAnalysis: function(multiAnalysisModel, filters) {
             var me = this;
             multiAnalysisModel.set("status", "RUNNING");
             var analyses = multiAnalysisModel.get("analyses");
@@ -1006,7 +1023,7 @@
             var jobs = [];
             for (var i=0; i<analysesCount; i++) {
                 var analysisModel = analyses[i];
-                jobs.push(this.computeAnalysis(analysisModel, selection));
+                jobs.push(this.computeSingleAnalysis(analysisModel, filters));
             }
             console.log("analysesCount : "+analysesCount);
             // wait for jobs completion
@@ -1030,8 +1047,8 @@
         
         // backward compatibility
         
-        computeAnalysis: function(analysisModel, filters) {
-            return this.compute(analysisModel, filters);
+        computeAnalysis: function(analysisJob, filters) {
+            return this.compute(analysisJob, filters);
         },
         
         AnalysisModel: squid_api.model.AnalysisJob,
