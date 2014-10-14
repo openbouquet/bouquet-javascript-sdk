@@ -209,7 +209,7 @@
                     jobModel.set("status", "DONE");
                 } else {
                     // try to get the results
-                    controller.getJobResults(jobModel, filters);
+                    controller.getJobResults(jobModel);
                 }
             },
 
