@@ -53,11 +53,7 @@
                 // lazy deepread the project
                 project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
                 project.setDeepread(true);
-                project.fetch({
-                    success : function(model, response, options) {
-                        this.model.project = project;
-                    }
-                });
+                project.fetch();
             }
             return project;
         },
@@ -332,7 +328,6 @@
                         me.model.project.setDeepread(true);
                         me.model.project.fetch({
                             success : function(model, response, options) {
-                                me.model.project = model;
                                 console.log("project fetched : "+model.get("name"));
                             },
                             error : function(model, response, options) {
