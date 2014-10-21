@@ -202,6 +202,12 @@
                 jobModel.set("id", model.get("id"));
                 jobModel.set("oid", model.get("oid"));
                 if (model.get("status") == "DONE") {
+                    var t = model.get("statistics");
+                    if (t) {
+                        console.log("FacetJob computation time : "+(t.endTime-t.startTime) + " ms");
+                    }
+                    // update the Model
+                    jobModel.set("statistics", t);
                     jobModel.set("error", model.get("error"));
                     if (model.get("results")) {
                         jobModel.set("selection", {"facets" : model.get("results").facets});
@@ -240,7 +246,12 @@
                             // retry
                             controller.getJobResults(jobModel);
                         } else {
+                            var t = model.get("statistics");
+                            if (t) {
+                                console.log("FacetJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            }
                             // update the Model
+                            jobModel.set("statistics", t);
                             jobModel.set("error", null);
                             jobModel.set("selection", {"facets" : model.get("facets")});
                             jobModel.set("status", "DONE");

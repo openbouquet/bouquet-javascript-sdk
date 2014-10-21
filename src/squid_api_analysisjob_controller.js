@@ -218,7 +218,12 @@
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
+                        var t = model.get("statistics");
+                        if (t) {
+                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                        }
                         // update the analysis Model
+                        analysisModel.set("statistics", t);
                         analysisModel.set("error", null);
                         analysisModel.set("results", model.toJSON());
                         analysisModel.set("status", "DONE");
@@ -254,6 +259,12 @@
             this.createAnalysisJob(analysisJob, selection)
                 .done(function(model, response) {
                     if (model.get("status") == "DONE") {
+                        var t = model.get("statistics");
+                        if (t) {
+                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                        }
+                        // update the analysis Model
+                        analysisJob.set("statistics", t);
                         analysisJob.set("error", model.get("error"));
                         analysisJob.set("results", model.get("results"));
                         analysisJob.set("status", "DONE");
