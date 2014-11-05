@@ -58,6 +58,17 @@
             return project;
         },
         
+        getProjects : function(callback) {
+            var project = this.model.project;
+            if ((!project) || (project.get("oid") != this.projectId)) {
+                // lazy deepread the project
+                project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+                project.setDeepread(true);
+                project.fetch();
+            }
+            return project;
+        },
+        
         /**
          * Compute an AnalysisJob or a FacetJob.
          */
@@ -452,8 +463,17 @@
     });
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
+        parentId : null,
+        deepread : false,
+        
+        setDeepread : function(v) {
+            this.deepread = v;
+        },
+        
         initialize : function(model, options) {
-            this.parentId = options.parentId;
+            if (options) {
+                this.parentId = options.parentId;
+            }
         },
         baseRoot: function() {
             return squid_api.apiURL;
@@ -461,12 +481,23 @@
         urlRoot: function() {
             return this.baseRoot();
         },
+        
         url: function() {
             var url = this.urlRoot();
-            url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+            if (typeof this.timeoutMillis === 'undefined' ) {
+                url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+            } else {
+                if (this.timeoutMillis !== null) {
+                    url = this.addParam(url, "timeout",this.timeoutMillis());
+                }
+            }
             url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            if (this.deepread === true) {
+                url = this.addParam(url, "deepread", "1");
+            }
             return url;
         },
+        
         error: null,
         addParam : function(url, name, value) {
             if (value) {
