@@ -47,26 +47,33 @@
             return this;
         },
         
-        getProject : function(callback) {
+        setProjectId : function(oid) {
+            this.projectId = oid;
+            if (!this.model.project) {
+                this.model.project = new squid_api.model.ProjectModel();
+            }
+            this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent": true});
+        },
+        
+        getProject : function() {
             var project = this.model.project;
+            // lazy deepread the project
             if ((!project) || (project.get("oid") != this.projectId)) {
-                // lazy deepread the project
-                project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
-                project.setDeepread(true);
-                project.fetch();
+                this.fetchProject();
             }
             return project;
         },
         
-        getProjects : function(callback) {
-            var project = this.model.project;
-            if ((!project) || (project.get("oid") != this.projectId)) {
-                // lazy deepread the project
-                project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
-                project.setDeepread(true);
-                project.fetch();
-            }
-            return project;
+        fetchProject : function() {
+            this.model.project.setDeepread(true);
+            this.model.project.fetch({
+                success : function(model, response, options) {
+                    console.log("project fetched : "+model.get("name"));
+                },
+                error : function(model, response, options) {
+                    console.error("project fetch failed");
+                }
+            });
         },
         
         /**
@@ -223,12 +230,11 @@
                 this.clientId = args.clientId;
             }
             
-            this.projectId = squid_api.utils.getParamValue("projectId",null);
-            if (!this.projectId) {
-                this.projectId = args.projectId;
+            var projectId = squid_api.utils.getParamValue("projectId",null);
+            if (!projectId) {
+                projectId = args.projectId;
             }
-            
-            this.model.project = new squid_api.model.ProjectModel({"id" : {"customerId" : this.customerId, "projectId" : this.projectId}});
+            this.setProjectId(projectId);
             
             var defaultSelection = null;
             if (args.selection) {
@@ -301,8 +307,6 @@
                 timeoutMillis = 10*1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
-            
-            
 
         },
 
@@ -335,16 +339,7 @@
                 if (model.get("login")) {
                     // login ok
                     if (me.projectId) {
-                        // lazy deepread the project
-                        me.model.project.setDeepread(true);
-                        me.model.project.fetch({
-                            success : function(model, response, options) {
-                                console.log("project fetched : "+model.get("name"));
-                            },
-                            error : function(model, response, options) {
-                                console.error("project fetch failed");
-                            }
-                        });
+                        me.fetchProject();
                     }
                 }
             });
