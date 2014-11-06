@@ -78,7 +78,7 @@
         },
 
         setDimensionId : function(dimensionId, index) {
-            var dims = this.get("dimensions");
+            var dims = this.get("dimensions") || [];
             index = index || 0;
             dims[index] = {
                 "projectId": this.get("id").projectId,
