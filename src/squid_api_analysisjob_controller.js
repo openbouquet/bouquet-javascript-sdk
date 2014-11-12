@@ -44,41 +44,60 @@
         },
 
         setProjectId : function(projectId) {
-            this.set("id", {
-                    "projectId": projectId,
-                    "analysisJobId": null
-            });
+            this.set({"id": {
+                "projectId": projectId,
+                "analysisJobId": null
+            },
+            "domains": null,
+            "dimensions" : null,
+            "metrics" : null,
+            "selection" : null}
+            );
             return this;
         },
 
         setDomainIds : function(domainIdList) {
-            var domains = [];
-            for (var i=0; i<domainIdList.length; i++) {
-                domains.push({
-                    "projectId": this.get("id").projectId,
-                    "domainId": domainIdList[i]
-                });
+            var domains;
+            if (domainIdList) {
+                domains = [];
+                for (var i=0; i<domainIdList.length; i++) {
+                    domains.push({
+                        "projectId": this.get("id").projectId,
+                        "domainId": domainIdList[i]
+                    });
+                }
+                
+            } else {
+                domains = null;
             }
-            this.set("domains", domains);
+            this.set({"domains": domains,
+                "dimensions": null,
+                "metrics": null,
+                "selection": null}
+            );
             return this;
         },
 
         setDimensionIds : function(dimensionIdList) {
-            var dims = [];
-            for (var i=0; i<dimensionIdList.length; i++) {
-                dims.push({
-                    "projectId": this.get("id").projectId,
-                    "domainId": this.get("domains")[0].domainId,
-                    "dimensionId": dimensionIdList[i]
-                });
+            var dims;
+            if (dimensionIdList) {
+                dims = [];
+                for (var i=0; i<dimensionIdList.length; i++) {
+                    dims.push({
+                        "projectId": this.get("id").projectId,
+                        "domainId": this.get("domains")[0].domainId,
+                        "dimensionId": dimensionIdList[i]
+                    });
+                }
+            } else {
+                dims = null;
             }
             this.set("dimensions", dims);
-            this.trigger("change:dimensions", dims);
             return this;
         },
 
         setDimensionId : function(dimensionId, index) {
-            var dims = this.get("dimensions") || [];
+            var dims = this.get("dimensions").slice(0) || [];
             index = index || 0;
             dims[index] = {
                 "projectId": this.get("id").projectId,
@@ -86,20 +105,36 @@
                 "dimensionId": dimensionId
             };
             this.set("dimensions", dims);
-            this.trigger("change:dimensions", dims);
             return this;
         },
 
         setMetricIds : function(metricIdList) {
-            var metrics = [];
-            for (var i=0; i<metricIdList.length; i++) {
-                metrics.push({
-                    "projectId": this.get("id").projectId,
-                    "domainId": this.get("domains")[0].domainId,
-                    "metricId": metricIdList[i]
-                });
+            var metrics;
+            if (metricIdList) {
+                metrics = [];
+                for (var i=0; i<metricIdList.length; i++) {
+                    metrics.push({
+                        "projectId": this.get("id").projectId,
+                        "domainId": this.get("domains")[0].domainId,
+                        "metricId": metricIdList[i]
+                    });
+                }
+            } else {
+                metrics = null;
             }
             this.set("metrics", metrics);
+            return this;
+        },
+        
+        setMetricId : function(metricId, index) {
+            var items = this.get("metrics").slice(0) || [];
+            index = index || 0;
+            items[index] = {
+                "projectId": this.get("id").projectId,
+                "domainId": this.get("domains")[0].domainId,
+                "metricId": metricId
+            };
+            this.set("metrics", items);
             return this;
         },
         

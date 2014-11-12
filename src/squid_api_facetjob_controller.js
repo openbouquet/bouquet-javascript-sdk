@@ -40,21 +40,29 @@
         },
         
         setProjectId : function(projectId) {
-            this.set("id", {
+            this.set({"id": {
                 "projectId": projectId
-            });
+            },
+            "domains": null,
+            "selection" : null}
+            );
             return this;
         },
 
         setDomainIds : function(domainIdList) {
-            var domains = [];
-            for (var i=0; i<domainIdList.length; i++) {
-                domains.push({
-                    "projectId": this.get("id").projectId,
-                    "domainId": domainIdList[i]
-                });
+            var domains;
+            if (domainIdList) {
+                domains = [];
+                for (var i=0; i<domainIdList.length; i++) {
+                    domains.push({
+                        "projectId": this.get("id").projectId,
+                        "domainId": domainIdList[i]
+                    });
+                }
+            } else {
+                domains = null;
             }
-            this.set("domains", domains);
+            this.set({"domains" : domains, "selection" : null});
             return this;
         },
 
