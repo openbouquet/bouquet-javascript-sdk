@@ -62,7 +62,7 @@
             } else {
                 domains = null;
             }
-            this.set({"domains" : domains, "selection" : null});
+            this.set({"domains" : domains});
             return this;
         },
 

@@ -176,8 +176,9 @@
             }
         },
         
-        setProjectId : function(oid) {
+        setProjectId : function(oid, chain) {
             var me = this;
+            var dfd = new $.Deferred();
             this.projectId = oid;
             this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent" : true});
             this.model.project.setDeepread(true);
@@ -186,11 +187,14 @@
                     console.log("project fetched : "+model.get("name"));
                     me.model.status.set("project", model.get("id"));
                     me.model.status.set("domain", null);
+                    dfd.resolve();
                 },
                 error : function(model, response, options) {
                     console.error("project fetch failed");
+                    dfd.reject();
                 }
             });
+            return dfd.promise();
         },
         
         setDomainId : function(oid) {
@@ -368,11 +372,14 @@
                     // login ok
                     if (me.projectId) {
                         // set the projectId
-                        me.setProjectId(me.projectId);
-                    }
-                    if (me.domainId) {
-                        // set the domainId
-                        me.setDomainId(me.domainId);
+                        $.when(me.setProjectId(me.projectId)).then(
+                                function() {
+                                    if (me.domainId) {
+                                        // set the domainId
+                                        me.setDomainId(me.domainId);
+                                    }
+                                }
+                        );
                     }
                 }
             });
