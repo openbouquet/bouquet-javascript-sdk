@@ -854,7 +854,8 @@
             "domains": null,
             "dimensions" : null,
             "metrics" : null,
-            "selection" : null}
+            "selection" : null,
+            "results" : null}
             );
             return this;
         },
@@ -876,7 +877,8 @@
             this.set({"domains": domains,
                 "dimensions": null,
                 "metrics": null,
-                "selection": null}
+                "selection": null,
+                "results" : null}
             );
             return this;
         },
