@@ -12,7 +12,9 @@
 
     squid_api.model.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+                var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
+                url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+                return url;
             },
             error: null,
             domains: null,
@@ -23,17 +25,15 @@
 
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results" + "?" + "compression="+this.compression+ "&"+"format="+this.format;
+                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
             },
-            error: null,
-            format: "json",
-            compression: "none"
+            error: null
         });
     
-    squid_api.model.AnalysisJob = Backbone.Model.extend({
+    squid_api.model.AnalysisJob = squid_api.model.BaseModel.extend({
         results: null,
 
-        initialize: function() {
+        initialize: function(attributes, options) {
             this.set("id", {
                 "projectId": squid_api.projectId,
                 "analysisJobId": null

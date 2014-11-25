@@ -181,7 +181,7 @@
             var dfd = new $.Deferred();
             this.projectId = oid;
             this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent" : true});
-            this.model.project.setDeepread(true);
+            this.model.project.addParameter("deepread", "1");
             this.model.project.fetch({
                 success : function(model, response, options) {
                     console.log("project fetched : "+model.get("name"));
@@ -407,10 +407,23 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
         
-        deepread : false,
+
+        addParameter : function(name, value) {
+            this.parameters.push({"name" : name, "value" : value});
+        },
         
-        setDeepread : function(v) {
-            this.deepread = v;
+        initialize: function(attributes, options) {
+            if (options) {
+                this.parameters = options.parameters;
+            }
+        },
+        
+        constructor: function() {
+            // Define the parameters object off of the prototype chain
+            this.parameters = [];
+
+            // Call the original constructor
+            Backbone.Model.apply(this, arguments);
         },
         
         idAttribute: "oid",
@@ -431,8 +444,12 @@
                 }
             }
             url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
-            if (this.deepread === true) {
-                url = this.addParam(url, "deepread", "1");
+            // add parameters
+            if (this.parameters) {
+                for (var i=0; i<this.parameters.length; i++) {
+                    var param = this.parameters[i];
+                    url = this.addParam(url, param.name, param.value);
+                }
             }
             return url;
         },
@@ -499,15 +516,17 @@
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
         parentId : null,
-        deepread : false,
         
-        setDeepread : function(v) {
-            this.deepread = v;
+        parameters : [],
+        
+        addParameter : function(name, value) {
+            this.parameters.push({"name" : name, "value" : value});
         },
         
         initialize : function(model, options) {
             if (options) {
                 this.parentId = options.parentId;
+                this.parameters = options.parameters;
             }
         },
         baseRoot: function() {
@@ -527,8 +546,12 @@
                 }
             }
             url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
-            if (this.deepread === true) {
-                url = this.addParam(url, "deepread", "1");
+            // add parameters
+            if (this.parameters) {
+                for (var i=0; i<this.parameters.length; i++) {
+                    var param = this.parameters[i];
+                    url = this.addParam(url, param.name, param.value);
+                }
             }
             return url;
         },
@@ -815,7 +838,9 @@
 
     squid_api.model.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+                var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
+                url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+                return url;
             },
             error: null,
             domains: null,
@@ -826,17 +851,15 @@
 
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
             urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results" + "?" + "compression="+this.compression+ "&"+"format="+this.format;
+                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
             },
-            error: null,
-            format: "json",
-            compression: "none"
+            error: null
         });
     
-    squid_api.model.AnalysisJob = Backbone.Model.extend({
+    squid_api.model.AnalysisJob = squid_api.model.BaseModel.extend({
         results: null,
 
-        initialize: function() {
+        initialize: function(attributes, options) {
             this.set("id", {
                 "projectId": squid_api.projectId,
                 "analysisJobId": null
