@@ -1007,6 +1007,16 @@
     });
 
     squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
+        
+        setProjectId : function(projectId) {
+            var analyses = this.get("analyses");
+            if (analyses) {
+                for (var i=0; i<analyses.length;i++) {
+                    analyses[i].setProjectId(projectId);
+                }
+            }
+        },
+        
         isDone : function() {
             return (this.get("status") == "DONE");
         }
