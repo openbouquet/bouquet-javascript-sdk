@@ -845,6 +845,7 @@
             error: null,
             domains: null,
             dimensions: null,
+            dimensionsChosen: null,
             metrics: null,
             selection: null
         });
@@ -871,16 +872,15 @@
 
         setProjectId : function(projectId) {
             this.set({"id": {
-                    "projectId": projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "domains": null,
-                "dimensions" : null,
-                "metrics" : null,
-                "selection" : null,
-                "results" : null
-            });
+                "projectId": projectId,
+                "analysisJobId": null
+            },
+            "domains": null,
+            "dimensions" : null,
+            "metrics" : null,
+            "selection" : null,
+            "results" : null}
+            );
             return this;
         },
 
@@ -898,17 +898,12 @@
             } else {
                 domains = null;
             }
-            this.set({"id": {
-                    "projectId": this.get("id").projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "domains": domains,
-                "dimensions" : null,
-                "metrics" : null,
-                "selection" : null,
-                "results" : null
-            });
+            this.set({"domains": domains,
+                "dimensions": null,
+                "metrics": null,
+                "selection": null,
+                "results" : null}
+            );
             return this;
         },
 
@@ -926,19 +921,7 @@
             } else {
                 dims = null;
             }
-            this.setDimensions(dims);
-            return this;
-        },
-        
-        setDimensions : function(dimensions) {
-            this.set({"id": {
-                    "projectId": this.get("id").projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "dimensions" : dimensions,
-                "results" : null
-            });
+            this.set("dimensions", dims);
             return this;
         },
 
@@ -950,7 +933,7 @@
                 "domainId": this.get("domains")[0].domainId,
                 "dimensionId": dimensionId
             };
-            this.setDimensions(dims);
+            this.set("dimensions", dims);
             return this;
         },
 
@@ -968,19 +951,7 @@
             } else {
                 metrics = null;
             }
-            this.setMetrics(metrics);
-            return this;
-        },
-        
-        setMetrics : function(metrics) {
-            this.set({"id": {
-                    "projectId": this.get("id").projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "metrics" : metrics,
-                "results" : null
-            });
+            this.set("metrics", metrics);
             return this;
         },
         
@@ -992,7 +963,7 @@
                 "domainId": this.get("domains")[0].domainId,
                 "metricId": metricId
             };
-            this.setMetrics(items);
+            this.set("metrics", items);
             return this;
         },
         
@@ -1007,16 +978,6 @@
     });
 
     squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
-        
-        setProjectId : function(projectId) {
-            var analyses = this.get("analyses");
-            if (analyses) {
-                for (var i=0; i<analyses.length;i++) {
-                    analyses[i].setProjectId(projectId);
-                }
-            }
-        },
-        
         isDone : function() {
             return (this.get("status") == "DONE");
         }
@@ -1154,17 +1115,6 @@
                     // use default filters
                     filters = squid_api.model.filters;
                     selection =  filters.get("selection");
-                    if (selection && selection.facets) {
-                        // cleanup off the facets
-                        for (var i=0; i<selection.facets.length; i++) {
-                            var facet = selection.facets[i];
-                            // remove items
-                            delete facet.items;
-                            delete facet.totalSize;
-                            // cleanup dimensions
-                            facet.dimension = {"id":facet.dimension.id};
-                        }
-                    }
                 }
             } else {
                 selection =  filters.get("selection");
