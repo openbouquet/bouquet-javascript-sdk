@@ -91,11 +91,13 @@
             if (dimensionIdList) {
                 dims = [];
                 for (var i=0; i<dimensionIdList.length; i++) {
-                    dims.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": this.get("domains")[0].domainId,
-                        "dimensionId": dimensionIdList[i]
-                    });
+                    if (dimensionIdList[i]) {
+                        dims.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": this.get("domains")[0].domainId,
+                            "dimensionId": dimensionIdList[i]
+                        });
+                    }
                 }
             } else {
                 dims = null;
@@ -105,19 +107,13 @@
         },
 
         setDimensions : function(dimensions) {
-            this.set({"id": {
-                    "projectId": this.get("id").projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "dimensions" : dimensions,
-                "results" : null
-            });
+            this.set("dimensions", dimensions);
             return this;
         },
 
         setDimensionId : function(dimensionId, index) {
-            var dims = this.get("dimensions").slice(0) || [];
+            var dims = this.get("dimensions") || [];
+            dims = dims.slice(0);
             index = index || 0;
             dims[index] = {
                 "projectId": this.get("id").projectId,
@@ -133,11 +129,13 @@
             if (metricIdList) {
                 metrics = [];
                 for (var i=0; i<metricIdList.length; i++) {
-                    metrics.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": this.get("domains")[0].domainId,
-                        "metricId": metricIdList[i]
-                    });
+                    if (metricIdList[i]) {
+                        metrics.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": this.get("domains")[0].domainId,
+                            "metricId": metricIdList[i]
+                        });
+                    }
                 }
             } else {
                 metrics = null;
@@ -147,19 +145,13 @@
         },
         
         setMetrics : function(metrics) {
-            this.set({"id": {
-                    "projectId": this.get("id").projectId,
-                    "analysisJobId": null
-                },
-                "oid" : null,
-                "metrics" : metrics,
-                "results" : null
-            });
+            this.set("metrics", metrics);
             return this;
         },
         
         setMetricId : function(metricId, index) {
-            var items = this.get("metrics").slice(0) || [];
+            var items = this.get("metrics") || [];
+            items = items.slice(0);
             index = index || 0;
             items[index] = {
                 "projectId": this.get("id").projectId,
