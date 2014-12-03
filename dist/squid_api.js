@@ -845,7 +845,6 @@
             error: null,
             domains: null,
             dimensions: null,
-            dimensionsChosen: null,
             metrics: null,
             selection: null
         });
@@ -875,12 +874,13 @@
                 "projectId": projectId,
                 "analysisJobId": null
             },
+            "oid" : null,
             "domains": null,
             "dimensions" : null,
             "metrics" : null,
             "selection" : null,
-            "results" : null}
-            );
+                "results" : null
+            });
             return this;
         },
 
@@ -898,12 +898,17 @@
             } else {
                 domains = null;
             }
-            this.set({"domains": domains,
+            this.set({"id": {
+                    "projectId": this.get("id").projectId,
+                    "analysisJobId": null
+                },
+                "oid" : null,
+                "domains": domains,
                 "dimensions": null,
                 "metrics": null,
                 "selection": null,
-                "results" : null}
-            );
+                "results" : null
+            });
             return this;
         },
 
@@ -921,7 +926,19 @@
             } else {
                 dims = null;
             }
-            this.set("dimensions", dims);
+            this.setDimensions(dims);
+            return this;
+        },
+
+        setDimensions : function(dimensions) {
+            this.set({"id": {
+                    "projectId": this.get("id").projectId,
+                    "analysisJobId": null
+                },
+                "oid" : null,
+                "dimensions" : dimensions,
+                "results" : null
+            });
             return this;
         },
 
@@ -933,7 +950,7 @@
                 "domainId": this.get("domains")[0].domainId,
                 "dimensionId": dimensionId
             };
-            this.set("dimensions", dims);
+            this.setDimensions(dims);
             return this;
         },
 
@@ -951,7 +968,19 @@
             } else {
                 metrics = null;
             }
-            this.set("metrics", metrics);
+            this.setMetrics(metrics);
+            return this;
+        },
+        
+        setMetrics : function(metrics) {
+            this.set({"id": {
+                    "projectId": this.get("id").projectId,
+                    "analysisJobId": null
+                },
+                "oid" : null,
+                "metrics" : metrics,
+                "results" : null
+            });
             return this;
         },
         
@@ -963,7 +992,7 @@
                 "domainId": this.get("domains")[0].domainId,
                 "metricId": metricId
             };
-            this.set("metrics", items);
+            this.setMetrics(items);
             return this;
         },
         
@@ -978,6 +1007,16 @@
     });
 
     squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
+        
+        setProjectId : function(projectId) {
+            var analyses = this.get("analyses");
+            if (analyses) {
+                for (var i=0; i<analyses.length;i++) {
+                    analyses[i].setProjectId(projectId);
+                }
+            }
+        },
+        
         isDone : function() {
             return (this.get("status") == "DONE");
         }
@@ -1115,6 +1154,17 @@
                     // use default filters
                     filters = squid_api.model.filters;
                     selection =  filters.get("selection");
+                    if (selection && selection.facets) {
+                        // cleanup off the facets
+                        for (var i=0; i<selection.facets.length; i++) {
+                            var facet = selection.facets[i];
+                            // remove items
+                            delete facet.items;
+                            delete facet.totalSize;
+                            // cleanup dimensions
+                            facet.dimension = {"id":facet.dimension.id};
+                        }
+                    }
                 }
             } else {
                 selection =  filters.get("selection");
