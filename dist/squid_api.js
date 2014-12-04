@@ -828,11 +828,11 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD.
-        define(['Backbone', 'squid_api'], factory);
+        define(['Backbone', '_', 'squid_api'], factory);
     } else {
-        factory(root.Backbone, root.squid_api);
+        factory(root.Backbone, _, root.squid_api);
     }
-}(this, function (Backbone, squid_api) {
+}(this, function (Backbone, _, squid_api) {
     
     // here we expose some models
 
@@ -1141,21 +1141,23 @@
                
             // compute a single analysis
             if (!filters) {
-                selection =  analysisJob.get("selection");
-                if (!selection) {
+                if (!analysisJob.get("selection")) {
                     // use default filters
-                    filters = squid_api.model.filters;
-                    selection =  filters.get("selection");
+                    selection =  squid_api.model.filters.get("selection");
                     if (selection && selection.facets) {
-                        // cleanup off the facets
+                        // cleanup the facets
+                        var cleanSelection = {"facets" : []};
                         for (var i=0; i<selection.facets.length; i++) {
                             var facet = selection.facets[i];
-                            // remove items
-                            delete facet.items;
-                            delete facet.totalSize;
-                            // cleanup dimensions
-                            facet.dimension = {"id":facet.dimension.id};
+                            cleanSelection.facets.push({
+                                "dimension" : {
+                                        "id":facet.dimension.id
+                                    },
+                                "id" : facet.id,
+                                "selectedItems" : facet.selectedItems
+                            });
                         }
+                        selection = cleanSelection;
                     }
                 }
             } else {
