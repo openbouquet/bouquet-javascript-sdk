@@ -1045,6 +1045,8 @@
                     "dimensions": analysisModel.get("dimensions"),
                     "metrics": analysisModel.get("metrics"),
                     "autoRun": analysisModel.get("autoRun"),
+                    "limit": analysisModel.get("limit"),
+                    "orderBy": analysisModel.get("orderBy"),
                     "selection": selection});
 
             // save the analysisJob to API
