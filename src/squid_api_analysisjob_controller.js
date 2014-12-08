@@ -212,6 +212,7 @@
             } else {
                 projectId = analysisModel.get("projectId");
             }
+            projectAnalysisJob.parameters = analysisModel.parameters;
             projectAnalysisJob.set({"id" : {
                     projectId: projectId,
                     analysisJobId: null},

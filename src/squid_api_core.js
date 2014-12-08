@@ -436,24 +436,41 @@
         },
         url: function() {
             var url = this.urlRoot();
-            if (typeof this.timeoutMillis === 'undefined' ) {
-                url = this.addParam(url, "timeout",squid_api.timeoutMillis);
-            } else {
-                if (this.timeoutMillis !== null) {
-                    url = this.addParam(url, "timeout",this.timeoutMillis());
+            if (!this.hasParam("timeout")) {
+                if (typeof this.timeoutMillis === 'undefined' ) {
+                    url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+                } else {
+                    if (this.timeoutMillis !== null) {
+                        url = this.addParam(url, "timeout",this.timeoutMillis());
+                    }
                 }
             }
-            url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            if (!this.hasParam("access_token")) {
+                url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            }
             // add parameters
             if (this.parameters) {
                 for (var i=0; i<this.parameters.length; i++) {
                     var param = this.parameters[i];
-                    url = this.addParam(url, param.name, param.value);
+                    if (param.value !== null) {
+                        url = this.addParam(url, param.name, param.value);
+                    }
                 }
             }
             return url;
         },
         error: null,
+        hasParam: function(name) {
+            var hasParam = false, i=0;
+            while (i<this.parameters.length && (!hasParam)) {
+                var param = this.parameters[i];
+                if (param.name == name) {
+                    hasParam = true;
+                }
+                i++;
+            }
+            return hasParam;
+        },
         addParam : function(url, name, value) {
             if (value) {
                 var delim;
