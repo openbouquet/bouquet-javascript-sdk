@@ -356,6 +356,8 @@
                 if (!analysisJob.get("selection")) {
                     // use default filters
                     selection =  squid_api.model.filters.get("selection");
+                } else {
+                    selection = analysisJob.get("selection");
                 }
             } else {
                 selection =  filters.get("selection");
