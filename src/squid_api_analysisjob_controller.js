@@ -163,6 +163,23 @@
         },
         
         setSelection : function(selection) {
+            // cleanup the selection (keep only required attributes)
+            if (selection && selection.facets) {
+                var cleanSelection = {"facets" : []};
+                for (var i=0; i<selection.facets.length; i++) {
+                    var facet = selection.facets[i];
+                    if (facet.selectedItems && facet.selectedItems.length>0) {
+                        cleanSelection.facets.push({
+                            "dimension" : {
+                                    "id":facet.dimension.id
+                                },
+                            "id" : facet.id,
+                            "selectedItems" : facet.selectedItems
+                        });
+                    }
+                }
+                selection = cleanSelection;
+            }
             this.set("selection", selection);
             return this;
         },
@@ -203,6 +220,24 @@
             var observer = $.Deferred();
 
             analysisModel.set("status","RUNNING");
+            
+            // cleanup the selection (keep only required attributes)
+            if (selection && selection.facets) {
+                var cleanSelection = {"facets" : []};
+                for (var i=0; i<selection.facets.length; i++) {
+                    var facet = selection.facets[i];
+                    if (facet.selectedItems && facet.selectedItems.length>0) {
+                        cleanSelection.facets.push({
+                            "dimension" : {
+                                    "id":facet.dimension.id
+                                },
+                            "id" : facet.id,
+                            "selectedItems" : facet.selectedItems
+                        });
+                    }
+                }
+                selection = cleanSelection;
+            }
 
             // create a new AnalysisJob
             var projectAnalysisJob = new squid_api.model.ProjectAnalysisJob();
@@ -321,21 +356,6 @@
                 if (!analysisJob.get("selection")) {
                     // use default filters
                     selection =  squid_api.model.filters.get("selection");
-                    if (selection && selection.facets) {
-                        // cleanup the facets
-                        var cleanSelection = {"facets" : []};
-                        for (var i=0; i<selection.facets.length; i++) {
-                            var facet = selection.facets[i];
-                            cleanSelection.facets.push({
-                                "dimension" : {
-                                        "id":facet.dimension.id
-                                    },
-                                "id" : facet.id,
-                                "selectedItems" : facet.selectedItems
-                            });
-                        }
-                        selection = cleanSelection;
-                    }
                 }
             } else {
                 selection =  filters.get("selection");
