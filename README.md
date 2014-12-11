@@ -39,7 +39,7 @@ The arguments are :
 
 Some of these arguments may also be overridden by setting URL parameters such as :  
 https://api.squidsolutions.com/apps/release/squidflow/?apiUrl=api.squidsolutions.com&projectId=squidflow&domainId=usage&customerId=squid  
-in addition to this, some extra parameter are supported :  
+In addition to this, some extra parameter are supported :  
 * `api` : the api branch (dev/staging/release)
 * `version` : the api version (4.2)
 * `loginUrl` : full URL to the login endpoint
