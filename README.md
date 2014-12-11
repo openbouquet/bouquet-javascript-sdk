@@ -29,27 +29,27 @@ api.setup({
 ```
 
 The arguments are :  
-* "clientId" : a required Client Id (ie. the application id)
-* "apiUrl" : the API endpoint (default is "api.squidsolutions.com")
-* "customerId" : an optional Customer Id
-* "projectId" : an optional Project Id,
-* "domainId" : an optional Domain Id,
-* "selection" : an optional filter selection,
-* "filtersDefaultEvents" : if true or non specified, the default filters controller will be used.
+* `clientId` : a required Client Id (ie. the application id)
+* `apiUrl` : the API endpoint (default is "api.squidsolutions.com")
+* `customerId` : an optional Customer Id
+* `projectId` : an optional Project Id,
+* `domainId` : an optional Domain Id,
+* `selection` : an optional filter selection,
+* `filtersDefaultEvents` : if true or non specified, the default filters controller will be used.
 
 Some of these arguments may also be overridden by setting URL parameters such as :  
 https://api.squidsolutions.com/apps/release/squidflow/?apiUrl=api.squidsolutions.com&projectId=squidflow&domainId=usage&customerId=squid  
 in addition to this, some extra parameter are supported :  
-* "api" : the api branch (dev/staging/release)
-* "version" : the api version (4.2)
-* loginUrl : full URL to the login endpoint
+* `api` : the api branch (dev/staging/release)
+* `version` : the api version (4.2)
+* `loginUrl` : full URL to the login endpoint
 
 
 ## Authentication management
 
 ## Application state management
 The api object holds various Models :  
-* squid_api.model.filters : a FiltersModel object
+* squid_api.model.filters : the default FiltersModel object (the one used by the FiltersWidget by default).
 
 ## Default Filter controller
 If not disabled the following event listeners will be set on api setup :  
