@@ -49,8 +49,41 @@ In addition to this, some extra parameter are supported :
 
 ## Application state management
 The api object holds various Models :  
-* squid_api.model.filters : the default FiltersModel object (the one used by the FiltersWidget by default).
 
+### FiltersModel
+`squid_api.model.filters` : the default FiltersModel object (the one used by the FiltersWidget by default).  
+Here is a sample FiltersModel :
+```json
+{
+	"selection" : {
+	    "facets" : [ {
+	        "dimension" : {
+	            "id" : {
+	                "projectId" : "musicbrainz",
+	                "domainId" : "artist",
+	                "dimensionId" : "last_updated"
+	            },
+	            "expression" : {
+	                "value" : "TO_DATE('last_updated')"
+	            },
+                "name" : "Last Updated",
+                "oid" : "last_updated", 
+                "type": "CONTINUOUS"
+	        },
+	        "items" : [ {
+                "type" : "i",
+                "lowerBound" : "2008-01-01T23:00:00.000+0000",
+                "upperBound" : "2014-10-06T23:00:00.000+0000"
+            } ]
+	        "selectedItems" : [ {
+	            "type" : "i",
+	            "lowerBound" : "2014-10-05T23:00:00.000+0000",
+	            "upperBound" : "2014-10-06T23:00:00.000+0000"
+	        } ]
+	    } ]
+	}
+}	
+```
 ## Default Filter controller
 If not disabled the following event listeners will be set on api setup :  
 
