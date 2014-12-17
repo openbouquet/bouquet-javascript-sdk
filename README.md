@@ -71,10 +71,10 @@ Here is a sample FiltersModel :
                 "type": "CONTINUOUS"
 	        },
 	        "items" : [ {
-                "type" : "i",
-                "lowerBound" : "2008-01-01T23:00:00.000+0000",
-                "upperBound" : "2014-10-06T23:00:00.000+0000"
-            } ]
+                	"type" : "i",
+                	"lowerBound" : "2008-01-01T23:00:00.000+0000",
+                	"upperBound" : "2014-10-06T23:00:00.000+0000"
+            	} ],
 	        "selectedItems" : [ {
 	            "type" : "i",
 	            "lowerBound" : "2014-10-05T23:00:00.000+0000",
