@@ -679,7 +679,7 @@
                         squid_api.customerId = model.get("customerId");
                         // verify the clientId
                         if (model.get("clientId") != this.clientId) {
-                            model.set("login", null);
+                            console.log("WARN : the Token used doesn't match you application's ClientId");
                         }
     
                         // update login model from server
