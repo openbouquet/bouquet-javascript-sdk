@@ -679,7 +679,7 @@
                         squid_api.customerId = model.get("customerId");
                         // verify the clientId
                         if (model.get("clientId") != this.clientId) {
-                            model.set("login", null);
+                            console.log("WARN : the Token used doesn't match you application's ClientId");
                         }
     
                         // update login model from server
@@ -929,7 +929,7 @@
             return this;
         },
 
-        setDimensionIds : function(dimensionIdList) {
+        setDimensionIds : function(dimensionIdList, silent) {
             var dims;
             if (dimensionIdList) {
                 dims = [];
@@ -945,12 +945,13 @@
             } else {
                 dims = null;
             }
-            this.setDimensions(dims);
+            this.setDimensions(dims, silent);
             return this;
         },
 
-        setDimensions : function(dimensions) {
-            this.set("dimensions", dimensions);
+        setDimensions : function(dimensions, silent) {
+            silent = silent || false;
+            this.set({"dimensions": dimensions}, {"silent" : silent});
             return this;
         },
 
@@ -967,7 +968,7 @@
             return this;
         },
 
-        setMetricIds : function(metricIdList) {
+        setMetricIds : function(metricIdList, silent) {
             var metrics;
             if (metricIdList) {
                 metrics = [];
@@ -983,12 +984,13 @@
             } else {
                 metrics = null;
             }
-            this.setMetrics(metrics);
+            this.setMetrics(metrics, silent);
             return this;
         },
         
-        setMetrics : function(metrics) {
-            this.set("metrics", metrics);
+        setMetrics : function(metrics, silent) {
+            silent = silent || false;
+            this.set({"metrics": metrics}, {"silent" : silent});
             return this;
         },
         
@@ -1005,7 +1007,8 @@
             return this;
         },
         
-        setSelection : function(selection) {
+        setSelection : function(selection, silent) {
+            silent = silent || false;
             // cleanup the selection (keep only required attributes)
             if (selection && selection.facets) {
                 var cleanSelection = {"facets" : []};
@@ -1023,7 +1026,7 @@
                 }
                 selection = cleanSelection;
             }
-            this.set("selection", selection);
+            this.set({"selection": selection}, {"silent" : silent});
             return this;
         },
 
