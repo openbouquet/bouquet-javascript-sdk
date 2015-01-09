@@ -799,6 +799,19 @@
             return this.baseRoot() + "/projects";
         }
     });
+    
+    squid_api.model.UserModel = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/users/" + this.get("id").userId;
+        }
+    });
+    
+    squid_api.model.UserCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.UserModel,
+        urlRoot: function() {
+            return this.baseRoot() + "/users";
+        }
+    });
 
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
