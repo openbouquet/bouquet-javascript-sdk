@@ -323,7 +323,7 @@
             
             // init the Login URL
             loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
-            loginUrl += "/"+api+"/api/oauth?response_type=code";
+            loginUrl += "/"+api+"/auth/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
             }
@@ -607,7 +607,7 @@
         },
 
         getDefaultLoginUrl : function() {
-            var url = "https://api.squidsolutions.com/release/v4.2/api/oauth?client_id=" + squid_api.clientId;
+            var url = "https://api.squidsolutions.com/release/v4.2/auth/oauth?client_id=" + squid_api.clientId;
             if (squid_api.customerId) {
                 url += "&customerId=" + squid_api.customerId;
             }
