@@ -805,6 +805,12 @@
             return this.baseRoot() + "/users/" + this.get("id").userId;
         }
     });
+
+    squid_api.model.GroupCollection = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/usergroups";
+        }
+    });
     
     squid_api.model.UserCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.UserModel,
