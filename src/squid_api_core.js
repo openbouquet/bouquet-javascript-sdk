@@ -462,13 +462,16 @@
         error: null,
         hasParam: function(name) {
             var hasParam = false, i=0;
-            while (i<this.parameters.length && (!hasParam)) {
-                var param = this.parameters[i];
-                if (param.name == name) {
-                    hasParam = true;
+            if (this.parameters) {
+                while (i<this.parameters.length && (!hasParam)) {
+                    var param = this.parameters[i];
+                    if (param.name == name) {
+                        hasParam = true;
+                    }
+                    i++;
                 }
-                i++;
             }
+            
             return hasParam;
         },
         addParam : function(url, name, value) {
