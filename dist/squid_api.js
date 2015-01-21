@@ -323,7 +323,7 @@
             
             // init the Login URL
             loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
-            loginUrl += "/"+api+"/api/oauth?response_type=code";
+            loginUrl += "/"+api+"/auth/oauth?response_type=code";
             if (this.clientId) {
                 loginUrl += "&client_id=" + this.clientId;
             }
@@ -610,7 +610,7 @@
         },
 
         getDefaultLoginUrl : function() {
-            var url = "https://api.squidsolutions.com/release/v4.2/api/oauth?client_id=" + squid_api.clientId;
+            var url = "https://api.squidsolutions.com/release/v4.2/auth/oauth?client_id=" + squid_api.clientId;
             if (squid_api.customerId) {
                 url += "&customerId=" + squid_api.customerId;
             }
@@ -1173,7 +1173,7 @@
         },
 
         /**
-         * retrieve the results.
+         * Retrieve job results (loop until DONE or error)
          */
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
@@ -1201,6 +1201,47 @@
                         analysisModel.set("statistics", t);
                         analysisModel.set("error", null);
                         analysisModel.set("results", model.toJSON());
+                        analysisModel.set("status", "DONE");
+                        observer.resolve(model, response);
+                    }
+                }
+            });
+            if (this.fakeServer) {
+                this.fakeServer.respond();
+            }
+        },
+        
+        /**
+         * Retrieve job (loop until DONE or error)
+         */
+        getAnalysisJob: function(observer, analysisModel) {
+            console.log("getAnalysisJob");
+            var analysisJob = new squid_api.model.ProjectAnalysisJob();
+            analysisJob.set("id", analysisModel.get("id"));
+            analysisJob.set("oid", analysisModel.get("oid"));
+
+            // get the results from API
+            analysisJob.fetch({
+                error: function(model, response) {
+                    analysisModel.set("error", {message : response.statusText});
+                    analysisModel.set("status", "DONE");
+                    observer.reject(model, response);
+                },
+                success: function(model, response) {
+                    if (model.get("status") && (model.get("status") != "DONE")) {
+                        // retry in 1s
+                        setTimeout(function() { 
+                                controller.getAnalysisJob(observer, analysisModel); 
+                            }, 1000);
+                        
+                    } else {
+                        var t = model.get("statistics");
+                        if (t) {
+                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                        }
+                        // update the analysis Model
+                        analysisModel.set("statistics", t);
+                        analysisModel.set("error", null);
                         analysisModel.set("status", "DONE");
                         observer.resolve(model, response);
                     }
