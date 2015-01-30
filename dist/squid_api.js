@@ -176,6 +176,24 @@
             }
         },
         
+        setCustomerId : function(oid, chain) {
+            var me = this;
+            var dfd = new $.Deferred();
+            this.customerId = oid;
+            this.model.customer = new squid_api.model.CustomerInfoModel();
+            this.model.customer.fetch({
+                success : function(model, response, options) {
+                    console.log("customer fetched : "+model.get("name"));
+                    dfd.resolve();
+                },
+                error : function(model, response, options) {
+                    console.error("customer fetch failed");
+                    dfd.reject();
+                }
+            });
+            return dfd.promise();
+        },
+        
         setProjectId : function(oid, chain) {
             var me = this;
             var dfd = new $.Deferred();
@@ -407,7 +425,6 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
         
-
         addParameter : function(name, value) {
             this.parameters.push({"name" : name, "value" : value});
         },
@@ -679,7 +696,7 @@
                     },
                     success: function(model, response, options) {
                         // set the customerId
-                        squid_api.customerId = model.get("customerId");
+                        squid_api.setCustomerId(model.get("customerId"));
                         // verify the clientId
                         if (model.get("clientId") != this.clientId) {
                             console.log("WARN : the Token used doesn't match you application's ClientId");
@@ -787,8 +804,14 @@
     });
 
     /*
-     * --- Meta Model ---
+     * --- API Meta-Model objects Mapping to Backbone Models---
      */
+    
+    squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/";
+        }
+    });
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
