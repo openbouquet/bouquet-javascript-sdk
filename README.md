@@ -15,6 +15,7 @@ Also provides the following core services :
 
 ## API Configuration
 
+### Setup
 The API must be configured programmatically be calling
 ```
 api.setup({
@@ -44,8 +45,19 @@ In addition to this, some extra parameter are supported :
 * `version` : the api version (4.2)
 * `loginUrl` : full URL to the login endpoint
 
+### Initialization
+After setting-up the API, the init process must take place. 
+This process is triggered by calling the API init method :
+```
+api.init();
+```
+The init method will check for the user login by fetching the Access Token associated to the Access Code passed as a "code" parameter of the url. 
+If user login is granted, the `squid_api.model.login` Model object will be set accordingly. 
+It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
+
 
 ## Authentication management
+TBD
 
 ## Application state management
 The api object holds various Models :  
@@ -113,4 +125,4 @@ squid_api.model.status.on('change:domain', function(model) {
 ```
 
 ## Utility methods
-
+TBD
