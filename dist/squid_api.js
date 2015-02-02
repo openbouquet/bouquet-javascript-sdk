@@ -17,6 +17,7 @@
     
     // Squid API definition
     var squid_api = {
+        debug : null,
         version : "2.0.0",
         apiURL: null,
         loginURL : null,
@@ -248,6 +249,11 @@
             args.domainId = args.domainId || null;
             args.selection = args.selection || null;
             apiUrl = args.apiUrl || null;
+            
+            this.debug = squid_api.utils.getParamValue("debug", null);
+            if (!this.debug) {
+                this.debug = args.debug;
+            }
             
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
