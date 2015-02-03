@@ -380,9 +380,12 @@
             
             // handle session expiration
             this.model.status.on('change:error', function(model) {
-                var err = model.get("error").status;
-                if ((err == 401) || (err == 403)) {
-                    me.utils.clearLogin();
+                var err = model.get("error");
+                if (err) {
+                    var status = err.status;
+                    if (status == 401) {
+                        me.utils.clearLogin();
+                    }
                 }
             });
             
