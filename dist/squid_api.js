@@ -1392,11 +1392,13 @@
     }
 }(this, function (Backbone, squid_api) {
     
-    // here we expose some models
-    
+    /**
+     * ProjectFacetJob : used to compute Facets from a Selection
+     */
     squid_api.model.ProjectFacetJob = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (this.id ? this.id : "");
+            var id = this.get("id").facetJobId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (id ? id : "");
         },
         error: null,
         domains: null,
@@ -1405,9 +1407,12 @@
         }
     });
 
+    /**
+     * ProjectFacetJobResult : get the ProjectFacetJob's computation results (a Selection).
+     */
     squid_api.model.ProjectFacetJobResult = squid_api.model.ProjectFacetJob.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectFacetJob.prototype.urlRoot.apply(this, arguments) + "/results";
+            return squid_api.model.ProjectFacetJob.prototype.urlRoot.apply(this, arguments) + "/results/";
         },
         error: null,
         timeoutMillis: function() { 
@@ -1415,8 +1420,27 @@
         }
     });
     
+    /**
+     * ProjectFacetJobFacet : get the Members of a single Facet.
+     */
+    squid_api.model.ProjectFacetJobFacet = squid_api.model.ProjectFacetJobResult.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectFacetJobResult.prototype.urlRoot.apply(this, arguments) + this.get("oid");
+        },
+        error: null,
+        timeoutMillis: function() { 
+            return squid_api.timeoutMillis; 
+        }
+    });
+    
+    /**
+     * FilterJob is the Model which is manipulated be the Filters panel.
+     * This is not an API model but a JSSDK internal model.
+     * It implements useful methods to manipulate the Selection.
+     * Its "id" will be the id of the ProjectFacetJob which was used to compute its selection.
+     */
     squid_api.model.FiltersJob = Backbone.Model.extend({
-        
+
         initialize: function() {
             this.set("id", {
                 "projectId": squid_api.projectId
@@ -1485,8 +1509,10 @@
             return (this.get("status") == "DONE");
         },
         
+        /*
+         * Extract the selectedItem from the filters (in a more usable form).
+         */
         getSelection : function() {
-            // extract the selectedItem from the filters in a more usable form
             var data = {}, item;
             var selection = this.get("selection");
             if (selection && selection.facets) {
@@ -1536,7 +1562,7 @@
         }
     });
     
-    // Controller definition
+    // Main Controller
     
     var controller = {
 
@@ -1555,7 +1581,7 @@
                     selection =  jobModel.get("selection");
                 }
 
-                var job = new squid_api.model.ProjectFacetJob();
+                var projectFacetJob = new squid_api.model.ProjectFacetJob();
                 var projectId;
                 if (jobModel.get("id").projectId) {
                     projectId = jobModel.get("id").projectId;
@@ -1563,7 +1589,7 @@
                     projectId = jobModel.get("projectId");
                 }
 
-                job.set({"id" : {
+                projectFacetJob.set({"id" : {
                     projectId: projectId},
                     "domains" : jobModel.get("domains"),
                     "selection": selection});
@@ -1573,7 +1599,7 @@
                     this.fakeServer.respond();
                 }
 
-                job.save({}, {
+                projectFacetJob.save({}, {
                     success : function(model, response) {
                         console.log("create job success");
                         if (successCallback) {
@@ -1590,19 +1616,30 @@
 
             },
 
-            jobCreationCallback : function(model, jobModel) {
-                jobModel.set("id", model.get("id"));
-                jobModel.set("oid", model.get("oid"));
-                if (model.get("status") == "DONE") {
-                    var t = model.get("statistics");
+            jobCreationCallback : function(projectFacetJob, jobModel) {
+                jobModel.set("id", projectFacetJob.get("id"));
+                jobModel.set("oid", projectFacetJob.get("oid"));
+                if (projectFacetJob.get("status") == "DONE") {
+                    var t = projectFacetJob.get("statistics");
                     if (t) {
                         console.log("FacetJob computation time : "+(t.endTime-t.startTime) + " ms");
                     }
                     // update the Model
                     jobModel.set("statistics", t);
-                    jobModel.set("error", model.get("error"));
-                    if (model.get("results")) {
-                        jobModel.set("selection", {"facets" : model.get("results").facets});
+                    jobModel.set("error", projectFacetJob.get("error"));
+                    if (projectFacetJob.get("results")) {
+                        // check each facet's status
+                        var facets = projectFacetJob.get("results").facets;
+                        for (fIdx = 0; fIdx < facets.length; fIdx++) {
+                            var facet = facets[fIdx];
+                            if (facet.done === false) {
+                                if (facet.dimension.type == "CONTINUOUS") {
+                                    // re-poll facet content
+                                    controller.getFacetMembers(jobModel, facet.id, 0, 10);
+                                }
+                            }
+                        }
+                        jobModel.set("selection", {"facets" : projectFacetJob.get("results").facets});
                     }
                     jobModel.set("status", "DONE");
                 } else {
@@ -1613,9 +1650,76 @@
 
             /**
              * Create (and execute) a new Job, then retrieve the results.
+             * @param jobModel a FiltersJob
+             * @param selection an optional array of Facets
              */
             compute: function(jobModel, selection) {
                 this.createJob(jobModel, selection, this.jobCreationCallback);
+            },
+            
+            /**
+             * Retrieve facet members and retry until it is fully loaded.
+             */
+            getFacetMembers: function(jobModel, facetId, startIndex, maxResults, delay) {
+                if (delay) {
+                    // retry with a delay
+                    setTimeout(function() {
+                        controller.getFacetMembers(jobModel, facetId, startIndex, maxResults);
+                    }, delay);
+                } else {
+                    console.log("getting Facet : "+facetId);
+                    var facet = new squid_api.model.ProjectFacetJobFacet();
+                    facet.set("id", jobModel.get("id"));
+                    facet.set("oid", facetId);
+                    if (startIndex) {
+                        facet.addParameter("startIndex", startIndex);
+                    }
+                    if (maxResults) {
+                        facet.addParameter("maxResults", maxResults);
+                    }
+    
+                    // get the results from API
+                    facet.fetch({
+                        error: function(model, response) {
+                            jobModel.set("error", {message : response.statusText});
+                            jobModel.set("status", "DONE");
+                        },
+                        success: function(model, response) {
+                            if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
+                                // retry
+                                controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000);
+                            } else {
+                                // update the Model
+                                var facet;
+                                var selection = jobModel.get("selection");
+                                if (selection) {
+                                    var facets = selection.facets;         
+                                    for (fIdx = 0; fIdx < facets.length; fIdx++) {
+                                        if (facets[fIdx].id == facetId) {
+                                            facet = facets[fIdx];
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    selection = [];
+                                }
+                                if (!facet) {
+                                    // add a new facet to the selection
+                                    facet = model;
+                                    selection.push(facet);
+                                    jobModel.set("selection", selection);
+                                } else {
+                                    // update the existing facet's items
+                                    facet.items = model.get("items");
+                                    jobModel.trigger("change:selection", model);
+                                }
+                            }
+                        }
+                    });
+                    if (this.fakeServer) {
+                        this.fakeServer.respond();
+                    }
+                }
             },
 
             /**
