@@ -187,14 +187,35 @@
             /**
              * Create (and execute) a new Job.
              */
-            createJob: function(jobModel, selection, successCallback) {
+            createJob: function(jobModel, selectionOpt, successCallback) {
 
                 jobModel.set({"userSelection" :  null}, {"silent" : true});
                 jobModel.set("status","RUNNING");
 
                 // create a new Job
-                if (!selection) {
-                    selection =  jobModel.get("selection");
+                
+                if (!selectionOpt) {
+                    selectionOpt =  jobModel.get("selection");
+                }
+                
+                // streamline the selection
+                // (get rid of the facet items)
+                var selection = {
+                        "facets" : []
+                };
+                if (selectionOpt) {
+                    var facets = selectionOpt.facets;
+                    if (facets) {
+                        for (var is = 0; is < facets.length; is++) {
+                            var facet = facets[is];
+                            var newFacet = {
+                                    "selectedItems" : facet.selectedItems,
+                                    "dimension" : facet.dimension,
+                                    "id" : facet.id
+                            };
+                            selection.facets.push(newFacet);
+                        }
+                    }
                 }
 
                 var projectFacetJob = new squid_api.model.ProjectFacetJob();
@@ -327,7 +348,10 @@
                                 } else {
                                     // update the existing facet's items
                                     facet.items = model.get("items");
-                                    jobModel.trigger("change:selection", model);
+                                    if (facet.done === false) {
+                                        // re-poll facet content
+                                        controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000);
+                                    }
                                 }
                             }
                         }
