@@ -1649,18 +1649,8 @@
                     jobModel.set("statistics", t);
                     jobModel.set("error", projectFacetJob.get("error"));
                     if (projectFacetJob.get("results")) {
-                        // check each facet's status
-                        var facets = projectFacetJob.get("results").facets;
-                        for (fIdx = 0; fIdx < facets.length; fIdx++) {
-                            var facet = facets[fIdx];
-                            if (facet.done === false) {
-                                if (facet.dimension.type == "CONTINUOUS") {
-                                    // re-poll facet content
-                                    controller.getFacetMembers(jobModel, facet.id, 0, 10);
-                                }
-                            }
-                        }
-                        jobModel.set("selection", {"facets" : projectFacetJob.get("results").facets});
+                    	var facets = projectFacetJob.get("results").facets;
+                        jobModel.set("selection", {"facets" : facets});
                     }
                     jobModel.set("status", "DONE");
                 } else {
