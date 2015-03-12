@@ -251,6 +251,7 @@
                 projectId = analysisModel.get("projectId");
             }
             projectAnalysisJob.parameters = analysisModel.parameters;
+            projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set({"id" : {
                     projectId: projectId,
                     analysisJobId: null},
@@ -313,6 +314,7 @@
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
+            analysisJobResults.statusModel = squid_api.model.status;
             analysisJobResults.set("id", analysisModel.get("id"));
             analysisJobResults.set("oid", analysisModel.get("oid"));
 
@@ -352,6 +354,7 @@
         getAnalysisJob: function(observer, analysisModel) {
             console.log("getAnalysisJob");
             var analysisJob = new squid_api.model.ProjectAnalysisJob();
+            analysisJob.statusModel = squid_api.model.status;
             analysisJob.set("id", analysisModel.get("id"));
             analysisJob.set("oid", analysisModel.get("oid"));
 

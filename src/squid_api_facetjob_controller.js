@@ -183,23 +183,11 @@
     var controller = {
 
             fakeServer: null,
-
+            
             /**
-             * Create (and execute) a new Job.
+             * Streamline a selection (get rid of the facet items).
              */
-            createJob: function(jobModel, selectionOpt, successCallback) {
-
-                jobModel.set({"userSelection" :  null}, {"silent" : true});
-                jobModel.set("status","RUNNING");
-
-                // create a new Job
-                
-                if (!selectionOpt) {
-                    selectionOpt =  jobModel.get("selection");
-                }
-                
-                // streamline the selection
-                // (get rid of the facet items)
+            buildCleanSelection : function(selectionOpt) {
                 var selection = {
                         "facets" : []
                 };
@@ -217,8 +205,28 @@
                         }
                     }
                 }
+                return selection;
+            },
+
+            /**
+             * Create (and execute) a new Job.
+             */
+            createJob: function(jobModel, selectionOpt, successCallback, dfd) {
+                dfd = dfd || new $.Deferred();
+                
+                jobModel.set({"userSelection" :  null}, {"silent" : true});
+                jobModel.set("status","RUNNING");
+
+                // create a new Job
+                
+                if (!selectionOpt) {
+                    selectionOpt =  jobModel.get("selection");
+                }
+                
+                var selection = this.buildCleanSelection(selectionOpt);
 
                 var projectFacetJob = new squid_api.model.ProjectFacetJob();
+                projectFacetJob.statusModel = squid_api.model.status;
                 var projectId;
                 if (jobModel.get("id").projectId) {
                     projectId = jobModel.get("id").projectId;
@@ -240,20 +248,25 @@
                     success : function(model, response) {
                         console.log("create job success");
                         if (successCallback) {
-                            successCallback(model, jobModel);
+                            successCallback(model, jobModel, dfd);
+                        } else {
+                            dfd.resolve();
                         }
                     },
                     error: function(model, response) {
                         console.log("create job error");
                         jobModel.set("error", response);
                         jobModel.set("status", "DONE");
+                        dfd.reject();
                     }
 
                 });
-
+                
+                return dfd.promise();
             },
 
-            jobCreationCallback : function(projectFacetJob, jobModel) {
+            jobCreationCallback : function(projectFacetJob, jobModel, dfd) {
+                dfd = dfd || new $.Deferred();
                 jobModel.set("id", projectFacetJob.get("id"));
                 jobModel.set("oid", projectFacetJob.get("oid"));
                 if (projectFacetJob.get("status") == "DONE") {
@@ -269,10 +282,12 @@
                         jobModel.set("selection", {"facets" : facets});
                     }
                     jobModel.set("status", "DONE");
+                    dfd.resolve();
                 } else {
                     // try to get the results
-                    controller.getJobResults(jobModel);
+                    controller.getJobResults(jobModel, dfd);
                 }
+                return dfd.promise();
             },
 
             /**
@@ -280,8 +295,10 @@
              * @param jobModel a FiltersJob
              * @param selection an optional array of Facets
              */
-            compute: function(jobModel, selection) {
-                this.createJob(jobModel, selection, this.jobCreationCallback);
+            compute: function(jobModel, selection, dfd) {
+                dfd = dfd || new $.Deferred();
+                this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
+                return dfd.promise();
             },
             
             /**
@@ -296,6 +313,7 @@
                 } else {
                     console.log("getting Facet : "+facetId);
                     var facet = new squid_api.model.ProjectFacetJobFacet();
+                    facet.statusModel = squid_api.model.status;
                     facet.set("id", jobModel.get("id"));
                     facet.set("oid", facetId);
                     if (startIndex) {
@@ -355,9 +373,10 @@
             /**
              * retrieve the results.
              */
-            getJobResults: function(jobModel) {
-                console.log("get JobResults");
+            getJobResults: function(jobModel, dfd) {
+                dfd = dfd || new $.Deferred();
                 var jobResults = new squid_api.model.ProjectFacetJobResult();
+                jobResults.statusModel = squid_api.model.status;
                 jobResults.set("id", jobModel.get("id"));
                 jobResults.set("oid", jobModel.get("oid"));
 
@@ -366,6 +385,7 @@
                     error: function(model, response) {
                         jobModel.set("error", {message : response.statusText});
                         jobModel.set("status", "DONE");
+                        dfd.reject();
                     },
                     success: function(model, response) {
                         if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
@@ -381,12 +401,14 @@
                             jobModel.set("error", null);
                             jobModel.set("selection", {"facets" : model.get("facets")});
                             jobModel.set("status", "DONE");
+                            dfd.resolve();
                         }
                     }
                 });
                 if (this.fakeServer) {
                     this.fakeServer.respond();
                 }
+                return dfd.promise();
             },
 
             // backward compatibility

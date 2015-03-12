@@ -74,15 +74,10 @@
              * Get a parameter value from the current location url
              */
             getParamValue: function(name, defaultValue) {
-                var l = window.location.href;
-                var idx = l.indexOf(name+"=");
-                var value = "";
-                if (idx>0) {
-                    var i=idx+name.length+1;
-                    while(i<l.length && (l.charAt(i) != "&") && (l.charAt(i) != "#")) {
-                        value += l.charAt(i);
-                        i++;
-                    }
+                var uri = new URI(window.location.href);
+                var value;
+                if (uri.hasQuery(name) === true) {
+                    value = uri.search(true)[name];
                 } else {
                     value = defaultValue;
                 }
@@ -90,21 +85,8 @@
             },
 
             clearParam : function(name) {
-                var l = window.location.href;
-                var idx = l.indexOf(name+"=");
-                var value = window.location.href;
-                if (idx>0) {
-                    if (l.charAt(idx-1) == "&") {
-                        idx--;
-                    }
-                    value = l.substring(0, idx);
-                    var i=idx+name.length+1;
-                    while(i<l.length && (l.charAt(i) != "&") && (l.charAt(i) != "#")) {
-                        i++;
-                    }
-                    value += l.substring(i, l.length);
-                }
-                return value;
+                var uri = new URI(window.location.href);
+                uri.removeQuery(name);
             },
 
             /**
@@ -195,25 +177,132 @@
             return dfd.promise();
         },
         
-        setProjectId : function(oid, chain) {
+        setProjectId : function(oid) {
+            if (oid) {
+                var me = this;
+                var dfd = new $.Deferred();
+                this.projectId = oid;
+                this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent" : true});
+                this.model.project.addParameter("deepread", "1");
+                this.model.project.fetch({
+                    success : function(model, response, options) {
+                        console.log("project fetched : "+model.get("name"));
+                        me.model.status.set("project", model.get("id"));
+                        me.model.status.set("domain", null);
+                        dfd.resolve();
+                    },
+                    error : function(model, response, options) {
+                        console.error("project fetch failed");
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            }
+        },
+        
+        /**
+         * Save the current State model.
+         * @param an array of extra config elements
+         */
+        saveState : function(config) {
             var me = this;
-            var dfd = new $.Deferred();
-            this.projectId = oid;
-            this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent" : true});
-            this.model.project.addParameter("deepread", "1");
-            this.model.project.fetch({
+            var stateModel = new squid_api.model.ClientStateModel();
+            stateModel.set({
+                "id" : {
+                    "customerId" : this.customerId,
+                    "clientId" : this.clientId,
+                    "clientStateId" : null
+                 }
+            });
+            
+            var selection = squid_api.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
+            var attributes = {
+                    "config" : {
+                        "project" : me.model.status.get("project"),
+                        "domain" : me.model.status.get("domain"),
+                        "selection" : selection
+                    }
+            };
+            // add the extra config
+            for (var i=0; i<config.length; i++) {
+                var c = config[i];
+                for (var prop in c) {
+                    attributes.config[prop] = c[prop];
+                }
+            }
+            // save
+            stateModel.save(attributes, {
                 success : function(model, response, options) {
-                    console.log("project fetched : "+model.get("name"));
-                    me.model.status.set("project", model.get("id"));
-                    me.model.status.set("domain", null);
-                    dfd.resolve();
+                    var oid = model.get("oid");
+                    console.log("state saved : "+oid);
+                    me.model.status.set("state", model.get("config"));
+                    // save in browser history
+                    if (window.history) {
+                        var uri = new URI(window.location.href);
+                        uri.setQuery("state", oid);
+                        window.history.pushState(model.toJSON(), "", uri);
+                    }
                 },
                 error : function(model, response, options) {
-                    console.error("project fetch failed");
-                    dfd.reject();
+                    console.error("state save failed : "+model.get("oid"));
                 }
             });
-            return dfd.promise();
+        },
+        
+        setClientStateId : function(dfd, clientStateId) {
+            if (clientStateId) {
+                var me = this;
+                dfd = dfd || (new $.Deferred());
+                var stateModel = new squid_api.model.ClientStateModel();
+                stateModel.set({
+                    "id" : {
+                        "customerId" : this.customerId,
+                        "clientId" : this.clientId,
+                        "clientStateId" : clientStateId
+                    }
+                });
+                stateModel.fetch({
+                    success : function(model, response, options) {
+                        var oid = model.get("oid");
+                        console.log("state fetched : "+oid);
+                        me.model.status.set("state", model.get("config"));
+                        dfd.resolve();
+                    },
+                    error : function(model, response, options) {
+                        console.error("state fetch failed : "+clientStateId);
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            }
+        },
+        
+        setShortcutId : function(shortcutId) {
+            if (shortcutId) {
+                var me = this;
+                var dfd = new $.Deferred();
+                var shortcutModel = new squid_api.model.ShortcutModel();
+                shortcutModel.set({
+                    "id" : {
+                        "customerId" : this.customerId,
+                        "clientId" : this.clientId,
+                        "shortcutId" : shortcutId
+                    }
+                });
+                shortcutModel.fetch({
+                    success : function(model, response, options) {
+                        console.log("shortcut fetched : "+model.get("name"));
+                        me.model.status.set("shortcut", model);
+                        // get the associated state
+                        me.setClientStateId(dfd, model.get("clientStateId"));
+                    },
+                    error : function(model, response, options) {
+                        console.error("shortcut fetch failed : "+shortcutId);
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            }
         },
         
         setDomainId : function(oid) {
@@ -397,15 +486,35 @@
             loginModel.on('change:login', function(model) {
                 if (model.get("login")) {
                     // login ok
-                    if (me.projectId) {
-                        // set the projectId
-                        $.when(me.setProjectId(me.projectId)).then(
+                    // perform init chain
+                    var state = squid_api.utils.getParamValue("state", null);
+                    var shortcut = squid_api.utils.getParamValue("shortcut", null);
+                    // fetch
+                    if (state) {
+                        $.when(me.setClientStateId(null, state)).always(
                                 function() {
-                                    if (me.domainId) {
-                                        // set the domainId
-                                        me.setDomainId(me.domainId);
-                                    }
+                                    // set the projectId
+                                    $.when(me.setProjectId(me.projectId)).always(
+                                            function() {
+                                                if (me.domainId) {
+                                                    // set the domainId
+                                                    me.setDomainId(me.domainId);
+                                                }
+                                            }
+                                    );
                                 }
+                        );
+                    } else {
+                        $.when(me.setShortcutId(shortcut)).always(
+                                // set the projectId
+                                $.when(me.setProjectId(me.projectId)).always(
+                                        function() {
+                                            if (me.domainId) {
+                                                // set the domainId
+                                                me.setDomainId(me.domainId);
+                                            }
+                                        }
+                                )
                         );
                     }
                 }
@@ -419,16 +528,6 @@
                 var token = squid_api.utils.getParamValue("access_token", null);
                 loginModel.setAccessToken(token);
             }
-            
-            // log
-            console.log("squid_api.controller : ");
-            for (var i1 in squid_api.controller) {
-                console.log(i1);
-            }
-            console.log("squid_api.view : ");
-            for (var i2 in squid_api.view) {
-                console.log(i2);
-            }
         }
     };
 
@@ -441,18 +540,20 @@
         initialize: function(attributes, options) {
             if (options) {
                 this.parameters = options.parameters;
+                this.statusModel = options.statusModel;
             }
         },
         
         constructor: function() {
-            // Define the parameters object off of the prototype chain
+            // Define some attributes off of the prototype chain
             this.parameters = [];
+            this.statusModel = null;
 
             // Call the original constructor
             Backbone.Model.apply(this, arguments);
         },
         
-        idAttribute: "oid",
+        idAttribute : "oid",
         
         baseRoot: function() {
             return squid_api.apiURL;
@@ -515,14 +616,16 @@
 
         optionsFilter : function(options) {
             // success
-            var success;
+            var success, me = this;
             if (!options) {
                 options = {success : null, error : null}; 
             } else {
                 success = options.success;
             }
             options.success =  function(model, response, options) {
-                squid_api.model.status.pullTask(model);
+                if (me.statusModel) {
+                    me.statusModel.pullTask(model);
+                }
                 // normal behavior
                 if (success) {
                     success.call(this, model, response, options);
@@ -532,8 +635,10 @@
             var error;
             error = options.error;
             options.error =  function(model, response, options) {
-                squid_api.model.status.set("error", response);
-                squid_api.model.status.pullTask(model);
+                if (me.statusModel) {
+                    me.statusModel.set("error", response);
+                    me.statusModel.pullTask(model);
+                }
                 if (error) {
                     // normal behavior
                     error.call(this.model, response, options);
@@ -546,7 +651,9 @@
          * Overriding fetch to handle token expiration
          */
         fetch : function(options) {
-            squid_api.model.status.pushTask(this);
+            if (this.statusModel) {
+                this.statusModel.pushTask(this);
+            }
             return Backbone.Model.prototype.fetch.call(this, this.optionsFilter(options));
         },
 
@@ -554,7 +661,9 @@
          * Overriding save to handle token expiration
          */
         save : function(attributes, options) {
-            squid_api.model.status.pushTask(this);
+            if (this.statusModel) {
+                this.statusModel.pushTask(this);
+            }
             return Backbone.Model.prototype.save.call(this, attributes, this.optionsFilter(options));
         }
 
@@ -819,6 +928,24 @@
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/";
+        }
+    });
+    
+    squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
+        urlRoot: function() {
+            return this.baseRoot() + "/clients/" + this.get("id").clientId;
+        }
+    });
+    
+    squid_api.model.ClientStateModel = squid_api.model.ClientModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ClientModel.prototype.urlRoot.apply(this, arguments) + "/states/" + (this.get("id").clientStateId || "");
+        }
+    });
+    
+    squid_api.model.ShortcutModel = squid_api.model.ClientModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ClientModel.prototype.urlRoot.apply(this, arguments) + "/shortcuts/" + (this.get("id").shortcutId || "");
         }
     });
 
@@ -1148,6 +1275,7 @@
                 projectId = analysisModel.get("projectId");
             }
             projectAnalysisJob.parameters = analysisModel.parameters;
+            projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set({"id" : {
                     projectId: projectId,
                     analysisJobId: null},
@@ -1210,6 +1338,7 @@
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
+            analysisJobResults.statusModel = squid_api.model.status;
             analysisJobResults.set("id", analysisModel.get("id"));
             analysisJobResults.set("oid", analysisModel.get("oid"));
 
@@ -1249,6 +1378,7 @@
         getAnalysisJob: function(observer, analysisModel) {
             console.log("getAnalysisJob");
             var analysisJob = new squid_api.model.ProjectAnalysisJob();
+            analysisJob.statusModel = squid_api.model.status;
             analysisJob.set("id", analysisModel.get("id"));
             analysisJob.set("oid", analysisModel.get("oid"));
 
@@ -1567,23 +1697,11 @@
     var controller = {
 
             fakeServer: null,
-
+            
             /**
-             * Create (and execute) a new Job.
+             * Streamline a selection (get rid of the facet items).
              */
-            createJob: function(jobModel, selectionOpt, successCallback) {
-
-                jobModel.set({"userSelection" :  null}, {"silent" : true});
-                jobModel.set("status","RUNNING");
-
-                // create a new Job
-                
-                if (!selectionOpt) {
-                    selectionOpt =  jobModel.get("selection");
-                }
-                
-                // streamline the selection
-                // (get rid of the facet items)
+            buildCleanSelection : function(selectionOpt) {
                 var selection = {
                         "facets" : []
                 };
@@ -1601,8 +1719,28 @@
                         }
                     }
                 }
+                return selection;
+            },
+
+            /**
+             * Create (and execute) a new Job.
+             */
+            createJob: function(jobModel, selectionOpt, successCallback, dfd) {
+                dfd = dfd || new $.Deferred();
+                
+                jobModel.set({"userSelection" :  null}, {"silent" : true});
+                jobModel.set("status","RUNNING");
+
+                // create a new Job
+                
+                if (!selectionOpt) {
+                    selectionOpt =  jobModel.get("selection");
+                }
+                
+                var selection = this.buildCleanSelection(selectionOpt);
 
                 var projectFacetJob = new squid_api.model.ProjectFacetJob();
+                projectFacetJob.statusModel = squid_api.model.status;
                 var projectId;
                 if (jobModel.get("id").projectId) {
                     projectId = jobModel.get("id").projectId;
@@ -1624,20 +1762,25 @@
                     success : function(model, response) {
                         console.log("create job success");
                         if (successCallback) {
-                            successCallback(model, jobModel);
+                            successCallback(model, jobModel, dfd);
+                        } else {
+                            dfd.resolve();
                         }
                     },
                     error: function(model, response) {
                         console.log("create job error");
                         jobModel.set("error", response);
                         jobModel.set("status", "DONE");
+                        dfd.reject();
                     }
 
                 });
-
+                
+                return dfd.promise();
             },
 
-            jobCreationCallback : function(projectFacetJob, jobModel) {
+            jobCreationCallback : function(projectFacetJob, jobModel, dfd) {
+                dfd = dfd || new $.Deferred();
                 jobModel.set("id", projectFacetJob.get("id"));
                 jobModel.set("oid", projectFacetJob.get("oid"));
                 if (projectFacetJob.get("status") == "DONE") {
@@ -1653,10 +1796,12 @@
                         jobModel.set("selection", {"facets" : facets});
                     }
                     jobModel.set("status", "DONE");
+                    dfd.resolve();
                 } else {
                     // try to get the results
-                    controller.getJobResults(jobModel);
+                    controller.getJobResults(jobModel, dfd);
                 }
+                return dfd.promise();
             },
 
             /**
@@ -1664,8 +1809,10 @@
              * @param jobModel a FiltersJob
              * @param selection an optional array of Facets
              */
-            compute: function(jobModel, selection) {
-                this.createJob(jobModel, selection, this.jobCreationCallback);
+            compute: function(jobModel, selection, dfd) {
+                dfd = dfd || new $.Deferred();
+                this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
+                return dfd.promise();
             },
             
             /**
@@ -1680,6 +1827,7 @@
                 } else {
                     console.log("getting Facet : "+facetId);
                     var facet = new squid_api.model.ProjectFacetJobFacet();
+                    facet.statusModel = squid_api.model.status;
                     facet.set("id", jobModel.get("id"));
                     facet.set("oid", facetId);
                     if (startIndex) {
@@ -1739,9 +1887,10 @@
             /**
              * retrieve the results.
              */
-            getJobResults: function(jobModel) {
-                console.log("get JobResults");
+            getJobResults: function(jobModel, dfd) {
+                dfd = dfd || new $.Deferred();
                 var jobResults = new squid_api.model.ProjectFacetJobResult();
+                jobResults.statusModel = squid_api.model.status;
                 jobResults.set("id", jobModel.get("id"));
                 jobResults.set("oid", jobModel.get("oid"));
 
@@ -1750,6 +1899,7 @@
                     error: function(model, response) {
                         jobModel.set("error", {message : response.statusText});
                         jobModel.set("status", "DONE");
+                        dfd.reject();
                     },
                     success: function(model, response) {
                         if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
@@ -1765,12 +1915,14 @@
                             jobModel.set("error", null);
                             jobModel.set("selection", {"facets" : model.get("facets")});
                             jobModel.set("status", "DONE");
+                            dfd.resolve();
                         }
                     }
                 });
                 if (this.fakeServer) {
                     this.fakeServer.respond();
                 }
+                return dfd.promise();
             },
 
             // backward compatibility
