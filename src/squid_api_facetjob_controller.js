@@ -238,6 +238,8 @@
                     projectId: projectId},
                     "domains" : jobModel.get("domains"),
                     "selection": selection});
+                
+                projectFacetJob.set("engineVersion","2");
 
                 // save the job
                 if (this.fakeServer) {
