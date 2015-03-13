@@ -244,7 +244,7 @@
                     }
                 },
                 error : function(model, response, options) {
-                    console.error("state save failed : "+model.get("oid"));
+                    console.error("state save failed");
                 }
             });
         },
