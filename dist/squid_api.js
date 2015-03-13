@@ -265,7 +265,14 @@
                     success : function(model, response, options) {
                         var oid = model.get("oid");
                         console.log("state fetched : "+oid);
-                        me.model.status.set("state", model.get("config"));
+                        var config = model.get("config");
+                        if (config.project) {
+                            me.projectId = config.project.projectId;
+                        }
+                        if (config.domain) {
+                            me.domainId = config.domain.domainId;
+                        }
+                        me.model.status.set("state", config);
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
