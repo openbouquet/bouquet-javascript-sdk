@@ -1827,35 +1827,40 @@
             /**
              * Retrieve facet members and retry until it is fully loaded.
              */
-            getFacetMembers: function(jobModel, facetId, startIndex, maxResults, delay) {
+            getFacetMembers: function(jobModel, facetId, startIndex, maxResults, delay, dfd) {
+                dfd = dfd || new $.Deferred();
+                startIndex = startIndex || 0;
+                maxResults = maxResults || 100;
                 if (delay) {
                     // retry with a delay
                     setTimeout(function() {
-                        controller.getFacetMembers(jobModel, facetId, startIndex, maxResults);
+                        controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, null, dfd);
                     }, delay);
                 } else {
                     console.log("getting Facet : "+facetId);
-                    var facet = new squid_api.model.ProjectFacetJobFacet();
-                    facet.statusModel = squid_api.model.status;
-                    facet.set("id", jobModel.get("id"));
-                    facet.set("oid", facetId);
+                    var facetJob = new squid_api.model.ProjectFacetJobFacet();
+                    facetJob.statusModel = squid_api.model.status;
+                    facetJob.set("id", jobModel.get("id"));
+                    facetJob.set("oid", facetId);
                     if (startIndex) {
-                        facet.addParameter("startIndex", startIndex);
+                        facetJob.addParameter("startIndex", startIndex);
                     }
                     if (maxResults) {
-                        facet.addParameter("maxResults", maxResults);
+                        facetJob.addParameter("maxResults", maxResults);
                     }
+                    facetJob.addParameter("waitComplete", true);
     
                     // get the results from API
-                    facet.fetch({
+                    facetJob.fetch({
                         error: function(model, response) {
                             jobModel.set("error", {message : response.statusText});
                             jobModel.set("status", "DONE");
+                            dfd.reject();
                         },
                         success: function(model, response) {
                             if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                                 // retry
-                                controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000);
+                                controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000, dfd);
                             } else {
                                 // update the Model
                                 var facet;
@@ -1873,15 +1878,17 @@
                                 }
                                 if (!facet) {
                                     // add a new facet to the selection
-                                    facet = model;
-                                    selection.push(facet);
+                                    selection.push(model);
                                     jobModel.set("selection", selection);
+                                    dfd.resolve();
                                 } else {
                                     // update the existing facet's items
                                     facet.items = model.get("items");
-                                    if (facet.done === false) {
+                                    if (model.get("done") === false) {
                                         // re-poll facet content
-                                        controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000);
+                                        controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000, dfd);
+                                    } else {
+                                        dfd.resolve();
                                     }
                                 }
                             }
@@ -1891,6 +1898,7 @@
                         this.fakeServer.respond();
                     }
                 }
+                return dfd.promise();
             },
 
             /**
