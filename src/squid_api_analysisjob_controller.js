@@ -105,6 +105,25 @@
             this.setDimensions(dims, silent);
             return this;
         },
+        
+        setFacets : function(facetList, silent) {
+            var facets;
+            if (facetList) {
+                facets = [];
+                for (var i=0; i<facetList.length; i++) {
+                    if (facetList[i]) {
+                        facets.push({
+                            "value": facetList[i]
+                        });
+                    }
+                }
+            } else {
+                facets = null;
+            }
+            silent = silent || false;
+            this.set({"facets": facets}, {"silent" : silent});
+            return this;
+        },
 
         setDimensions : function(dimensions, silent) {
             silent = silent || false;
@@ -257,6 +276,7 @@
                     analysisJobId: null},
                     "domains" : analysisModel.get("domains"),
                     "dimensions": analysisModel.get("dimensions"),
+                    "facets": analysisModel.get("facets"),
                     "metrics": analysisModel.get("metrics"),
                     "autoRun": analysisModel.get("autoRun"),
                     "limit": analysisModel.get("limit"),
