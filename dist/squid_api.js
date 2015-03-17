@@ -1599,10 +1599,15 @@
             if (domainIdList) {
                 domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
-                    domains.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": domainIdList[i]
-                    });
+                    var id = domainIdList[i];
+                    if (id.domainId) {
+                        domains.push(id);
+                    } else {
+                        domains.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": id
+                        });
+                    }
                 }
             } else {
                 domains = null;
