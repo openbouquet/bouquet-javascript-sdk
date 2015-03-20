@@ -238,13 +238,15 @@
                 } else {
                     projectId = jobModel.get("projectId");
                 }
+                
+                if (jobModel.get("engineVersion")) {
+                    projectFacetJob.set("engineVersion",jobModel.get("engineVersion"));
+                }
 
                 projectFacetJob.set({"id" : {
                     projectId: projectId},
                     "domains" : jobModel.get("domains"),
                     "selection": selection});
-                
-                projectFacetJob.set("engineVersion","2");
 
                 // save the job
                 if (this.fakeServer) {

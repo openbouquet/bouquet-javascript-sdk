@@ -1180,6 +1180,15 @@
             this.setDimensions(dims);
             return this;
         },
+        
+        setFacet : function(facetId, index) {
+            var facets = this.get("facets") || [];
+            facets = facets.slice(0);
+            index = index || 0;
+            facets[index] = facetId;
+            this.setFacets(facets);
+            return this;
+        },
 
         setMetricIds : function(metricIdList, silent) {
             var metrics;
@@ -1785,13 +1794,15 @@
                 } else {
                     projectId = jobModel.get("projectId");
                 }
+                
+                if (jobModel.get("engineVersion")) {
+                    projectFacetJob.set("engineVersion",jobModel.get("engineVersion"));
+                }
 
                 projectFacetJob.set({"id" : {
                     projectId: projectId},
                     "domains" : jobModel.get("domains"),
                     "selection": selection});
-                
-                projectFacetJob.set("engineVersion","2");
 
                 // save the job
                 if (this.fakeServer) {

@@ -143,6 +143,15 @@
             this.setDimensions(dims);
             return this;
         },
+        
+        setFacet : function(facetId, index) {
+            var facets = this.get("facets") || [];
+            facets = facets.slice(0);
+            index = index || 0;
+            facets[index] = facetId;
+            this.setFacets(facets);
+            return this;
+        },
 
         setMetricIds : function(metricIdList, silent) {
             var metrics;
