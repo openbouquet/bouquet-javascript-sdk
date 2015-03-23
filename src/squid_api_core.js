@@ -206,12 +206,11 @@
          */
         saveState : function(config) {
             var me = this;
-            var stateModel = new squid_api.model.ClientStateModel();
+            var stateModel = new squid_api.model.StateModel();
             stateModel.set({
                 "id" : {
                     "customerId" : this.customerId,
-                    "clientId" : this.clientId,
-                    "clientStateId" : null
+                    "stateId" : null
                  }
             });
             
@@ -249,16 +248,15 @@
             });
         },
         
-        setClientStateId : function(dfd, clientStateId) {
-            if (clientStateId) {
+        setStateId : function(dfd, stateId) {
+            if (stateId) {
                 var me = this;
                 dfd = dfd || (new $.Deferred());
-                var stateModel = new squid_api.model.ClientStateModel();
+                var stateModel = new squid_api.model.StateModel();
                 stateModel.set({
                     "id" : {
                         "customerId" : this.customerId,
-                        "clientId" : this.clientId,
-                        "clientStateId" : clientStateId
+                        "stateId" : stateId
                     }
                 });
                 stateModel.fetch({
@@ -276,7 +274,7 @@
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
-                        console.error("state fetch failed : "+clientStateId);
+                        console.error("state fetch failed : "+stateId);
                         dfd.reject();
                     }
                 });
@@ -292,7 +290,6 @@
                 shortcutModel.set({
                     "id" : {
                         "customerId" : this.customerId,
-                        "clientId" : this.clientId,
                         "shortcutId" : shortcutId
                     }
                 });
@@ -301,7 +298,7 @@
                         console.log("shortcut fetched : "+model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
-                        me.setClientStateId(dfd, model.get("clientStateId"));
+                        me.setStateId(dfd, model.get("stateId"));
                     },
                     error : function(model, response, options) {
                         console.error("shortcut fetch failed : "+shortcutId);
@@ -500,7 +497,7 @@
                     var shortcut = squid_api.utils.getParamValue("shortcut", null);
                     // fetch
                     if (state) {
-                        $.when(me.setClientStateId(null, state)).always(
+                        $.when(me.setStateId(null, state)).always(
                                 function() {
                                     // set the projectId
                                     $.when(me.setProjectId(me.projectId)).always(
@@ -950,15 +947,15 @@
         }
     });
     
-    squid_api.model.ClientStateModel = squid_api.model.ClientModel.extend({
+    squid_api.model.StateModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
-            return squid_api.model.ClientModel.prototype.urlRoot.apply(this, arguments) + "/states/" + (this.get("id").clientStateId || "");
+            return this.baseRoot() + "/states/" + (this.get("id").stateId || "");
         }
     });
     
-    squid_api.model.ShortcutModel = squid_api.model.ClientModel.extend({
+    squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
-            return squid_api.model.ClientModel.prototype.urlRoot.apply(this, arguments) + "/shortcuts/" + (this.get("id").shortcutId || "");
+            return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
         }
     });
 
