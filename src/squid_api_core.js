@@ -240,7 +240,7 @@
                 success : function(model, response, options) {
                     var oid = model.get("oid");
                     console.log("state saved : "+oid);
-                    me.model.status.set("state", model.get("config"));
+                    me.model.status.set("state", model);
                     // save in browser history
                     if (window.history) {
                         var uri = new URI(window.location.href);
@@ -276,7 +276,7 @@
                         if (config.domain) {
                             me.domainId = config.domain.domainId;
                         }
-                        me.model.status.set("state", config);
+                        me.model.status.set("state", model);
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
