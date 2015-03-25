@@ -140,8 +140,11 @@
                 var result = null, i;
                 if (theObject instanceof Array) {
                     for (i = 0; i < theObject.length; i++) {
-                        result = result || this.find(theObject[i], key,
+                        result = this.find(theObject[i], key,
                                 value);
+                        if (result) {
+                            break;
+                        }
                     }
                 } else {
                     for ( var prop in theObject) {
@@ -151,7 +154,10 @@
                             }
                         }
                         if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
-                            result = result || this.find(theObject[prop], key, value);
+                            result = this.find(theObject[prop], key, value);
+                            if (result) {
+                                break;
+                            }
                         }
                     }
                 }
