@@ -518,15 +518,17 @@
                         );
                     } else {
                         $.when(me.setShortcutId(shortcut)).always(
-                                // set the projectId
-                                $.when(me.setProjectId(me.projectId)).always(
-                                        function() {
-                                            if (me.domainId) {
-                                                // set the domainId
-                                                me.setDomainId(me.domainId);
+                                function() {
+                                    // set the projectId
+                                    $.when(me.setProjectId(me.projectId)).always(
+                                            function() {
+                                                if (me.domainId) {
+                                                    // set the domainId
+                                                    me.setDomainId(me.domainId);
+                                                }
                                             }
-                                        }
-                                )
+                                    );
+                                } 
                         );
                     }
                 }
