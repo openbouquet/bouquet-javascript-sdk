@@ -277,6 +277,15 @@
                             me.domainId = config.domain.domainId;
                         }
                         me.model.status.set("state", model);
+                        // set the projectId
+                        $.when(me.setProjectId(me.projectId)).always(
+                                function() {
+                                    if (me.domainId) {
+                                        // set the domainId
+                                        me.setDomainId(me.domainId);
+                                    }
+                                }
+                        );
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
@@ -503,33 +512,9 @@
                     var shortcut = squid_api.utils.getParamValue("shortcut", null);
                     // fetch
                     if (state) {
-                        $.when(me.setStateId(null, state)).always(
-                                function() {
-                                    // set the projectId
-                                    $.when(me.setProjectId(me.projectId)).always(
-                                            function() {
-                                                if (me.domainId) {
-                                                    // set the domainId
-                                                    me.setDomainId(me.domainId);
-                                                }
-                                            }
-                                    );
-                                }
-                        );
+                        me.setStateId(null, state);
                     } else {
-                        $.when(me.setShortcutId(shortcut)).always(
-                                function() {
-                                    // set the projectId
-                                    $.when(me.setProjectId(me.projectId)).always(
-                                            function() {
-                                                if (me.domainId) {
-                                                    // set the domainId
-                                                    me.setDomainId(me.domainId);
-                                                }
-                                            }
-                                    );
-                                } 
-                        );
+                        me.setShortcutId(shortcut);
                     }
                 }
             });
@@ -964,6 +949,13 @@
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
+        }
+    });
+    
+    squid_api.model.ShortcutCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.ShortcutModel,
+        urlRoot: function() {
+            return this.baseRoot() + "/shortcuts";
         }
     });
 
