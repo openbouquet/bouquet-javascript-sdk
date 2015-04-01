@@ -194,7 +194,6 @@
                     success : function(model, response, options) {
                         console.log("project fetched : "+model.get("name"));
                         me.model.status.set("project", model.get("id"));
-                        me.model.status.set("domain", null);
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
@@ -212,7 +211,7 @@
          */
         saveState : function(config) {
             var me = this;
-            var stateModel = new squid_api.model.StateModel();
+            var stateModel = new me.model.StateModel();
             stateModel.set({
                 "id" : {
                     "customerId" : this.customerId,
@@ -220,19 +219,19 @@
                  }
             });
             
-            var selection = squid_api.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
             var attributes = {
-                    "config" : {
-                        "project" : me.model.status.get("project"),
-                        "domain" : me.model.status.get("domain"),
-                        "selection" : selection
-                    }
+                    "config" : me.model.status.get("state").attributes
             };
+            var selection = me.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
+            attributes.config.selection = selection;
+            
             // add the extra config
-            for (var i=0; i<config.length; i++) {
-                var c = config[i];
-                for (var prop in c) {
-                    attributes.config[prop] = c[prop];
+            if (config) {
+                for (var i=0; i<config.length; i++) {
+                    var c = config[i];
+                    for (var prop in c) {
+                        attributes.config[prop] = c[prop];
+                    }
                 }
             }
             // save
@@ -240,7 +239,6 @@
                 success : function(model, response, options) {
                     var oid = model.get("oid");
                     console.log("state saved : "+oid);
-                    me.model.status.set("state", model);
                     // save in browser history
                     if (window.history) {
                         var uri = new URI(window.location.href);
@@ -255,9 +253,9 @@
         },
         
         setStateId : function(dfd, stateId) {
+            var me = this;
+            dfd = dfd || (new $.Deferred());
             if (stateId) {
-                var me = this;
-                dfd = dfd || (new $.Deferred());
                 var stateModel = new squid_api.model.StateModel();
                 stateModel.set({
                     "id" : {
@@ -276,7 +274,9 @@
                         if (config.domain) {
                             me.domainId = config.domain.domainId;
                         }
-                        me.model.status.set("state", model);
+                        // apply new config to state model
+                        me.model.status.get("state").set(model.get("config"));
+
                         // set the projectId
                         $.when(me.setProjectId(me.projectId)).always(
                                 function() {
@@ -284,23 +284,44 @@
                                         // set the domainId
                                         me.setDomainId(me.domainId);
                                     }
+                                    dfd.resolve();
                                 }
                         );
-                        dfd.resolve();
                     },
                     error : function(model, response, options) {
                         console.error("state fetch failed : "+stateId);
-                        dfd.reject();
+                        // set the projectId
+                        $.when(me.setProjectId(me.projectId)).always(
+                                function() {
+                                    if (me.domainId) {
+                                        // set the domainId
+                                        me.setDomainId(me.domainId);
+                                    }
+                                    dfd.reject();
+                                }
+                        );
                     }
                 });
-                return dfd.promise();
+            } else {
+                // set the projectId
+                $.when(me.setProjectId(me.projectId)).always(
+                        function() {
+                            if (me.domainId) {
+                                // set the domainId
+                                me.setDomainId(me.domainId);
+                            }
+                            dfd.resolve();
+                        }
+                );
+                
             }
+            return dfd.promise();
         },
         
         setShortcutId : function(shortcutId) {
+            var me = this;
+            var dfd = new $.Deferred();
             if (shortcutId) {
-                var me = this;
-                var dfd = new $.Deferred();
                 var shortcutModel = new squid_api.model.ShortcutModel();
                 shortcutModel.set({
                     "id" : {
@@ -320,8 +341,10 @@
                         dfd.reject();
                     }
                 });
-                return dfd.promise();
+            } else {
+                me.setStateId(dfd, null);
             }
+            return dfd.promise();
         },
         
         setDomainId : function(oid) {
@@ -389,6 +412,13 @@
             this.projectId = projectId;
             
             this.model.project = new squid_api.model.ProjectModel();
+            
+            // state handling
+            
+            var stateModel = new Backbone.Model();
+            this.model.status.set("state", stateModel);
+            
+            // selection
             
             var defaultSelection = null;
             if (args.selection) {

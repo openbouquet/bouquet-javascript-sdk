@@ -63,12 +63,18 @@
             if (domainIdList) {
                 domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
-                    domains.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": domainIdList[i]
-                    });
+                    if (domainIdList[i].projectId) {
+                        domains.push({
+                            "projectId": domainIdList[i].projectId,
+                            "domainId": domainIdList[i].domainId
+                        });
+                    } else {
+                        domains.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": domainIdList[i]
+                        });
+                    }
                 }
-                
             } else {
                 domains = null;
             }
