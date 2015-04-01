@@ -255,9 +255,9 @@
         },
         
         setStateId : function(dfd, stateId) {
+            var me = this;
+            dfd = dfd || (new $.Deferred());
             if (stateId) {
-                var me = this;
-                dfd = dfd || (new $.Deferred());
                 var stateModel = new squid_api.model.StateModel();
                 stateModel.set({
                     "id" : {
@@ -290,17 +290,36 @@
                     },
                     error : function(model, response, options) {
                         console.error("state fetch failed : "+stateId);
+                        // set the projectId
+                        $.when(me.setProjectId(me.projectId)).always(
+                                function() {
+                                    if (me.domainId) {
+                                        // set the domainId
+                                        me.setDomainId(me.domainId);
+                                    }
+                                }
+                        );
                         dfd.reject();
                     }
                 });
-                return dfd.promise();
+            } else {
+                // set the projectId
+                $.when(me.setProjectId(me.projectId)).always(
+                        function() {
+                            if (me.domainId) {
+                                // set the domainId
+                                me.setDomainId(me.domainId);
+                            }
+                        }
+                );
             }
+            return dfd.promise();
         },
         
         setShortcutId : function(shortcutId) {
+            var me = this;
+            var dfd = new $.Deferred();
             if (shortcutId) {
-                var me = this;
-                var dfd = new $.Deferred();
                 var shortcutModel = new squid_api.model.ShortcutModel();
                 shortcutModel.set({
                     "id" : {
@@ -320,8 +339,10 @@
                         dfd.reject();
                     }
                 });
-                return dfd.promise();
+            } else {
+                me.setStateId(dfd, null);
             }
+            return dfd.promise();
         },
         
         setDomainId : function(oid) {
