@@ -193,7 +193,6 @@
                 this.model.project.fetch({
                     success : function(model, response, options) {
                         console.log("project fetched : "+model.get("name"));
-                        me.model.status.set("project", model.get("id"));
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
@@ -252,6 +251,16 @@
             });
         },
         
+        setConfig : function(config) {
+            if (!config) {
+                // set the config from query parameters
+                config = {"project" : this.projectId,
+                        "domain" : this.domainId};
+            }
+            // apply config to state model
+            this.model.status.get("state").set(config);
+        },
+        
         setStateId : function(dfd, stateId) {
             var me = this;
             dfd = dfd || (new $.Deferred());
@@ -268,52 +277,15 @@
                         var oid = model.get("oid");
                         console.log("state fetched : "+oid);
                         var config = model.get("config");
-                        if (config.project) {
-                            me.projectId = config.project.projectId;
-                        }
-                        if (config.domain) {
-                            me.domainId = config.domain.domainId;
-                        }
-                        // apply new config to state model
-                        me.model.status.get("state").set(model.get("config"));
-
-                        // set the projectId
-                        $.when(me.setProjectId(me.projectId)).always(
-                                function() {
-                                    if (me.domainId) {
-                                        // set the domainId
-                                        me.setDomainId(me.domainId);
-                                    }
-                                    dfd.resolve();
-                                }
-                        );
+                        me.setConfig(config);
                     },
                     error : function(model, response, options) {
                         console.error("state fetch failed : "+stateId);
-                        // set the projectId
-                        $.when(me.setProjectId(me.projectId)).always(
-                                function() {
-                                    if (me.domainId) {
-                                        // set the domainId
-                                        me.setDomainId(me.domainId);
-                                    }
-                                    dfd.reject();
-                                }
-                        );
+                        me.setConfig(null);
                     }
                 });
             } else {
-                // set the projectId
-                $.when(me.setProjectId(me.projectId)).always(
-                        function() {
-                            if (me.domainId) {
-                                // set the domainId
-                                me.setDomainId(me.domainId);
-                            }
-                            dfd.resolve();
-                        }
-                );
-                
+                me.setConfig(null);
             }
             return dfd.promise();
         },
@@ -345,23 +317,6 @@
                 me.setStateId(dfd, null);
             }
             return dfd.promise();
-        },
-        
-        setDomainId : function(oid) {
-            var me = this;
-            this.domainId = oid;
-            this.model.domain.set({"id" : {"customerId" : this.customerId, "projectId" : this.projectId, "domainId" : oid}}, {"silent" : true});
-            if (oid) {
-                this.model.domain.fetch({
-                    success : function(model, response, options) {
-                        console.log("domain fetched : "+model.get("name"));
-                        me.model.status.set("domain", model.get("id"));
-                    },
-                    error : function(model, response, options) {
-                        console.error("domain fetch failed");
-                    }
-                });
-            }
         },
         
         getProject : function() {
@@ -418,6 +373,10 @@
             var stateModel = new Backbone.Model();
             this.model.status.set("state", stateModel);
             
+            stateModel.on("change:project", function(model) {
+                me.setProjectId(model.get("project"));
+            });
+            
             // selection
             
             var defaultSelection = null;
@@ -454,7 +413,7 @@
                 });
                 
                 // check for domain change performed
-                squid_api.model.status.on('change:domain', function(model) {
+                squid_api.model.status.get("state").on('change:domain', function(model) {
                     var domain = model.get("domain");
                     if (domain) {
                         me.domain = domain.domainId;
