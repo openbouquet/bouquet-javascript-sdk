@@ -27,6 +27,7 @@
         domainId: null,
         clientId: null,
         fakeServer: null,
+        defaultConfig: null,
         
         // declare some namespaces
         model: {},
@@ -263,6 +264,7 @@
         
         setStateId : function(dfd, stateId) {
             var me = this;
+            var baseConfig = me.defaultConfig;
             dfd = dfd || (new $.Deferred());
             if (stateId) {
                 var stateModel = new squid_api.model.StateModel();
@@ -277,7 +279,14 @@
                         var oid = model.get("oid");
                         console.log("state fetched : "+oid);
                         var config = model.get("config");
-                        me.setConfig(config);
+                        var newConfig = {};
+                        for (var att1 in baseConfig) {
+                            newConfig[att1] = baseConfig[att1];
+                        }
+                        for (var att2 in config) {
+                            newConfig[att2] = config[att2];
+                        }
+                        me.setConfig(newConfig);
                     },
                     error : function(model, response, options) {
                         console.error("state fetch failed : "+stateId);
@@ -285,7 +294,7 @@
                     }
                 });
             } else {
-                me.setConfig(null);
+                me.setConfig(baseConfig);
             }
             return dfd.promise();
         },
@@ -336,6 +345,7 @@
             args.projectId = args.projectId || null;
             args.domainId = args.domainId || null;
             args.selection = args.selection || null;
+            this.defaultConfig = args.config || {};
             apiUrl = args.apiUrl || null;
             
             this.debug = squid_api.utils.getParamValue("debug", null);
