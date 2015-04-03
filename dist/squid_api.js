@@ -1615,7 +1615,9 @@
      */
     squid_api.model.ProjectFacetJobFacet = squid_api.model.ProjectFacetJobResult.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectFacetJobResult.prototype.urlRoot.apply(this, arguments) + this.get("oid");
+            // facet id need url-encoding
+            var id = encodeURIComponent(this.get("oid"));
+            return squid_api.model.ProjectFacetJobResult.prototype.urlRoot.apply(this, arguments) + id;
         },
         error: null,
         timeoutMillis: function() { 
