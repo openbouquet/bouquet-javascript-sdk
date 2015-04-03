@@ -613,10 +613,6 @@
             options.success =  function(model, response, options) {
                 if (me.statusModel) {
                     me.statusModel.pullTask(model);
-                    if (model && model.get("error")) {
-                        // jobs return errors in an http 200 response
-                        me.statusModel.set("error", model.get("error"));
-                    }
                 }
                 // normal behavior
                 if (success) {
