@@ -202,6 +202,12 @@
                     }
                 });
                 return dfd.promise();
+            } else {
+                // reset
+                var atts = this.model.project.attributes;
+                for (var att in atts) {
+                    this.model.project.set(att, null);
+                }
             }
         },
         
