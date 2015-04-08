@@ -767,6 +767,13 @@
          */
         setAccessCode: function(code, cookieExpiration) {
             var me = this;
+            
+            // remove from browser history
+            if (window.history) {
+                var uri = new URI(window.location.href);
+                uri.removeQuery("code");
+                window.history.pushState(code, "", uri);
+            }
 
             // set the access token and refresh data
             var request = $.ajax({
@@ -832,6 +839,9 @@
     
                         // update login model from server
                         me.fetch({
+                            error: function(model, response, options) {
+                                console.log("WARN : user fetch error");
+                            },
                             success: function(model) {
                                 if ((token) && (typeof token != "undefined")) {
                                     // write in a customer cookie
