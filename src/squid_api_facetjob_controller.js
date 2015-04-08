@@ -257,7 +257,6 @@
 
                 projectFacetJob.save({}, {
                     success : function(model, response) {
-                        console.log("create job success");
                         if (successCallback) {
                             successCallback(model, jobModel, dfd);
                         } else {
@@ -265,7 +264,7 @@
                         }
                     },
                     error: function(model, response) {
-                        console.log("create job error");
+                        console.error("create job error");
                         jobModel.set("error", response);
                         jobModel.set("status", "DONE");
                         dfd.reject();
@@ -288,6 +287,11 @@
                     // update the Model
                     jobModel.set("statistics", t);
                     jobModel.set("error", projectFacetJob.get("error"));
+                    if (projectFacetJob.get("error")) {
+                        // jobs returned an error
+                        console.error("FacetJob computation error " + projectFacetJob.get("error").message);
+                        squid_api.model.status.set("error", projectFacetJob.get("error"));
+                    }
                     if (projectFacetJob.get("results")) {
                     	var facets = projectFacetJob.get("results").facets;
                         jobModel.set("selection", {"facets" : facets});

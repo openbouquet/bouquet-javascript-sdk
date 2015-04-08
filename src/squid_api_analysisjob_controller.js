@@ -63,12 +63,18 @@
             if (domainIdList) {
                 domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
-                    domains.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": domainIdList[i]
-                    });
+                    if (domainIdList[i].projectId) {
+                        domains.push({
+                            "projectId": domainIdList[i].projectId,
+                            "domainId": domainIdList[i].domainId
+                        });
+                    } else {
+                        domains.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": domainIdList[i]
+                        });
+                    }
                 }
-                
             } else {
                 domains = null;
             }
@@ -92,11 +98,19 @@
                 dims = [];
                 for (var i=0; i<dimensionIdList.length; i++) {
                     if (dimensionIdList[i]) {
-                        dims.push({
-                            "projectId": this.get("id").projectId,
-                            "domainId": this.get("domains")[0].domainId,
-                            "dimensionId": dimensionIdList[i]
-                        });
+                        if (dimensionIdList[i].projectId) {
+                            dims.push({
+                                "projectId": dimensionIdList[i].projectId,
+                                "domainId": dimensionIdList[i].domainId,
+                                "dimensionId": dimensionIdList[i].dimensionId
+                            });
+                        } else {
+                            dims.push({
+                                "projectId": this.get("id").projectId,
+                                "domainId": this.get("domains")[0].domainId,
+                                "dimensionId": dimensionIdList[i]
+                            });
+                        }
                     }
                 }
             } else {
@@ -135,11 +149,19 @@
             var dims = this.get("dimensions") || [];
             dims = dims.slice(0);
             index = index || 0;
-            dims[index] = {
-                "projectId": this.get("id").projectId,
-                "domainId": this.get("domains")[0].domainId,
-                "dimensionId": dimensionId
-            };
+            if (dimensionId.projectId) {
+                dims[index] = {
+                    "projectId": dimensionId.projectId,
+                    "domainId": dimensionId.domainId,
+                    "dimensionId": dimensionId.dimensionId
+                };
+            } else {
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+            }
             this.setDimensions(dims);
             return this;
         },

@@ -18,7 +18,7 @@
     // Squid API definition
     var squid_api = {
         debug : null,
-        version : "2.0.0",
+        version : "2.1.0",
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
@@ -27,6 +27,7 @@
         domainId: null,
         clientId: null,
         fakeServer: null,
+        defaultConfig: null,
         
         // declare some namespaces
         model: {},
@@ -193,8 +194,6 @@
                 this.model.project.fetch({
                     success : function(model, response, options) {
                         console.log("project fetched : "+model.get("name"));
-                        me.model.status.set("project", model.get("id"));
-                        me.model.status.set("domain", null);
                         dfd.resolve();
                     },
                     error : function(model, response, options) {
@@ -203,6 +202,12 @@
                     }
                 });
                 return dfd.promise();
+            } else {
+                // reset
+                var atts = this.model.project.attributes;
+                for (var att in atts) {
+                    this.model.project.set(att, null);
+                }
             }
         },
         
@@ -212,7 +217,7 @@
          */
         saveState : function(config) {
             var me = this;
-            var stateModel = new squid_api.model.StateModel();
+            var stateModel = new me.model.StateModel();
             stateModel.set({
                 "id" : {
                     "customerId" : this.customerId,
@@ -220,19 +225,19 @@
                  }
             });
             
-            var selection = squid_api.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
             var attributes = {
-                    "config" : {
-                        "project" : me.model.status.get("project"),
-                        "domain" : me.model.status.get("domain"),
-                        "selection" : selection
-                    }
+                    "config" : me.model.config.attributes
             };
+            var selection = me.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
+            attributes.config.selection = selection;
+            
             // add the extra config
-            for (var i=0; i<config.length; i++) {
-                var c = config[i];
-                for (var prop in c) {
-                    attributes.config[prop] = c[prop];
+            if (config) {
+                for (var i=0; i<config.length; i++) {
+                    var c = config[i];
+                    for (var prop in c) {
+                        attributes.config[prop] = c[prop];
+                    }
                 }
             }
             // save
@@ -240,7 +245,6 @@
                 success : function(model, response, options) {
                     var oid = model.get("oid");
                     console.log("state saved : "+oid);
-                    me.model.status.set("state", model);
                     // save in browser history
                     if (window.history) {
                         var uri = new URI(window.location.href);
@@ -254,8 +258,19 @@
             });
         },
         
+        setConfig : function(config) {
+            if (!config) {
+                // set the config from query parameters
+                config = {"project" : this.projectId,
+                        "domain" : this.domainId};
+            }
+            // apply config
+            this.model.config.set(config);
+        },
+        
         setStateId : function(dfd, stateId) {
             var me = this;
+            var baseConfig = me.defaultConfig;
             dfd = dfd || (new $.Deferred());
             if (stateId) {
                 var stateModel = new squid_api.model.StateModel();
@@ -270,48 +285,22 @@
                         var oid = model.get("oid");
                         console.log("state fetched : "+oid);
                         var config = model.get("config");
-                        if (config.project) {
-                            me.projectId = config.project.projectId;
+                        var newConfig = {};
+                        for (var att1 in baseConfig) {
+                            newConfig[att1] = baseConfig[att1];
                         }
-                        if (config.domain) {
-                            me.domainId = config.domain.domainId;
+                        for (var att2 in config) {
+                            newConfig[att2] = config[att2];
                         }
-                        me.model.status.set("state", model);
-                        // set the projectId
-                        $.when(me.setProjectId(me.projectId)).always(
-                                function() {
-                                    if (me.domainId) {
-                                        // set the domainId
-                                        me.setDomainId(me.domainId);
-                                    }
-                                }
-                        );
-                        dfd.resolve();
+                        me.setConfig(newConfig);
                     },
                     error : function(model, response, options) {
                         console.error("state fetch failed : "+stateId);
-                        // set the projectId
-                        $.when(me.setProjectId(me.projectId)).always(
-                                function() {
-                                    if (me.domainId) {
-                                        // set the domainId
-                                        me.setDomainId(me.domainId);
-                                    }
-                                }
-                        );
-                        dfd.reject();
+                        me.setConfig(null);
                     }
                 });
             } else {
-                // set the projectId
-                $.when(me.setProjectId(me.projectId)).always(
-                        function() {
-                            if (me.domainId) {
-                                // set the domainId
-                                me.setDomainId(me.domainId);
-                            }
-                        }
-                );
+                me.setConfig(baseConfig);
             }
             return dfd.promise();
         },
@@ -345,27 +334,6 @@
             return dfd.promise();
         },
         
-        setDomainId : function(oid) {
-            var me = this;
-            this.domainId = oid;
-            this.model.domain.set({"id" : {"customerId" : this.customerId, "projectId" : this.projectId, "domainId" : oid}}, {"silent" : true});
-            if (oid) {
-                this.model.domain.fetch({
-                    success : function(model, response, options) {
-                        console.log("domain fetched : "+model.get("name"));
-                        me.model.status.set("domain", model.get("id"));
-                    },
-                    error : function(model, response, options) {
-                        console.error("domain fetch failed");
-                    }
-                });
-            }
-        },
-        
-        getProject : function() {
-            return this.model.project;
-        },
-        
         /**
          * Init the API default settings.
          * @param a config json object
@@ -379,6 +347,7 @@
             args.projectId = args.projectId || null;
             args.domainId = args.domainId || null;
             args.selection = args.selection || null;
+            this.defaultConfig = args.config || {};
             apiUrl = args.apiUrl || null;
             
             this.debug = squid_api.utils.getParamValue("debug", null);
@@ -410,6 +379,17 @@
             this.projectId = projectId;
             
             this.model.project = new squid_api.model.ProjectModel();
+            
+            // config handling
+            
+            var configModel = new Backbone.Model();
+            this.model.config = configModel;
+            
+            configModel.on("change:project", function(model) {
+                me.setProjectId(model.get("project"));
+            });
+            
+            // selection
             
             var defaultSelection = null;
             if (args.selection) {
@@ -445,7 +425,7 @@
                 });
                 
                 // check for domain change performed
-                squid_api.model.status.on('change:domain', function(model) {
+                squid_api.model.config.on('change:domain', function(model) {
                     var domain = model.get("domain");
                     if (domain) {
                         me.domain = domain.domainId;
@@ -645,10 +625,6 @@
             options.success =  function(model, response, options) {
                 if (me.statusModel) {
                     me.statusModel.pullTask(model);
-                    if (model && model.get("error")) {
-                        // jobs return errors in an http 200 response
-                        me.statusModel.set("error", model.get("error"));
-                    }
                 }
                 // normal behavior
                 if (success) {
@@ -1118,12 +1094,18 @@
             if (domainIdList) {
                 domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
-                    domains.push({
-                        "projectId": this.get("id").projectId,
-                        "domainId": domainIdList[i]
-                    });
+                    if (domainIdList[i].projectId) {
+                        domains.push({
+                            "projectId": domainIdList[i].projectId,
+                            "domainId": domainIdList[i].domainId
+                        });
+                    } else {
+                        domains.push({
+                            "projectId": this.get("id").projectId,
+                            "domainId": domainIdList[i]
+                        });
+                    }
                 }
-                
             } else {
                 domains = null;
             }
@@ -1147,11 +1129,19 @@
                 dims = [];
                 for (var i=0; i<dimensionIdList.length; i++) {
                     if (dimensionIdList[i]) {
-                        dims.push({
-                            "projectId": this.get("id").projectId,
-                            "domainId": this.get("domains")[0].domainId,
-                            "dimensionId": dimensionIdList[i]
-                        });
+                        if (dimensionIdList[i].projectId) {
+                            dims.push({
+                                "projectId": dimensionIdList[i].projectId,
+                                "domainId": dimensionIdList[i].domainId,
+                                "dimensionId": dimensionIdList[i].dimensionId
+                            });
+                        } else {
+                            dims.push({
+                                "projectId": this.get("id").projectId,
+                                "domainId": this.get("domains")[0].domainId,
+                                "dimensionId": dimensionIdList[i]
+                            });
+                        }
                     }
                 }
             } else {
@@ -1190,11 +1180,19 @@
             var dims = this.get("dimensions") || [];
             dims = dims.slice(0);
             index = index || 0;
-            dims[index] = {
-                "projectId": this.get("id").projectId,
-                "domainId": this.get("domains")[0].domainId,
-                "dimensionId": dimensionId
-            };
+            if (dimensionId.projectId) {
+                dims[index] = {
+                    "projectId": dimensionId.projectId,
+                    "domainId": dimensionId.domainId,
+                    "dimensionId": dimensionId.dimensionId
+                };
+            } else {
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+            }
             this.setDimensions(dims);
             return this;
         },
@@ -1831,7 +1829,6 @@
 
                 projectFacetJob.save({}, {
                     success : function(model, response) {
-                        console.log("create job success");
                         if (successCallback) {
                             successCallback(model, jobModel, dfd);
                         } else {
@@ -1839,7 +1836,7 @@
                         }
                     },
                     error: function(model, response) {
-                        console.log("create job error");
+                        console.error("create job error");
                         jobModel.set("error", response);
                         jobModel.set("status", "DONE");
                         dfd.reject();
@@ -1862,6 +1859,11 @@
                     // update the Model
                     jobModel.set("statistics", t);
                     jobModel.set("error", projectFacetJob.get("error"));
+                    if (projectFacetJob.get("error")) {
+                        // jobs returned an error
+                        console.error("FacetJob computation error " + projectFacetJob.get("error").message);
+                        squid_api.model.status.set("error", projectFacetJob.get("error"));
+                    }
                     if (projectFacetJob.get("results")) {
                     	var facets = projectFacetJob.get("results").facets;
                         jobModel.set("selection", {"facets" : facets});
