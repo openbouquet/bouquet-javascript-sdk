@@ -18,7 +18,7 @@
     // Squid API definition
     var squid_api = {
         debug : null,
-        version : "2.0.0",
+        version : "2.1.0",
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
@@ -226,7 +226,7 @@
             });
             
             var attributes = {
-                    "config" : me.model.status.get("state").attributes
+                    "config" : me.model.config.attributes
             };
             var selection = me.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
             attributes.config.selection = selection;
@@ -264,8 +264,8 @@
                 config = {"project" : this.projectId,
                         "domain" : this.domainId};
             }
-            // apply config to state model
-            this.model.status.get("state").set(config);
+            // apply config
+            this.model.config.set(config);
         },
         
         setStateId : function(dfd, stateId) {
@@ -334,10 +334,6 @@
             return dfd.promise();
         },
         
-        getProject : function() {
-            return this.model.project;
-        },
-        
         /**
          * Init the API default settings.
          * @param a config json object
@@ -384,12 +380,12 @@
             
             this.model.project = new squid_api.model.ProjectModel();
             
-            // state handling
+            // config handling
             
-            var stateModel = new Backbone.Model();
-            this.model.status.set("state", stateModel);
+            var configModel = new Backbone.Model();
+            this.model.config = configModel;
             
-            stateModel.on("change:project", function(model) {
+            configModel.on("change:project", function(model) {
                 me.setProjectId(model.get("project"));
             });
             
@@ -429,7 +425,7 @@
                 });
                 
                 // check for domain change performed
-                squid_api.model.status.get("state").on('change:domain', function(model) {
+                squid_api.model.config.on('change:domain', function(model) {
                     var domain = model.get("domain");
                     if (domain) {
                         me.domain = domain.domainId;
@@ -1133,11 +1129,19 @@
                 dims = [];
                 for (var i=0; i<dimensionIdList.length; i++) {
                     if (dimensionIdList[i]) {
-                        dims.push({
-                            "projectId": this.get("id").projectId,
-                            "domainId": this.get("domains")[0].domainId,
-                            "dimensionId": dimensionIdList[i]
-                        });
+                        if (dimensionIdList[i].projectId) {
+                            dims.push({
+                                "projectId": dimensionIdList[i].projectId,
+                                "domainId": dimensionIdList[i].domainId,
+                                "dimensionId": dimensionIdList[i].dimensionId
+                            });
+                        } else {
+                            dims.push({
+                                "projectId": this.get("id").projectId,
+                                "domainId": this.get("domains")[0].domainId,
+                                "dimensionId": dimensionIdList[i]
+                            });
+                        }
                     }
                 }
             } else {
@@ -1176,11 +1180,19 @@
             var dims = this.get("dimensions") || [];
             dims = dims.slice(0);
             index = index || 0;
-            dims[index] = {
-                "projectId": this.get("id").projectId,
-                "domainId": this.get("domains")[0].domainId,
-                "dimensionId": dimensionId
-            };
+            if (dimensionId.projectId) {
+                dims[index] = {
+                    "projectId": dimensionId.projectId,
+                    "domainId": dimensionId.domainId,
+                    "dimensionId": dimensionId.dimensionId
+                };
+            } else {
+                dims[index] = {
+                    "projectId": this.get("id").projectId,
+                    "domainId": this.get("domains")[0].domainId,
+                    "dimensionId": dimensionId
+                };
+            }
             this.setDimensions(dims);
             return this;
         },
