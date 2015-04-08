@@ -203,12 +203,14 @@
                     if (facets) {
                         for (var is = 0; is < facets.length; is++) {
                             var facet = facets[is];
-                            var newFacet = {
-                                    "selectedItems" : facet.selectedItems,
-                                    "dimension" : facet.dimension,
-                                    "id" : facet.id
-                            };
-                            selection.facets.push(newFacet);
+                            if (facet.selectedItems && (facet.selectedItems.length>0)) {
+                                var newFacet = {
+                                        "selectedItems" : facet.selectedItems,
+                                        "dimension" : facet.dimension,
+                                        "id" : facet.id
+                                };
+                                selection.facets.push(newFacet);
+                            }
                         }
                     }
                 }

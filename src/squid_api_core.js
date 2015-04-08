@@ -212,19 +212,11 @@
         },
         
         /**
-         * Save the current State model.
+         * Save the current State model (including the current selection)
          * @param an array of extra config elements
          */
         saveState : function(config) {
             var me = this;
-            var stateModel = new me.model.StateModel();
-            stateModel.set({
-                "id" : {
-                    "customerId" : this.customerId,
-                    "stateId" : null
-                 }
-            });
-            
             var attributes = {
                     "config" : me.model.config.attributes
             };
@@ -240,22 +232,37 @@
                     }
                 }
             }
-            // save
-            stateModel.save(attributes, {
-                success : function(model, response, options) {
-                    var oid = model.get("oid");
-                    console.log("state saved : "+oid);
-                    // save in browser history
-                    if (window.history) {
-                        var uri = new URI(window.location.href);
-                        uri.setQuery("state", oid);
-                        window.history.pushState(model.toJSON(), "", uri);
+            
+            // check if save is required
+            if ((!me.model.state) || (!_.isEqual(me.model.state.get("config"), attributes.config))) {
+                var stateModel = new me.model.StateModel();
+                stateModel.set({
+                    "id" : {
+                        "customerId" : this.customerId,
+                        "stateId" : null
+                     }
+                });
+                
+                // save
+                stateModel.save(attributes, {
+                    success : function(model, response, options) {
+                        var oid = model.get("oid");
+                        console.log("state saved : "+oid);
+                        // keep for comparison when saved again
+                        me.model.state = model;
+                        
+                        // save in browser history
+                        if (window.history) {
+                            var uri = new URI(window.location.href);
+                            uri.setQuery("state", oid);
+                            window.history.pushState(model.toJSON(), "", uri);
+                        }
+                    },
+                    error : function(model, response, options) {
+                        console.error("state save failed");
                     }
-                },
-                error : function(model, response, options) {
-                    console.error("state save failed");
-                }
-            });
+                });
+            }
         },
         
         setConfig : function(config) {
@@ -284,6 +291,9 @@
                     success : function(model, response, options) {
                         var oid = model.get("oid");
                         console.log("state fetched : "+oid);
+                        // keep for comparison when saved again
+                        me.model.state = model;
+                        
                         var config = model.get("config");
                         var newConfig = {};
                         for (var att1 in baseConfig) {
