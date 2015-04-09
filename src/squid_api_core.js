@@ -137,12 +137,15 @@
                 });
             },
             
-            find : function(theObject, key, value) {
+            /**
+             * Deep find an object having a given property value and objectType in a JSON object.
+             */
+            find : function(theObject, key, value, objectType) {
                 var result = null, i;
                 if (theObject instanceof Array) {
                     for (i = 0; i < theObject.length; i++) {
                         result = this.find(theObject[i], key,
-                                value);
+                                value, objectType);
                         if (result) {
                             break;
                         }
@@ -151,11 +154,13 @@
                     for ( var prop in theObject) {
                         if (prop == key) {
                             if (theObject[prop] == value) {
-                                return theObject;
+                                if (!objectType || (objectType == theObject.objectType)) {
+                                    return theObject;
+                                } 
                             }
                         }
                         if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
-                            result = this.find(theObject[prop], key, value);
+                            result = this.find(theObject[prop], key, value, objectType);
                             if (result) {
                                 break;
                             }
