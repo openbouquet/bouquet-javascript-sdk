@@ -824,33 +824,33 @@
                 var tokenModel = new squid_api.model.TokenModel({
                     "token": token
                 });
-    
-                tokenModel.fetch({
-                    error: function(model, response, options) {
-                        squid_api.model.login.set("login", null);
-                    },
-                    success: function(model, response, options) {
-                        // set the customerId
-                        squid_api.setCustomerId(model.get("customerId"));
-                        // verify the clientId
-                        if (model.get("clientId") != this.clientId) {
-                            console.log("WARN : the Token used doesn't match you application's ClientId");
-                        }
-    
-                        // update login model from server
-                        me.fetch({
-                            error: function(model, response, options) {
-                                console.log("WARN : user fetch error");
-                            },
-                            success: function(model) {
+                
+                tokenModel.on("change:customerId", function(model) {
+                    // set the customerId
+                    $.when(squid_api.setCustomerId(model.get("customerId"))).done(
+                            function() {
+                                // verify the clientId
+                                if (model.get("clientId") != this.clientId) {
+                                    console.log("WARN : the Token used doesn't match you application's ClientId");
+                                }
+                                
                                 if ((token) && (typeof token != "undefined")) {
                                     // write in a customer cookie
                                     squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
                                     // write in a global cookie
                                     squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
                                 }
+            
+                                // update login model from server
+                                // NOTE that for an unknow reason, success or error callbacks are not working here (probably a scope issue)
+                                squid_api.model.login.fetch();
                             }
-                        });
+                        );
+                });
+    
+                tokenModel.fetch({
+                    error: function(model, response, options) {
+                        squid_api.model.login.set("login", null);
                     }
                 });
             }
