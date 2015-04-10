@@ -339,7 +339,7 @@
                     }
                 });
             } else {
-                me.setConfig(dfd, baseConfig);
+                me.setConfig(baseConfig);
             }
             return dfd.promise();
         },
@@ -378,17 +378,19 @@
             var domainId = squid_api.utils.getParamValue("domainId",null);
             if (!domainId) {
                 domainId = args.domainId;
+            } else {
+                this.defaultConfig.domain = domainId;
             }
             this.domainId = domainId;
-            this.defaultConfig.domain = domainId;
             this.model.domain = new squid_api.model.DomainModel();
             
             var projectId = squid_api.utils.getParamValue("projectId",null);
             if (!projectId) {
                 projectId = args.projectId;
+            } else {
+                this.defaultConfig.project = projectId;
             }
             this.projectId = projectId;
-            this.defaultConfig.project = projectId;
             this.model.project = new squid_api.model.ProjectModel();
             
             // config handling
