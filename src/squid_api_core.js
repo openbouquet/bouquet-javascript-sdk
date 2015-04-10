@@ -270,57 +270,52 @@
             }
         },
         
-        setConfig : function(config) {
-            if (!config) {
-                // set the config from query parameters
-                config = {"project" : this.projectId,
-                        "domain" : this.domainId};
+        setConfig : function(baseConfig, config) {
+            var newConfig = {};
+            // merge the configs
+            if (baseConfig) {
+                for (var att1 in baseConfig) {
+                    newConfig[att1] = baseConfig[att1];
+                }
             }
+            if (config) {
+                for (var att2 in config) {
+                    newConfig[att2] = config[att2];
+                }
+            }
+
             // apply config
-            this.model.config.set(config);
+            this.model.config.set(newConfig);
         },
         
-        setStateId : function(dfd, stateId) {
+        setStateId : function(dfd, stateId, baseConfig) {
             var me = this;
-            var baseConfig = me.defaultConfig;
             dfd = dfd || (new $.Deferred());
-            if (stateId) {
-                var stateModel = new squid_api.model.StateModel();
-                stateModel.set({
-                    "id" : {
-                        "customerId" : this.customerId,
-                        "stateId" : stateId
-                    }
-                });
-                stateModel.fetch({
-                    success : function(model, response, options) {
-                        var oid = model.get("oid");
-                        console.log("state fetched : "+oid);
-                        // keep for comparison when saved again
-                        me.model.state = model;
-                        
-                        var config = model.get("config");
-                        var newConfig = {};
-                        for (var att1 in baseConfig) {
-                            newConfig[att1] = baseConfig[att1];
-                        }
-                        for (var att2 in config) {
-                            newConfig[att2] = config[att2];
-                        }
-                        me.setConfig(newConfig);
-                    },
-                    error : function(model, response, options) {
-                        console.error("state fetch failed : "+stateId);
-                        me.setConfig(null);
-                    }
-                });
-            } else {
-                me.setConfig(baseConfig);
-            }
+            var stateModel = new squid_api.model.StateModel();
+            stateModel.set({
+                "id" : {
+                    "customerId" : this.customerId,
+                    "stateId" : stateId
+                }
+            });
+            stateModel.fetch({
+                success : function(model, response, options) {
+                    var oid = model.get("oid");
+                    console.log("state fetched : "+oid);
+                    // keep for comparison when saved again
+                    me.model.state = model;
+                    var config = model.get("config");
+                    me.setConfig(baseConfig, config);
+                },
+                error : function(model, response, options) {
+                    console.error("state fetch failed : "+stateId);
+                    me.setConfig(null);
+                }
+            });
             return dfd.promise();
         },
         
-        setShortcutId : function(shortcutId) {
+        setShortcutId : function(shortcutId, baseConfig) {
             var me = this;
             var dfd = new $.Deferred();
             if (shortcutId) {
@@ -336,7 +331,7 @@
                         console.log("shortcut fetched : "+model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
-                        me.setStateId(dfd, model.get("stateId"));
+                        me.setStateId(dfd, model.get("stateId"), baseConfig);
                     },
                     error : function(model, response, options) {
                         console.error("shortcut fetch failed : "+shortcutId);
@@ -344,7 +339,7 @@
                     }
                 });
             } else {
-                me.setStateId(dfd, null);
+                me.setConfig(dfd, baseConfig);
             }
             return dfd.promise();
         },
@@ -385,6 +380,7 @@
                 domainId = args.domainId;
             }
             this.domainId = domainId;
+            this.defaultConfig.domain = domainId;
             this.model.domain = new squid_api.model.DomainModel();
             
             var projectId = squid_api.utils.getParamValue("projectId",null);
@@ -392,7 +388,7 @@
                 projectId = args.projectId;
             }
             this.projectId = projectId;
-            
+            this.defaultConfig.project = projectId;
             this.model.project = new squid_api.model.ProjectModel();
             
             // config handling
@@ -524,13 +520,12 @@
                 if (model.get("login")) {
                     // login ok
                     // perform init chain
-                    var state = squid_api.utils.getParamValue("state", null);
-                    var shortcut = squid_api.utils.getParamValue("shortcut", null);
-                    // fetch
+                    var state = squid_api.utils.getParamValue("state",null);
+                    var shortcut = squid_api.utils.getParamValue("shortcut",null);
                     if (state) {
-                        me.setStateId(null, state);
+                        me.setStateId(null, state, me.defaultConfig);
                     } else {
-                        me.setShortcutId(shortcut);
+                        me.setShortcutId(shortcut, me.defaultConfig);
                     }
                 }
             });
