@@ -302,17 +302,10 @@
             }
             projectAnalysisJob.parameters = analysisModel.parameters;
             projectAnalysisJob.statusModel = squid_api.model.status;
+            projectAnalysisJob.set(analysisModel.attributes);
             projectAnalysisJob.set({"id" : {
                     projectId: projectId,
-                    analysisJobId: null},
-                    "domains" : analysisModel.get("domains"),
-                    "dimensions": analysisModel.get("dimensions"),
-                    "facets": analysisModel.get("facets"),
-                    "metrics": analysisModel.get("metrics"),
-                    "autoRun": analysisModel.get("autoRun"),
-                    "limit": analysisModel.get("limit"),
-                    "orderBy": analysisModel.get("orderBy"),
-                    "selection": selection});
+                    analysisJobId: null}});
 
             // save the analysisJob to API
             if (this.fakeServer) {
