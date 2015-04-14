@@ -1248,9 +1248,28 @@
             return this;
         },
         
-        setMetrics : function(metrics, silent) {
+        setMetrics : function(metricsArg, silent) {
+            var metrics = [];
             silent = silent || false;
-            this.set({"metrics": metrics}, {"silent" : silent});
+            for (var i=0; i<metricsArg.length; i++) {
+                var metric = metricsArg[i];
+                if (metric) {
+                    if (metric instanceof Object) {
+                        // metric is already on object
+                        metrics.push(metric);
+                    } else {
+                        // metric is just an Id
+                        metrics.push({
+                            "id" : {
+                                "projectId": this.get("id").projectId,
+                                "domainId": this.get("domains")[0].domainId,
+                                "metricId": metric
+                            }
+                        });
+                    }
+                }
+            }
+            this.set({"metricList": metrics}, {"silent" : silent});
             return this;
         },
         
