@@ -217,7 +217,7 @@
         },
         
         /**
-         * Save the current State model (including the current selection)
+         * Save the current State model
          * @param an array of extra config elements
          */
         saveState : function(config) {
@@ -225,8 +225,6 @@
             var attributes = {
                     "config" : me.model.config.attributes
             };
-            var selection = me.controller.facetjob.buildCleanSelection(me.model.filters.get("selection"));
-            attributes.config.selection = selection;
             
             // add the extra config
             if (config) {
