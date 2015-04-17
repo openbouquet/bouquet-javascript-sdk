@@ -323,8 +323,10 @@
             projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set(analysisModel.attributes);
             projectAnalysisJob.set({"id" : {
-                    projectId: projectId,
-                    analysisJobId: null}});
+                projectId: projectId,
+                analysisJobId: null},
+                "results" : null,
+                "error" : null});
 
             // save the analysisJob to API
             if (this.fakeServer) {
