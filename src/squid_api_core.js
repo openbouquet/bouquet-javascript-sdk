@@ -70,6 +70,21 @@
         },
 
         utils: {
+            
+            mergeAttributes : function(obj1, obj2) {
+                var obj = {};
+                if (obj1) {
+                    for (var att1 in obj1) {
+                        obj[att1] = obj1[att1];
+                    }
+                }
+                if (obj2) {
+                    for (var att2 in obj2) {
+                        obj[att2] = obj2[att2];
+                    }
+                }
+                return obj;
+            },
 
             /*
              * Get a parameter value from the current location url
@@ -268,25 +283,7 @@
             }
         },
         
-        setConfig : function(baseConfig, config) {
-            var newConfig = {};
-            // merge the configs
-            if (baseConfig) {
-                for (var att1 in baseConfig) {
-                    newConfig[att1] = baseConfig[att1];
-                }
-            }
-            if (config) {
-                for (var att2 in config) {
-                    newConfig[att2] = config[att2];
-                }
-            }
-
-            // apply config
-            this.model.config.set(newConfig);
-        },
-        
-        setStateId : function(dfd, stateId, baseConfig) {
+        setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
             var stateModel = new squid_api.model.StateModel();
@@ -303,17 +300,20 @@
                     // keep for comparison when saved again
                     me.model.state = model;
                     var config = model.get("config");
-                    me.setConfig(baseConfig, config);
+                    config = me.utils.mergeAttributes(baseConfig,config);
+                    config = me.utils.mergeAttributes(config, forcedConfig);
+                    me.model.config.set(config);
                 },
                 error : function(model, response, options) {
                     console.error("state fetch failed : "+stateId);
-                    me.setConfig(null);
+                    // apply config
+                    me.model.config.set({});
                 }
             });
             return dfd.promise();
         },
         
-        setShortcutId : function(shortcutId, baseConfig) {
+        setShortcutId : function(shortcutId, baseConfig, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             if (shortcutId) {
@@ -329,7 +329,7 @@
                         console.log("shortcut fetched : "+model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
-                        me.setStateId(dfd, model.get("stateId"), baseConfig);
+                        me.setStateId(dfd, model.get("stateId"), baseConfig, forcedConfig);
                     },
                     error : function(model, response, options) {
                         console.error("shortcut fetch failed : "+shortcutId);
@@ -337,7 +337,7 @@
                     }
                 });
             } else {
-                me.setConfig(baseConfig);
+                me.model.config.set(baseConfig);
             }
             return dfd.promise();
         },
