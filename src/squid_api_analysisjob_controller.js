@@ -30,6 +30,13 @@
             error: null
         });
     
+    squid_api.model.ProjectAnalysisJobRender = squid_api.model.ProjectAnalysisJob.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/render";
+        },
+        error: null
+    });
+    
     squid_api.model.AnalysisJob = squid_api.model.BaseModel.extend({
         results: null,
 

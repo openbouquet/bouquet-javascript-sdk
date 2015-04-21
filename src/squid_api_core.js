@@ -619,7 +619,7 @@
                 } else {
                     delim = "&";
                 }
-                url += delim + name + "=" + value;
+                url += delim + name + "=" + encodeURIComponent(value);
             }
             return url;
         },
