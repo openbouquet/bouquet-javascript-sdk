@@ -1108,6 +1108,12 @@
             });
             return this;
         },
+        
+        setDomain :  function(domain) {
+            if (domain) {
+                this.setDomainIds([domain]);
+            }
+        },
 
         setDomainIds : function(domainIdList) {
             var domains;
