@@ -301,7 +301,11 @@
                     me.model.state = model;
                     var config = model.get("config");
                     config = me.utils.mergeAttributes(baseConfig,config);
-                    config = me.utils.mergeAttributes(config, forcedConfig);
+                    if (_.isFunction(forcedConfig)) {
+                        config = forcedConfig(config);
+                    } else {
+                        config = me.utils.mergeAttributes(config, forcedConfig);
+                    }
                     me.model.config.set(config);
                 },
                 error : function(model, response, options) {
