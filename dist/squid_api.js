@@ -27,6 +27,7 @@
         domainId: null,
         clientId: null,
         fakeServer: null,
+        defaultShortcut: null,
         defaultConfig: null,
         
         // declare some namespaces
@@ -359,6 +360,7 @@
             args.projectId = args.projectId || null;
             args.domainId = args.domainId || null;
             args.selection = args.selection || null;
+            this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = args.config || {};
             apiUrl = args.apiUrl || null;
             
@@ -525,7 +527,7 @@
                     // login ok
                     // perform init chain
                     var state = squid_api.utils.getParamValue("state",null);
-                    var shortcut = squid_api.utils.getParamValue("shortcut",null);
+                    var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                     if (state) {
                         me.setStateId(null, state, me.defaultConfig);
                     } else {
