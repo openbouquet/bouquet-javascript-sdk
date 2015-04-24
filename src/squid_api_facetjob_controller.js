@@ -435,6 +435,65 @@
                 }
                 return dfd.promise();
             },
+            
+            /**
+             * Unselect recursively all children
+             */
+            unSelectChildren : function(facets, facet, includeSelf) {
+                var childDimension;
+                var i=0;
+                if (includeSelf) {
+                    facet.selectedItems = [];
+                }
+                // treat children dimensions
+                // build a facet map to retrieve parents by dimension id and not facet id
+                var facetMap = {};
+                for (i=0; i<facets.length; i++) {
+                    facetMap[facets[i].dimension.oid] = facets[i];
+                }
+                // look for a child dimension
+                for (i=0; ((i<facets.length) && !childDimension); i++) {
+                    var facet1 = facets[i];
+                    if (facet1.dimension.parentId) {
+                        if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+                            childDimension = facet1;
+                        }
+                    }
+                }
+                if (childDimension) {
+                    this.unSelectChildren(facets, childDimension, true);
+                }
+            },
+            
+            unSelect : function(facets, facetId, memberId) {
+                var childDimension;
+                var i=0;
+                var selectedFacet;
+                for (i=0; i<facets.length; i++) {
+                    var facet = facets[i];
+                    if ((memberId === null) || (facet.id === facetId)) {
+                        this.unSelectMember(facet, memberId);
+                        selectedFacet = facet;
+                        break;
+                    }
+                }
+                // unselect recursively
+                if (selectedFacet) {
+                    this.unSelectChildren(facets, selectedFacet, false);
+                }
+            },
+            
+            unSelectMember : function(facet, memberId) {
+                var selectedItems = facet.selectedItems;
+                var facetIndex;
+                for (var ix=0; ((ix<selectedItems.length) && !facetIndex); ix++) {
+                    if ((memberId === null) || (memberId === selectedItems[ix].id)) {
+                        facetIndex = ix;
+                        selectedItems.splice(facetIndex,1);
+                    }
+                }
+                return facetIndex;
+            },
 
             // backward compatibility
             FiltersModel : squid_api.model.FiltersJob
