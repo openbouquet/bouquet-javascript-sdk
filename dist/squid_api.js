@@ -184,7 +184,33 @@
                     }
                 }
                 return result;
-            }
+            },
+            
+            /**
+             * Streamline a selection (get rid of the facet items).
+             */
+            buildCleanSelection : function(selectionOpt) {
+                var selection = {
+                        "facets" : []
+                };
+                if (selectionOpt) {
+                    var facets = selectionOpt.facets;
+                    if (facets) {
+                        for (var is = 0; is < facets.length; is++) {
+                            var facet = facets[is];
+                            if (facet.selectedItems && (facet.selectedItems.length>0)) {
+                                var newFacet = {
+                                        "selectedItems" : facet.selectedItems,
+                                        "dimension" : facet.dimension,
+                                        "id" : facet.id
+                                };
+                                selection.facets.push(newFacet);
+                            }
+                        }
+                    }
+                }
+                return selection;
+            },
         },
         
         setCustomerId : function(oid, chain) {
@@ -1314,23 +1340,8 @@
         
         setSelection : function(selection, silent) {
             silent = silent || false;
-            // cleanup the selection (keep only required attributes)
-            if (selection && selection.facets) {
-                var cleanSelection = {"facets" : []};
-                for (var i=0; i<selection.facets.length; i++) {
-                    var facet = selection.facets[i];
-                    if (facet.selectedItems && facet.selectedItems.length>0) {
-                        cleanSelection.facets.push({
-                            "dimension" : {
-                                    "id":facet.dimension.id
-                                },
-                            "id" : facet.id,
-                            "selectedItems" : facet.selectedItems
-                        });
-                    }
-                }
-                selection = cleanSelection;
-            }
+            var cleanSelection = squid_api.utils.buildCleanSelection(selection);
+            selection = cleanSelection;
             this.set({"selection": selection}, {"silent" : silent});
             return this;
         },
@@ -1371,24 +1382,6 @@
             var observer = $.Deferred();
 
             analysisModel.set("status","RUNNING");
-            
-            // cleanup the selection (keep only required attributes)
-            if (selection && selection.facets) {
-                var cleanSelection = {"facets" : []};
-                for (var i=0; i<selection.facets.length; i++) {
-                    var facet = selection.facets[i];
-                    if (facet.selectedItems && facet.selectedItems.length>0) {
-                        cleanSelection.facets.push({
-                            "dimension" : {
-                                    "id":facet.dimension.id
-                                },
-                            "id" : facet.id,
-                            "selectedItems" : facet.selectedItems
-                        });
-                    }
-                }
-                selection = cleanSelection;
-            }
 
             // create a new AnalysisJob
             var projectAnalysisJob = new squid_api.model.ProjectAnalysisJob();
@@ -1401,6 +1394,9 @@
             projectAnalysisJob.parameters = analysisModel.parameters;
             projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set(analysisModel.attributes);
+            if ( (!analysisModel.get("selection")) && selection) {
+                projectAnalysisJob.set("selection", selection);
+            }
             projectAnalysisJob.set({"id" : {
                 projectId: projectId,
                 analysisJobId: null},
@@ -1553,6 +1549,8 @@
             } else {
                 selection =  filters.get("selection");
             }
+            
+            selection = squid_api.utils.buildCleanSelection(selection);
             
             this.createAnalysisJob(analysisJob, selection)
                 .done(function(model, response) {
@@ -1829,26 +1827,7 @@
              * Streamline a selection (get rid of the facet items).
              */
             buildCleanSelection : function(selectionOpt) {
-                var selection = {
-                        "facets" : []
-                };
-                if (selectionOpt) {
-                    var facets = selectionOpt.facets;
-                    if (facets) {
-                        for (var is = 0; is < facets.length; is++) {
-                            var facet = facets[is];
-                            if (facet.selectedItems && (facet.selectedItems.length>0)) {
-                                var newFacet = {
-                                        "selectedItems" : facet.selectedItems,
-                                        "dimension" : facet.dimension,
-                                        "id" : facet.id
-                                };
-                                selection.facets.push(newFacet);
-                            }
-                        }
-                    }
-                }
-                return selection;
+                return squid_api.utils.buildCleanSelection(selectionOpt);
             },
 
             /**

@@ -195,26 +195,7 @@
              * Streamline a selection (get rid of the facet items).
              */
             buildCleanSelection : function(selectionOpt) {
-                var selection = {
-                        "facets" : []
-                };
-                if (selectionOpt) {
-                    var facets = selectionOpt.facets;
-                    if (facets) {
-                        for (var is = 0; is < facets.length; is++) {
-                            var facet = facets[is];
-                            if (facet.selectedItems && (facet.selectedItems.length>0)) {
-                                var newFacet = {
-                                        "selectedItems" : facet.selectedItems,
-                                        "dimension" : facet.dimension,
-                                        "id" : facet.id
-                                };
-                                selection.facets.push(newFacet);
-                            }
-                        }
-                    }
-                }
-                return selection;
+                return squid_api.utils.buildCleanSelection(selectionOpt);
             },
 
             /**
