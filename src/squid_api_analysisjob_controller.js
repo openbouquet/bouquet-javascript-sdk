@@ -217,7 +217,14 @@
                     if (metric) {
                         if (metric instanceof Object) {
                             // metric is already on object
-                            metrics.push(metric);
+                            if (!metric.id) {
+                                // but is just a PK
+                                metrics.push({
+                                    "id" : metric
+                                });
+                            } else {
+                                metrics.push(metric);
+                            }
                         } else {
                             // metric is just an Id
                             metrics.push({
