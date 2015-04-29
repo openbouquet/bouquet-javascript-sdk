@@ -576,7 +576,30 @@
     squid_api.model.BaseModel = Backbone.Model.extend({
         
         addParameter : function(name, value) {
-            this.parameters.push({"name" : name, "value" : value});
+            if ((typeof value !== 'undefined') && (value !== null)) {
+                this.parameters.push({"name" : name, "value" : value});
+            }
+        },
+        
+        setParameter : function(name, value) {
+            var index = null;
+            for (var i=0; i<this.parameters.length; i++) {
+                if (this.parameters[i].name === name) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index) {
+                if ((typeof value === 'undefined') || (value === null)) {
+                    // unset
+                    this.parameters.splice(index,1);
+                    // set
+                } else {
+                    this.parameters[index].value = value;
+                }
+            } else {
+                this.parameters.push({"name" : name, "value" : value});
+            }
         },
         
         initialize: function(attributes, options) {
