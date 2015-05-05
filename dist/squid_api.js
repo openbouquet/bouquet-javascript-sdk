@@ -1338,7 +1338,7 @@
                     if (metric) {
                         if (metric instanceof Object) {
                             // metric is already on object
-                            if (!metric.id) {
+                            if (metric.projectId) {
                                 // but is just a PK
                                 metrics.push({
                                     "id" : metric
