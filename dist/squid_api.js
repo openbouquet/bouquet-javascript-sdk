@@ -1492,6 +1492,7 @@
         getAnalysisJobResults: function(observer, analysisModel) {
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
+            analysisJobResults.parameters = analysisModel.parameters;
             analysisJobResults.statusModel = squid_api.model.status;
             analysisJobResults.set("id", analysisModel.get("id"));
             analysisJobResults.set("oid", analysisModel.get("oid"));
