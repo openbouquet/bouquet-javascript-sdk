@@ -581,6 +581,21 @@
             }
         },
         
+        getParameter : function(name) {
+            var i=0, param;
+            if (this.parameters) {
+                while (i<this.parameters.length) {
+                    param = this.parameters[i];
+                    if (param.name == name) {
+                        return param.value;
+                    }
+                    i++;
+                }
+            }
+            return null;
+        },
+        
+        
         setParameter : function(name, value) {
             var index = null;
             for (var i=0; i<this.parameters.length; i++) {
@@ -589,12 +604,12 @@
                     break;
                 }
             }
-            if (index) {
+            if (index !== null) {
                 if ((typeof value === 'undefined') || (value === null)) {
                     // unset
                     this.parameters.splice(index,1);
-                    // set
                 } else {
+                    // set
                     this.parameters[index].value = value;
                 }
             } else {
