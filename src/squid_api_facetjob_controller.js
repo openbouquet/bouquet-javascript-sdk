@@ -197,6 +197,20 @@
             buildCleanSelection : function(selectionOpt) {
                 return squid_api.utils.buildCleanSelection(selectionOpt);
             },
+            
+            getTemporalFacets : function(selection) {
+                var timeFacets = [];
+                if (selection && selection.facets) {
+                    var facets = selection.facets;
+                    for (var i = 0; i < facets.length; i++) {
+                        var facet = facets[i];
+                        if (facet.dimension.type == "CONTINUOUS") {
+                            timeFacets.push(facet);
+                        }
+                    }
+                }
+                return timeFacets;
+            },
 
             /**
              * Create (and execute) a new Job.
