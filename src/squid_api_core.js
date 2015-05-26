@@ -323,7 +323,6 @@
             stateModel.fetch({
                 success : function(model, response, options) {
                     var oid = model.get("oid");
-                    console.log("state fetched : "+oid);
                     // keep for comparison when saved again
                     me.model.state = model;
                     var config = model.get("config");
@@ -336,9 +335,8 @@
                     me.model.config.set(config);
                 },
                 error : function(model, response, options) {
-                    console.error("state fetch failed : "+stateId);
-                    // apply config
-                    me.model.config.set({});
+                    // state fetch failed
+                    dfd.reject();
                 }
             });
             return dfd.promise();
@@ -555,7 +553,10 @@
                     var state = squid_api.utils.getParamValue("state",null);
                     var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                     if (state) {
-                        me.setStateId(null, state, me.defaultConfig);
+                        var dfd = me.setStateId(null, state, me.defaultConfig);
+                        dfd.fail(function() {
+                            me.setShortcutId(shortcut, me.defaultConfig);
+                        });
                     } else {
                         me.setShortcutId(shortcut, me.defaultConfig);
                     }
