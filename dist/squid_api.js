@@ -720,6 +720,9 @@
                     me.statusModel.set("error", response);
                     me.statusModel.pullTask(model);
                 }
+                if (!response.status) {
+                    squid_api.model.status.set("error" , {"message" : "Network connection issue"});
+                }
                 if (error) {
                     // normal behavior
                     error.call(this.model, response, options);
@@ -921,7 +924,12 @@
     
                 tokenModel.fetch({
                     error: function(model, response, options) {
-                        squid_api.model.login.set("login", null);
+                        if (model.status ===  401) {
+                            squid_api.model.login.set("login", null);
+                        } else {
+                            squid_api.model.login.set("error", response);
+                            squid_api.model.login.set("login", "error");
+                        }
                     }
                 });
             }

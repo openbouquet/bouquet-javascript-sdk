@@ -16,7 +16,7 @@ Also provides the following core services :
 ## API Configuration
 
 ### Setup
-The API must be configured programmatically be calling
+The API must be explicitly configured by calling
 ```
 api.setup({
     "clientId" : clientId,
@@ -25,7 +25,9 @@ api.setup({
     "projectId" : projectId,
     "domainId" : domainId,
     "selection" : selection,
-    "filtersDefaultEvents" : true
+    "filtersDefaultEvents" : true,
+    "defaultShortcut" : "shortcut",
+    "config" : {}
 });
 ```
 
@@ -37,13 +39,15 @@ The arguments are :
 * `domainId` : an optional Domain Id,
 * `selection` : an optional filter selection,
 * `filtersDefaultEvents` : if true or non specified, the default filters controller will be used.
+* `defaultShortcut` : an optional Shortcut id to retrieve app State from.
+* `config`: an optional default configuration (state)
 
 Some of these arguments may also be overridden by setting URL parameters such as :  
 https://api.squidsolutions.com/apps/release/squidflow/?apiUrl=api.squidsolutions.com&projectId=squidflow&domainId=usage&customerId=squid  
 In addition to this, some extra parameter are supported :  
 * `api` : the api branch (dev/staging/release)
 * `version` : the api version (4.2)
-* `loginUrl` : full URL to the login endpoint
+* `debug` : set the api to debug (e.g. do not redirect on login failure)
 
 ### Initialization
 After setting-up the API, the init process must take place. 
