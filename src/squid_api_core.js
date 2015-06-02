@@ -29,6 +29,8 @@
         fakeServer: null,
         defaultShortcut: null,
         defaultConfig: null,
+        swaggerURL: null,
+        apiSchema: null,
         
         // declare some namespaces
         model: {},
@@ -496,6 +498,7 @@
                 apiUrl = "https://"+apiUrl;
             }
             this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
+            this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
             
             // init the Login URL
             loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
@@ -570,6 +573,33 @@
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null);
                 loginModel.setAccessToken(token);
+            }
+        },
+        
+
+        /**
+         * Get the API's (Swagger) Schema.
+         * Example usage :
+         * squid_api.getSchema().done(function(data){console.log("schema :"+data);});
+         * @param forceRefresh if true schema will be fetched
+         * @return a Promise wrapping a schema json object or null if fetch failed.
+         */
+        getSchema : function(forceRefresh) {
+            var dfd;
+            var me = this;
+            if ((!me.apiSchema) || (forceRefresh === true)) {
+                // not in cache, execute the query
+                return $.ajax({
+                    url : me.swaggerURL
+                }).done(null, function (xhr, status, error) {
+                    // put in cache
+                    me.apiSchema = xhr;
+                });
+            } else {
+                // already in cache
+                dfd = $.Deferred();
+                // just resolve and return a promise
+                return dfd.resolve(me.apiSchema).promise();
             }
         }
     };
