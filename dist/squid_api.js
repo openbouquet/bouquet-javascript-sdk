@@ -1122,7 +1122,9 @@
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.get("id").domainId;
-        }
+        },
+        definition : "Domain",
+        ignoredAttributes : ['dimensions', 'metrics']
     });
     
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
