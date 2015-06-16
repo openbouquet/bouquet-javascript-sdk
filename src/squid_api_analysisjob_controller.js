@@ -470,27 +470,32 @@
             
             selection = squid_api.utils.buildCleanSelection(selection);
             
-            this.createAnalysisJob(analysisJob, selection)
-                .done(function(model, response) {
-                    if (model.get("status") == "DONE") {
-                        var t = model.get("statistics");
-                        if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+            // enforce analysis job validity
+            if (!analysisJob.get("metricList") && !analysisJob.get("dimensions") ) {
+                console.log("Invalid analysis : must at least define a metric or a dimension");
+            } else {
+                this.createAnalysisJob(analysisJob, selection)
+                    .done(function(model, response) {
+                        if (model.get("status") == "DONE") {
+                            var t = model.get("statistics");
+                            if (t) {
+                                console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            }
+                            // update the analysis Model
+                            analysisJob.set("statistics", t);
+                            analysisJob.set("error", model.get("error"));
+                            analysisJob.set("results", model.get("results"));
+                            analysisJob.set("status", "DONE");
+                            observer.resolve(model, response);
+                        } else {
+                            // try to get the results
+                            controller.getAnalysisJobResults(observer, analysisJob);
                         }
-                        // update the analysis Model
-                        analysisJob.set("statistics", t);
-                        analysisJob.set("error", model.get("error"));
-                        analysisJob.set("results", model.get("results"));
-                        analysisJob.set("status", "DONE");
-                        observer.resolve(model, response);
-                    } else {
-                        // try to get the results
-                        controller.getAnalysisJobResults(observer, analysisJob);
-                    }
-                })
-                .fail(function(model, response) {
-                    observer.reject(model, response);
-                });
+                    })
+                    .fail(function(model, response) {
+                        observer.reject(model, response);
+                    });
+            }
 
             return observer;
         },
