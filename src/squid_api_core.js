@@ -461,32 +461,6 @@
             filters.set("selection" , defaultSelection);
             squid_api.model.filters = filters;
             
-            if ((typeof args.filtersDefaultEvents == 'undefined') || (args.filtersDefaultEvents === true)) {
-                // check for new filter selection
-                filters.on('change:userSelection', function() {
-                    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-                });
-                
-                // check for domain change performed
-                squid_api.model.config.on('change:domain', function(model) {
-                    var domain = model.get("domain");
-                    if (domain) {
-                        me.domain = domain.domainId;
-                        // launch the filters computation
-                        filters.set("id", {
-                            "projectId": model.get("domain").projectId
-                        });
-                        filters.setDomainIds([me.domain]);
-                        squid_api.controller.facetjob.compute(filters);
-                    } else {
-                        // reset the domains
-                        me.domain = null;
-                        filters.setDomainIds(null);
-                    }
-                });
-            }
-            
-            
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
@@ -519,6 +493,7 @@
             }
             this.setTimeoutMillis(timeoutMillis);
 
+            return this;
         },
 
         /**
@@ -751,7 +726,7 @@
                     me.statusModel.pullTask(model);
                 }
                 if (!response.status) {
-                    squid_api.model.status.set("error" , {"message" : "Network connection issue"});
+                    squid_api.model.status.set("error" , {"message" : "Unable to reach API Services"});
                 }
                 if (error) {
                     // normal behavior
