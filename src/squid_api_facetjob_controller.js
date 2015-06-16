@@ -76,9 +76,8 @@
         },
 
         setDomainIds : function(domainIdList) {
-            var domains;
             if (domainIdList) {
-                domains = [];
+                var domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
                     var id = domainIdList[i];
                     if (id.domainId) {
@@ -90,10 +89,13 @@
                         });
                     }
                 }
+                this.set({"domains" : domains});
             } else {
-                domains = null;
+                if (this.get("domains")) {
+                    this.set({"domains" : null});
+                }
             }
-            this.set({"domains" : domains});
+            
             return this;
         },
 
