@@ -461,32 +461,6 @@
             filters.set("selection" , defaultSelection);
             squid_api.model.filters = filters;
             
-            if ((typeof args.filtersDefaultEvents == 'undefined') || (args.filtersDefaultEvents === true)) {
-                // check for new filter selection
-                filters.on('change:userSelection', function() {
-                    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-                });
-                
-                // check for domain change performed
-                squid_api.model.config.on('change:domain', function(model) {
-                    var domain = model.get("domain");
-                    if (domain) {
-                        me.domain = domain.domainId;
-                        // launch the filters computation
-                        filters.set("id", {
-                            "projectId": model.get("domain").projectId
-                        });
-                        filters.setDomainIds([me.domain]);
-                        squid_api.controller.facetjob.compute(filters);
-                    } else {
-                        // reset the domains
-                        me.domain = null;
-                        filters.setDomainIds(null);
-                    }
-                });
-            }
-            
-            
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
@@ -519,6 +493,7 @@
             }
             this.setTimeoutMillis(timeoutMillis);
 
+            return this;
         },
 
         /**
@@ -751,7 +726,7 @@
                     me.statusModel.pullTask(model);
                 }
                 if (!response.status) {
-                    squid_api.model.status.set("error" , {"message" : "Network connection issue"});
+                    squid_api.model.status.set("error" , {"message" : "Unable to reach API Services"});
                 }
                 if (error) {
                     // normal behavior
@@ -1634,27 +1609,32 @@
             
             selection = squid_api.utils.buildCleanSelection(selection);
             
-            this.createAnalysisJob(analysisJob, selection)
-                .done(function(model, response) {
-                    if (model.get("status") == "DONE") {
-                        var t = model.get("statistics");
-                        if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+            // enforce analysis job validity
+            if (!analysisJob.get("metricList") && !analysisJob.get("dimensions") ) {
+                console.log("Invalid analysis : must at least define a metric or a dimension");
+            } else {
+                this.createAnalysisJob(analysisJob, selection)
+                    .done(function(model, response) {
+                        if (model.get("status") == "DONE") {
+                            var t = model.get("statistics");
+                            if (t) {
+                                console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            }
+                            // update the analysis Model
+                            analysisJob.set("statistics", t);
+                            analysisJob.set("error", model.get("error"));
+                            analysisJob.set("results", model.get("results"));
+                            analysisJob.set("status", "DONE");
+                            observer.resolve(model, response);
+                        } else {
+                            // try to get the results
+                            controller.getAnalysisJobResults(observer, analysisJob);
                         }
-                        // update the analysis Model
-                        analysisJob.set("statistics", t);
-                        analysisJob.set("error", model.get("error"));
-                        analysisJob.set("results", model.get("results"));
-                        analysisJob.set("status", "DONE");
-                        observer.resolve(model, response);
-                    } else {
-                        // try to get the results
-                        controller.getAnalysisJobResults(observer, analysisJob);
-                    }
-                })
-                .fail(function(model, response) {
-                    observer.reject(model, response);
-                });
+                    })
+                    .fail(function(model, response) {
+                        observer.reject(model, response);
+                    });
+            }
 
             return observer;
         },
@@ -1790,9 +1770,8 @@
         },
 
         setDomainIds : function(domainIdList) {
-            var domains;
             if (domainIdList) {
-                domains = [];
+                var domains = [];
                 for (var i=0; i<domainIdList.length; i++) {
                     var id = domainIdList[i];
                     if (id.domainId) {
@@ -1804,10 +1783,13 @@
                         });
                     }
                 }
+                this.set({"domains" : domains});
             } else {
-                domains = null;
+                if (this.get("domains")) {
+                    this.set({"domains" : null});
+                }
             }
-            this.set({"domains" : domains});
+            
             return this;
         },
 
