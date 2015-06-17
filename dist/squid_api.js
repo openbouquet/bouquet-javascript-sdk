@@ -1137,6 +1137,7 @@
 
     return squid_api;
 }));
+
 /*! Squid Core API AnalysisJob Controller V2.0 */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
