@@ -32,7 +32,7 @@
     
     squid_api.model.ProjectAnalysisJobRender = squid_api.model.ProjectAnalysisJob.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/render";
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "." + this.get("format");
         },
         error: null
     });
