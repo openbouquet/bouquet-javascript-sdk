@@ -1105,6 +1105,21 @@
             return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/domains";
         }
     });
+
+    squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations";
+        },
+        definition: "Relation",
+        ignoredAttributes : ['accessRights']
+    });
+
+    squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.RelationModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/relations";
+        }
+    });
     
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
