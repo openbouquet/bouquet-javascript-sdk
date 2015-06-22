@@ -354,14 +354,15 @@
 
         /**
          * Create (and execute) a new AnalysisJob, then retrieve the results.
+         * @return a Promise
          */
         compute: function(analysisJob, filters) {
             if (analysisJob.get("analyses")) {
                 // compute a multi analysis
-                this.computeMultiAnalysis(analysisJob, filters);
+                return this.computeMultiAnalysis(analysisJob, filters);
             } else {
                 // compute a single analysis
-                this.computeSingleAnalysis(analysisJob, filters);
+                return this.computeSingleAnalysis(analysisJob, filters);
             }
         },
 
@@ -470,9 +471,9 @@
             
             selection = squid_api.utils.buildCleanSelection(selection);
             
-            // enforce analysis job validity
-            if (!analysisJob.get("metricList") && !analysisJob.get("dimensions") ) {
-                console.log("Invalid analysis : must at least define a metric or a dimension");
+            // validate job
+            if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
+                observer.reject({"err" : "invalid_analysis", "message" : "Must at least define a metric or a dimension"});
             } else {
                 this.createAnalysisJob(analysisJob, selection)
                     .done(function(model, response) {
@@ -519,11 +520,6 @@
             // wait for jobs completion
             var combinedPromise = $.when.apply($,jobs);
             
-            combinedPromise.fail( function() {
-                squid_api.model.status.set("message", "Computation failed");
-                squid_api.model.status.set("error", "Computation failed");
-            });
-            
             combinedPromise.always( function() {
                 for (var i=0; i<analysesCount; i++) {
                     var analysis = analyses[i];
@@ -533,6 +529,7 @@
                 }
                 multiAnalysisModel.set("status", "DONE");
             });
+            return combinedPromise;
         },
         
         // backward compatibility

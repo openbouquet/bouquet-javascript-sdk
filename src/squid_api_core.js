@@ -54,17 +54,14 @@
         
         /**
          * Compute an AnalysisJob or a FacetJob.
+         * @return a Promise
          */
         compute : function(job, filters) {
             if (this.model.AnalysisJob && this.model.FiltersJob) {
-                if (job instanceof this.model.AnalysisJob) {
-                    this.controller.analysisjob.compute(job, filters);
-                } else if (job instanceof this.model.MultiAnalysisJob) {
-                    this.controller.analysisjob.compute(job, filters);
-                } else if (job instanceof this.model.FiltersJob) {
-                    this.controller.facetjob.compute(job, filters);
+                if (job instanceof this.model.FiltersJob) {
+                    return this.controller.facetjob.compute(job, filters);
                 } else {
-                    throw Error("Cannot compute Job : "+job);
+                    return this.controller.analysisjob.compute(job, filters);
                 }
             } else {
                 throw Error("Cannot compute Job as dependencies are not loaded");
