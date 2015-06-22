@@ -1096,7 +1096,7 @@
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.get("id").domainId;
         },
         definition : "Domain",
-        ignoredAttributes : ['accessRights']
+        ignoredAttributes : ['accessRights', 'dimensions', 'metrics']
     });
     
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
