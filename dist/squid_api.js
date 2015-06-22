@@ -1902,6 +1902,15 @@
                 }
                 return timeFacets;
             },
+            
+            getTemporalFacet : function(selection) {
+                var timeFacet;
+                var temporalFacets = this.getTemporalFacets(selection);
+                if (temporalFacets.length>0) {
+                    timeFacet = temporalFacets[0];
+                }
+                return timeFacet;
+            },
 
             /**
              * Create (and execute) a new Job.
