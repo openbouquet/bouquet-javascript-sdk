@@ -87,6 +87,23 @@
             },
 
             /*
+             * Returns an array of domain relations based on left/right id
+             */
+            getDomainRelations : function(relations, oid) {
+                var models = [];
+                if (relations && oid) {
+                    for (i=0; i<relations.length; i++) {
+                        if (relations[i].get("leftId") && relations[i].get("rightId")) {
+                            if (relations[i].get("leftId").domainId == oid || relations[i].get("rightId").domainId == oid) {
+                                models.push(relations[i]);
+                            }
+                        }
+                    }
+                }
+                return models;
+            },
+
+            /*
              * Get a parameter value from the current location url
              */
             getParamValue: function(name, defaultValue) {
@@ -382,6 +399,7 @@
             args.clientId = args.clientId || null;
             args.projectId = args.projectId || null;
             args.domainId = args.domainId || null;
+            args.relationId = args.relationId || null;
             args.selection = args.selection || null;
             this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = args.config || {};
