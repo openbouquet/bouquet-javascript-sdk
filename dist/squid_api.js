@@ -14,7 +14,7 @@
         };
     }
 }(this, "squid_api", function ($, Backbone) {
-    
+
     // Squid API definition
     var squid_api = {
         debug : null,
@@ -31,13 +31,13 @@
         defaultConfig: null,
         swaggerURL: null,
         apiSchema: null,
-        
+
         // declare some namespaces
         model: {},
         view: {},
         collection: {},
         controller: {},
-        
+
         setApiURL: function(a1) {
             if (a1 && a1[a1.length - 1] == "/") {
                 a1 = a1.substring(0, a1.length - 1);
@@ -46,12 +46,12 @@
             console.log("apiURL : "+this.apiURL);
             return this;
         },
-        
+
         setTimeoutMillis: function(t) {
             this.timeoutMillis = t;
             return this;
         },
-        
+
         /**
          * Compute an AnalysisJob or a FacetJob.
          * @return a Promise
@@ -66,11 +66,11 @@
             } else {
                 throw Error("Cannot compute Job as dependencies are not loaded");
             }
-            
+
         },
 
         utils: {
-            
+
             mergeAttributes : function(obj1, obj2) {
                 var obj = {};
                 if (obj1) {
@@ -168,7 +168,7 @@
                     login: null
                 });
             },
-            
+
             /**
              * Deep find an object having a given property value and objectType in a JSON object.
              */
@@ -188,7 +188,7 @@
                             if (theObject[prop] == value) {
                                 if (!objectType || (objectType == theObject.objectType)) {
                                     return theObject;
-                                } 
+                                }
                             }
                         }
                         if ((theObject[prop] instanceof Object) || (theObject[prop] instanceof Array)) {
@@ -201,7 +201,7 @@
                 }
                 return result;
             },
-            
+
             /**
              * Streamline a selection (get rid of the facet items).
              */
@@ -228,7 +228,7 @@
                 return selection;
             },
         },
-        
+
         setCustomerId : function(oid, chain) {
             var me = this;
             var dfd = new $.Deferred();
@@ -246,7 +246,7 @@
             });
             return dfd.promise();
         },
-        
+
         setProjectId : function(oid) {
             if (oid) {
                 var me = this;
@@ -273,7 +273,7 @@
                 }
             }
         },
-        
+
         /**
          * Save the current State model
          * @param an array of extra config elements
@@ -283,7 +283,7 @@
             var attributes = {
                     "config" : me.model.config.attributes
             };
-            
+
             // add the extra config
             if (config) {
                 for (var i=0; i<config.length; i++) {
@@ -293,7 +293,7 @@
                     }
                 }
             }
-            
+
             // check if save is required
             if ((!me.model.state) || (!_.isEqual(me.model.state.get("config"), attributes.config))) {
                 var stateModel = new me.model.StateModel();
@@ -303,7 +303,7 @@
                         "stateId" : null
                      }
                 });
-                
+
                 // save
                 stateModel.save(attributes, {
                     success : function(model, response, options) {
@@ -311,7 +311,7 @@
                         console.log("state saved : "+oid);
                         // keep for comparison when saved again
                         me.model.state = model;
-                        
+
                         // save in browser history
                         if (window.history) {
                             var uri = new URI(window.location.href);
@@ -325,7 +325,7 @@
                 });
             }
         },
-        
+
         setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
@@ -357,7 +357,7 @@
             });
             return dfd.promise();
         },
-        
+
         setShortcutId : function(shortcutId, baseConfig, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
@@ -386,14 +386,14 @@
             }
             return dfd.promise();
         },
-        
+
         /**
          * Init the API default settings.
          * @param a config json object
          */
         setup : function(args) {
             var me = this, api, apiUrl, loginUrl, timeoutMillis;
-            
+
             args = args || {};
             args.customerId = args.customerId || null;
             args.clientId = args.clientId || null;
@@ -404,22 +404,22 @@
             this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = args.config || {};
             apiUrl = args.apiUrl || null;
-            
+
             this.debug = squid_api.utils.getParamValue("debug", null);
             if (!this.debug) {
                 this.debug = args.debug;
             }
-            
+
             this.customerId = squid_api.utils.getParamValue("customerId", null);
             if (!this.customerId) {
                 this.customerId = args.customerId;
             }
-            
+
             this.clientId = squid_api.utils.getParamValue("clientId", null);
             if (!this.clientId) {
                 this.clientId = args.clientId;
             }
-            
+
             var domainId = squid_api.utils.getParamValue("domainId",null);
             if (!domainId) {
                 domainId = args.domainId;
@@ -428,7 +428,7 @@
             }
             this.domainId = domainId;
             this.model.domain = new squid_api.model.DomainModel();
-            
+
             var projectId = squid_api.utils.getParamValue("projectId",null);
             if (!projectId) {
                 projectId = args.projectId;
@@ -437,18 +437,18 @@
             }
             this.projectId = projectId;
             this.model.project = new squid_api.model.ProjectModel();
-            
+
             // config handling
-            
+
             var configModel = new Backbone.Model();
             this.model.config = configModel;
-            
+
             configModel.on("change:project", function(model) {
                 me.setProjectId(model.get("project"));
             });
-            
+
             // selection
-            
+
             var defaultSelection = null;
             if (args.selection) {
                 if (args.selection.date) {
@@ -471,15 +471,15 @@
                     };
                 }
             }
-                
+
             var filters = new squid_api.controller.facetjob.FiltersModel();
             filters.set("selection" , defaultSelection);
             squid_api.model.filters = filters;
-            
+
             // init the api server URL
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
-            
+
             if (!apiUrl) {
                 apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
             }
@@ -488,7 +488,7 @@
             }
             this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
             this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
-            
+
             // init the Login URL
             loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
             loginUrl += "/"+api+"/auth/oauth?response_type=code";
@@ -517,12 +517,12 @@
          */
         init: function(args) {
             var me = this, loginModel;
-            
+
             if (args) {
                 this.setup(args);
                 loginModel = args.loginModel;
             }
-            
+
             // handle session expiration
             this.model.status.on('change:error', function(model) {
                 var err = model.get("error");
@@ -533,11 +533,11 @@
                     }
                 }
             });
-            
+
             if (!loginModel) {
                 loginModel = this.model.login;
             }
-            
+
             // check for login performed
             loginModel.on('change:login', function(model) {
                 if (model.get("login")) {
@@ -555,8 +555,8 @@
                     }
                 }
             });
-            
-            // set the access_token (to start the login model update)      
+
+            // set the access_token (to start the login model update)
             var code = squid_api.utils.getParamValue("code", null);
             if (code) {
                 loginModel.setAccessCode(code);
@@ -565,7 +565,7 @@
                 loginModel.setAccessToken(token);
             }
         },
-        
+
 
         /**
          * Get the API's (Swagger) Schema.
@@ -595,13 +595,13 @@
     };
 
     squid_api.model.BaseModel = Backbone.Model.extend({
-        
+
         addParameter : function(name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
                 this.parameters.push({"name" : name, "value" : value});
             }
         },
-        
+
         getParameter : function(name) {
             var i=0, param;
             if (this.parameters) {
@@ -615,8 +615,8 @@
             }
             return null;
         },
-        
-        
+
+
         setParameter : function(name, value) {
             var index = null;
             for (var i=0; i<this.parameters.length; i++) {
@@ -637,14 +637,14 @@
                 this.parameters.push({"name" : name, "value" : value});
             }
         },
-        
+
         initialize: function(attributes, options) {
             if (options) {
                 this.parameters = options.parameters;
                 this.statusModel = options.statusModel;
             }
         },
-        
+
         constructor: function() {
             // Define some attributes off of the prototype chain
             this.parameters = [];
@@ -653,9 +653,9 @@
             // Call the original constructor
             Backbone.Model.apply(this, arguments);
         },
-        
+
         idAttribute : "oid",
-        
+
         baseRoot: function() {
             return squid_api.apiURL;
         },
@@ -699,7 +699,7 @@
                     i++;
                 }
             }
-            
+
             return hasParam;
         },
         addParam : function(url, name, value) {
@@ -719,7 +719,7 @@
             // success
             var success, me = this;
             if (!options) {
-                options = {success : null, error : null}; 
+                options = {success : null, error : null};
             } else {
                 success = options.success;
             }
@@ -775,13 +775,13 @@
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
         parentId : null,
-        
+
         parameters : [],
-        
+
         addParameter : function(name, value) {
             this.parameters.push({"name" : name, "value" : value});
         },
-        
+
         initialize : function(model, options) {
             if (options) {
                 this.parentId = options.parentId;
@@ -794,7 +794,7 @@
         urlRoot: function() {
             return this.baseRoot();
         },
-        
+
         url: function() {
             var url = this.urlRoot();
             if (typeof this.timeoutMillis === 'undefined' ) {
@@ -814,7 +814,7 @@
             }
             return url;
         },
-        
+
         error: null,
         addParam : function(url, name, value) {
             if (value) {
@@ -855,13 +855,13 @@
             }
             return url;
         },
-        
+
         /**
          * Login the user using an access_token
          */
         setAccessCode: function(code, cookieExpiration) {
             var me = this;
-            
+
             // remove from browser history
             if (window.history) {
                 var uri = new URI(window.location.href);
@@ -876,16 +876,16 @@
                 dataType: 'json',
                 data: {"grant_type" : "authorization_code", "code": code, "client_id" : squid_api.clientId, "redirect_uri" : null}
             });
-            
+
             request.fail(function(jqXHR) {
                 me.setAccessToken(null, cookieExpiration);
             });
-            
+
             request.done(function(data) {
                 var token = data.oid;
                 me.setAccessToken(token, cookieExpiration);
             });
-            
+
         },
 
         /**
@@ -893,11 +893,11 @@
          */
         setAccessToken: function(token, cookieExpiration) {
             var cookiePrefix = "sq-token",cookie, me = this;
-            
+
             if (!cookieExpiration) {
                 cookieExpiration = 120; // 2 hours
             }
-            
+
             if (squid_api.customerId) {
                 cookie = cookiePrefix + "_" + squid_api.customerId;
             }
@@ -918,7 +918,7 @@
                 var tokenModel = new squid_api.model.TokenModel({
                     "token": token
                 });
-                
+
                 tokenModel.on("change:customerId", function(model) {
                     // set the customerId
                     $.when(squid_api.setCustomerId(model.get("customerId"))).done(
@@ -927,21 +927,21 @@
                                 if (model.get("clientId") != this.clientId) {
                                     console.log("WARN : the Token used doesn't match you application's ClientId");
                                 }
-                                
+
                                 if ((token) && (typeof token != "undefined")) {
                                     // write in a customer cookie
                                     squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
                                     // write in a global cookie
                                     squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
                                 }
-            
+
                                 // update login model from server
                                 // NOTE that for an unknow reason, success or error callbacks are not working here (probably a scope issue)
                                 squid_api.model.login.fetch();
                             }
                         );
                 });
-    
+
                 tokenModel.fetch({
                     error: function(model, response, options) {
                         if (model.status ===  401) {
@@ -1043,31 +1043,31 @@
     /*
      * --- API Meta-Model objects Mapping to Backbone Models---
      */
-    
+
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/";
         }
     });
-    
+
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/clients/" + this.get("id").clientId;
         }
     });
-    
+
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/states/" + (this.get("id").stateId || "");
         }
     });
-    
+
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
         }
     });
-    
+
     squid_api.model.ShortcutCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.ShortcutModel,
         urlRoot: function() {
@@ -1082,14 +1082,14 @@
         definition : "Project",
         ignoredAttributes : ['accessRights', 'config', 'relations', 'domains']
     });
-    
+
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.ProjectModel,
         urlRoot: function() {
             return this.baseRoot() + "/projects";
         }
     });
-    
+
     squid_api.model.UserModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
             return this.baseRoot() + "/users/" + this.get("id").userId;
@@ -1101,7 +1101,7 @@
             return this.baseRoot() + "/usergroups";
         }
     });
-    
+
     squid_api.model.UserCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.UserModel,
         urlRoot: function() {
@@ -1116,7 +1116,7 @@
         definition : "Domain",
         ignoredAttributes : ['accessRights', 'dimensions', 'metrics']
     });
-    
+
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.DomainModel,
         urlRoot: function() {
@@ -1126,7 +1126,7 @@
 
     squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations";
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
         },
         definition: "Relation",
         ignoredAttributes : ['accessRights']
@@ -1138,13 +1138,13 @@
             return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/relations";
         }
     });
-    
+
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.get("id").dimensionId;
         }
     });
-    
+
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.DimensionModel,
         urlRoot: function() {
