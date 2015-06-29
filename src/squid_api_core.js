@@ -326,6 +326,26 @@
             }
         },
 
+        refreshDb: function(project) {
+            if (project) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/projects/" + project.get("id").projectId + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken"),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                });
+
+                request.done(function() {
+                    squid_api.model.status.set("message", "database successfully refreshed");
+                });
+
+                request.fail(function() {
+                    squid_api.model.status.set("message", "database refresh failed");
+                    squid_api.model.status.set("error", "error");
+                });
+            }
+        },
+
         setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
