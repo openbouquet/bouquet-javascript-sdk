@@ -1097,7 +1097,7 @@
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
-            return this.baseRoot() + "/projects/" + this.get("id").projectId;
+            return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
         },
         definition : "Project",
         ignoredAttributes : ['accessRights', 'config', 'relations', 'domains']
@@ -1131,7 +1131,7 @@
 
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.get("id").domainId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
         },
         definition : "Domain",
         ignoredAttributes : ['accessRights', 'dimensions', 'metrics']
