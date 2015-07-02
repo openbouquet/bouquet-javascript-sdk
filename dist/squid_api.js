@@ -229,24 +229,6 @@
             },
         },
 
-        setCustomerId : function(oid, chain) {
-            var me = this;
-            var dfd = new $.Deferred();
-            this.customerId = oid;
-            this.model.customer = new squid_api.model.CustomerInfoModel();
-            this.model.customer.fetch({
-                success : function(model, response, options) {
-                    console.log("customer fetched : "+model.get("name"));
-                    dfd.resolve();
-                },
-                error : function(model, response, options) {
-                    console.error("customer fetch failed");
-                    dfd.reject();
-                }
-            });
-            return dfd.promise();
-        },
-
         setProjectId : function(oid) {
             if (oid) {
                 var me = this;
@@ -941,25 +923,31 @@
 
                 tokenModel.on("change:customerId", function(model) {
                     // set the customerId
-                    $.when(squid_api.setCustomerId(model.get("customerId"))).done(
-                            function() {
-                                // verify the clientId
-                                if (model.get("clientId") != this.clientId) {
-                                    console.log("WARN : the Token used doesn't match you application's ClientId");
-                                }
+                    squid_api.customerId = model.get("customerId");
+                    
+                    // verify the clientId
+                    if (model.get("clientId") != this.clientId) {
+                        console.log("WARN : the Token used doesn't match you application's ClientId");
+                    }
 
-                                if ((token) && (typeof token != "undefined")) {
-                                    // write in a customer cookie
-                                    squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
-                                    // write in a global cookie
-                                    squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
-                                }
+                    if ((token) && (typeof token != "undefined")) {
+                        // write in a customer cookie
+                        squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
+                        // write in a global cookie
+                        squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
+                    }
 
-                                // update login model from server
-                                // NOTE that for an unknow reason, success or error callbacks are not working here (probably a scope issue)
-                                squid_api.model.login.fetch();
-                            }
-                        );
+                    // update login model from server
+                    squid_api.model.login.fetch().then(function() {
+                        // fetch the customer
+                        squid_api.model.customer.fetch()
+                        .done(function(customer) {
+                            console.log("customer fetched : "+customer.name);
+                        })
+                        .fail(function() {
+                            console.log("customer fetched failed");
+                        });
+                    });
                 });
 
                 tokenModel.fetch({
@@ -1069,6 +1057,8 @@
             return this.baseRoot() + "/";
         }
     });
+    
+    squid_api.model.customer = new squid_api.model.CustomerInfoModel();
 
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
