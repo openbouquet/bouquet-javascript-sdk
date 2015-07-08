@@ -1550,6 +1550,7 @@
          * Retrieve job results (loop until DONE or error)
          */
         getAnalysisJobResults: function(observer, analysisModel) {
+            observer = observer || $.Deferred();
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
             analysisJobResults.parameters = analysisModel.parameters;
