@@ -924,7 +924,7 @@
                 tokenModel.on("change:customerId", function(model) {
                     // set the customerId
                     squid_api.customerId = model.get("customerId");
-                    
+
                     // verify the clientId
                     if (model.get("clientId") != this.clientId) {
                         console.log("WARN : the Token used doesn't match you application's ClientId");
@@ -1057,7 +1057,7 @@
             return this.baseRoot() + "/";
         }
     });
-    
+
     squid_api.model.customer = new squid_api.model.CustomerInfoModel();
 
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
@@ -1151,8 +1151,9 @@
 
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.get("id").dimensionId;
-        }
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
+        },
+        definition: "Dimension"
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
@@ -1164,8 +1165,9 @@
 
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.get("id").metricId;
-        }
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
+        },
+        definition: "Metric"
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
