@@ -483,8 +483,10 @@
             version = squid_api.utils.getParamValue("version","v4.2");
 
             if (!apiUrl) {
-                apiUrl = squid_api.utils.getParamValue("apiUrl","https://api.squidsolutions.com");
+                // default api url
+                apiUrl = "https://api.squidsolutions.com";
             }
+            apiUrl = squid_api.utils.getParamValue("apiUrl", apiUrl);
             if (apiUrl.indexOf("://") < 0) {
                 apiUrl = "https://"+apiUrl;
             }
