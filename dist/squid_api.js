@@ -1151,7 +1151,7 @@
 
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
         urlRoot: function() {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.get("id").dimensionId;
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
         },
         definition: "Dimension"
     });
