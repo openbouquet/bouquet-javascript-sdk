@@ -439,6 +439,10 @@
             }
             this.projectId = projectId;
             this.model.project = new squid_api.model.ProjectModel();
+            
+            if (args.browsers) {
+                this.browsers = args.browsers;
+            }
 
             // config handling
 
@@ -514,12 +518,35 @@
 
             return this;
         },
-
+        
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * @param a config json object (if present will call the setup method).
          */
         init: function(args) {
+            var browserOK = false;
+            
+            if (this.browsers) {
+                // check browser compatibility
+                for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
+                    var browser = this.browsers[browserIdx];
+                    if (navigator.userAgent.indexOf(browser) > 0) {
+                        browserOK = true;
+                    }
+                }
+            } else {
+                browserOK = true;
+            }
+            if (browserOK) {
+                // continue init process
+                this.initStep1(args);
+            } else {
+                console.error("Unsupported browser : "+navigator.userAgent);
+                this.model.status.set('error', {"dismissible" : false, "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"});
+            }
+        },
+
+        initStep1: function(args) {
             var me = this, loginModel;
 
             if (args) {
