@@ -1155,7 +1155,8 @@
         urlRoot: function() {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
         },
-        definition: "Dimension"
+        definition: "Dimension",
+        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes']
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
