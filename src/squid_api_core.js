@@ -103,6 +103,43 @@
                 return models;
             },
 
+            getDomainMetrics : function() {
+                var dfd = new $.Deferred();
+                var domain = new squid_api.model.DomainModel();
+                var metrics = new squid_api.model.MetricCollection();
+                var currentProject = squid_api.model.config.get("project");
+                var currentDomain = squid_api.model.config.get("domain");
+                /*
+                    if the Domain is still dynamic, display all metrics
+                    if the Domain is not dynamic, only display concrete metrics
+                */
+                domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
+                metrics.parentId = {projectId : currentProject, domainId : currentDomain};
+                domain.fetch({
+                    success: function(domain) {
+                        metrics.fetch({
+                            success: function(metrics) {
+                                if (domain.get("dynamic")) {
+                                    for (i=0; i<metrics.models.length; i++) {
+                                        if (metrics.models[i].get("dynamic")) {
+                                            metrics.remove(metrics.models[i]);
+                                        }
+                                    }
+                                }
+                                dfd.resolve(metrics);
+                            },
+                            error: function() {
+                                dfd.reject();
+                            }
+                        });
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
             /*
              * Get a parameter value from the current location url
              */
@@ -440,6 +477,10 @@
             this.projectId = projectId;
             this.model.project = new squid_api.model.ProjectModel();
 
+            if (args.browsers) {
+                this.browsers = args.browsers;
+            }
+
             // config handling
 
             var configModel = new Backbone.Model();
@@ -520,6 +561,29 @@
          * @param a config json object (if present will call the setup method).
          */
         init: function(args) {
+            var browserOK = false;
+
+            if (this.browsers) {
+                // check browser compatibility
+                for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
+                    var browser = this.browsers[browserIdx];
+                    if (navigator.userAgent.indexOf(browser) > 0) {
+                        browserOK = true;
+                    }
+                }
+            } else {
+                browserOK = true;
+            }
+            if (browserOK) {
+                // continue init process
+                this.initStep1(args);
+            } else {
+                console.error("Unsupported browser : "+navigator.userAgent);
+                this.model.status.set('error', {"dismissible" : false, "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"});
+            }
+        },
+
+        initStep1: function(args) {
             var me = this, loginModel;
 
             if (args) {
@@ -1156,7 +1220,7 @@
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
         },
         definition: "Dimension",
-        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes']
+        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes', 'valueType']
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
