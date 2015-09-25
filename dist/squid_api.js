@@ -391,19 +391,19 @@
                     dataType: 'json',
                     contentType: 'application/json',
                     error: function(xhr, textStatus, error){
-                        squid_api.model.status.set("message", "Invalid Login/password for JDBC access");
-                        squid_api.model.status.set("error", "error");
+                        squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                        squid_api.model.status.set("error",true);
                         return 500;
                     },
                     statusCode: {
                         500: function() {
-                            squid_api.model.status.set("message", "Invalid Login/password for JDBC access");
-                            squid_api.model.status.set("error", "error");
+                            squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                            squid_api.model.status.set("error",true);
                             return 500;
                         },
                         404: function() {
-                            squid_api.model.status.set("message", "Unable to login");
-                            squid_api.model.status.set("error", "error");
+                            squid_api.model.status.set({"message":"Unable to login"}, {silent:true});
+                            squid_api.model.status.set("error",true);
                             return 404;
                         }
                     }
@@ -411,14 +411,14 @@
                 });
 
                 request.done(function() {
-                    squid_api.model.status.set("message", "Login for jdbc access validated");
-                    squid_api.model.status.set("error", "false");
+                    squid_api.model.status.set({"message":"Login for jdbc access validated"}, {silent:true});
+                    squid_api.model.status.set("error",true);
                     return 200;
                 });
 
                 request.fail(function() {
-                    squid_api.model.status.set("message", "Invalid Login/Password for JDBC access");
-                    squid_api.model.status.set("error", "error");
+                    squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                    squid_api.model.status.set("error",true);
                     return 404;
                 });
         },
