@@ -103,6 +103,62 @@
                 return models;
             },
 
+            fetchModel : function(modelName) {
+                var dfd = new $.Deferred();
+                var name = modelName.toLowerCase();
+                var model = new squid_api.model[name.charAt(0).toUpperCase() + name.slice(1) + "Model"]();
+                model.set("id", {
+                    projectId : squid_api.model.config.get("project"),
+                    domainId : squid_api.model.config.get("domain")
+                });
+                model.fetch({
+                    success: function(data) {
+                        dfd.resolve(data);
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
+            getDomainMetrics : function() {
+                var dfd = new $.Deferred();
+                var domain = new squid_api.model.DomainModel();
+                var metrics = new squid_api.model.MetricCollection();
+                var currentProject = squid_api.model.config.get("project");
+                var currentDomain = squid_api.model.config.get("domain");
+                /*
+                    if the Domain is still dynamic, display all metrics
+                    if the Domain is not dynamic, only display concrete metrics
+                */
+                domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
+                metrics.parentId = {projectId : currentProject, domainId : currentDomain};
+                domain.fetch({
+                    success: function(domain) {
+                        metrics.fetch({
+                            success: function(metrics) {
+                                if (domain.get("dynamic")) {
+                                    for (i=0; i<metrics.models.length; i++) {
+                                        if (metrics.models[i].get("dynamic")) {
+                                            metrics.remove(metrics.models[i]);
+                                        }
+                                    }
+                                }
+                                dfd.resolve(metrics);
+                            },
+                            error: function() {
+                                dfd.reject();
+                            }
+                        });
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
             /*
              * Get a parameter value from the current location url
              */
@@ -444,6 +500,10 @@
                 this.browsers = args.browsers;
             }
 
+            if (args.browsers) {
+                this.browsers = args.browsers;
+            }
+
             // config handling
 
             var configModel = new Backbone.Model();
@@ -525,7 +585,7 @@
          */
         init: function(args) {
             var browserOK = false;
-            
+
             if (this.browsers) {
                 // check browser compatibility
                 for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
@@ -1119,7 +1179,8 @@
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
         },
         definition : "Project",
-        ignoredAttributes : ['accessRights', 'config', 'relations', 'domains']
+        ignoredAttributes : ['accessRights', 'config', 'relations', 'domains'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"dbUrl":{"type":"Text","editorClass":"form-control","position":1,"fieldClass":"dbUrl"},"dbUser":{"type":"Text","editorClass":"form-control","position":2,"fieldClass":"dbUser"},"dbPassword":{"type":"Password","editorClass":"form-control","position":3,"fieldClass":"dbPassword"},"dbSchemas":{"type":"Checkboxes","editorClass":" ","options":[],"position":4,"fieldClass":"dbSchemas"}}
     });
 
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
@@ -1153,7 +1214,8 @@
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
         },
         definition : "Domain",
-        ignoredAttributes : ['accessRights', 'dimensions', 'metrics']
+        ignoredAttributes : ['accessRights', 'dimensions', 'metrics'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"subject":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"subject"}}
     });
 
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
@@ -1168,7 +1230,8 @@
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
         },
         definition: "Relation",
-        ignoredAttributes : ['accessRights']
+        ignoredAttributes : ['accessRights'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"relationId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"leftId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Left Domain"}},"fieldClass":"leftId"},"leftCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"leftCardinality"},"rightId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Right Domain"}},"fieldClass":"rightId"},"rightCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"rightCardinality"},"leftName":{"type":"Text","editorClass":"form-control","fieldClass":"leftName"},"rightName":{"type":"Text","editorClass":"form-control","fieldClass":"rightName"},"joinExpression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"fieldClass":"joinExpression"}}
     });
 
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
@@ -1182,7 +1245,9 @@
         urlRoot: function() {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
         },
-        definition: "Dimension"
+        definition: "Dimension",
+        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes', 'valueType'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"type":{"type":"Checkboxes","editorClass":" ","options":[{"val":"CATEGORICAL","label":"Indexed"},{"val":"CONTINUOUS","label":"Period"}],"position":1,"fieldClass":"type"},"parentId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden","fieldClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control","fieldClass":"hidden"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control"}},"position":2,"fieldClass":"parentId"},"expression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":3,"fieldClass":"expression"}}
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
@@ -1196,7 +1261,8 @@
         urlRoot: function() {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
         },
-        definition: "Metric"
+        definition: "Metric",
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
