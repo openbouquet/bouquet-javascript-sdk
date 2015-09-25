@@ -365,6 +365,45 @@
             }
         },
 
+        validateDB: function(projectId, url,username,password) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/connections/validate" + "?access_token="+squid_api.model.login.get("accessToken")+"&projectId="+projectId+"&url="+url+"&username="+ username +"&password=" + password,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    error: function(xhr, textStatus, error){
+                        squid_api.model.status.set("message", "Invalid Login/password for JDBC access");
+                        squid_api.model.status.set("error", "error");
+                        return 500;
+                    },
+                    statusCode: {
+                        500: function() {
+                            squid_api.model.status.set("message", "Invalid Login/password for JDBC access");
+                            squid_api.model.status.set("error", "error");
+                            return 500;
+                        },
+                        404: function() {
+                            squid_api.model.status.set("message", "Unable to login");
+                            squid_api.model.status.set("error", "error");
+                            return 404;
+                        }
+                    }
+
+                });
+
+                request.done(function() {
+                    squid_api.model.status.set("message", "Login for jdbc access validated");
+                    squid_api.model.status.set("error", "false");
+                    return 200;
+                });
+
+                request.fail(function() {
+                    squid_api.model.status.set("message", "Invalid Login/Password for JDBC access");
+                    squid_api.model.status.set("error", "error");
+                    return 404;
+                });
+        },
+
         setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
