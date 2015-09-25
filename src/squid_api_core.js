@@ -103,6 +103,25 @@
                 return models;
             },
 
+            fetchModel : function(modelName) {
+                var dfd = new $.Deferred();
+                var name = modelName.toLowerCase();
+                var model = new squid_api.model[name.charAt(0).toUpperCase() + name.slice(1) + "Model"]();
+                model.set("id", {
+                    projectId : squid_api.model.config.get("project"),
+                    domainId : squid_api.model.config.get("domain")
+                });
+                model.fetch({
+                    success: function(data) {
+                        dfd.resolve(data);
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
             getDomainMetrics : function() {
                 var dfd = new $.Deferred();
                 var domain = new squid_api.model.DomainModel();
