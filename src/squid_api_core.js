@@ -384,6 +384,45 @@
             }
         },
 
+        validateDB: function(projectId, url,username,password) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/connections/validate" + "?access_token="+squid_api.model.login.get("accessToken")+"&projectId="+projectId+"&url="+url+"&username="+ username +"&password=" + password,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    error: function(xhr, textStatus, error){
+                        squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                        squid_api.model.status.set("error",true);
+                        return 500;
+                    },
+                    statusCode: {
+                        500: function() {
+                            squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                            squid_api.model.status.set("error",true);
+                            return 500;
+                        },
+                        404: function() {
+                            squid_api.model.status.set({"message":"Unable to login"}, {silent:true});
+                            squid_api.model.status.set("error",true);
+                            return 404;
+                        }
+                    }
+
+                });
+
+                request.done(function() {
+                    squid_api.model.status.set({"message":"Login for jdbc access validated"}, {silent:true});
+                    squid_api.model.status.set("error",true);
+                    return 200;
+                });
+
+                request.fail(function() {
+                    squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                    squid_api.model.status.set("error",true);
+                    return 404;
+                });
+        },
+
         setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
