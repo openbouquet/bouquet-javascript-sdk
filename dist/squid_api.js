@@ -132,26 +132,28 @@
                     if the Domain is still dynamic, display all metrics
                     if the Domain is not dynamic, only display concrete metrics
                 */
-                domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
-                metrics.parentId = {projectId : currentProject, domainId : currentDomain};
-                domain.fetch({
-                    success: function(domain) {
-                        metrics.fetch({
-                            success: function(metrics) {
-                                if (domain.get("dynamic") === false) {
-                                    metrics.set(metrics.where({dynamic: false}));
+                if (currentDomain) {
+                    domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
+                    metrics.parentId = {projectId : currentProject, domainId : currentDomain};
+                    domain.fetch({
+                        success: function(domain) {
+                            metrics.fetch({
+                                success: function(metrics) {
+                                    if (domain.get("dynamic") === false) {
+                                        metrics.set(metrics.where({dynamic: false}));
+                                    }
+                                    dfd.resolve(metrics);
+                                },
+                                error: function() {
+                                    dfd.reject();
                                 }
-                                dfd.resolve(metrics);
-                            },
-                            error: function() {
-                                dfd.reject();
-                            }
-                        });
-                    },
-                    error: function() {
-                        dfd.reject();
-                    }
-                });
+                            });
+                        },
+                        error: function() {
+                            dfd.reject();
+                        }
+                    });
+                }
                 return dfd.promise();
             },
 
