@@ -1314,7 +1314,7 @@
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
         },
         definition: "Metric",
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic hidden"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
