@@ -86,6 +86,21 @@
                 return obj;
             },
 
+            getProjectDomains : function() {
+                var dfd = new $.Deferred();
+                var domains = new squid_api.model.DomainCollection();
+                domains.parentId = {"projectId":squid_api.model.config.get("project")};
+                domains.fetch({
+                    success: function(domains) {
+                        dfd.resolve(domains);
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
             /*
              * Returns an array of domain relations based on left/right id
              */
@@ -532,7 +547,7 @@
             }
             this.projectId = projectId;
             this.model.project = new squid_api.model.ProjectModel();
-            
+
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
@@ -615,7 +630,7 @@
 
             return this;
         },
-        
+
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * @param a config json object (if present will call the setup method).
