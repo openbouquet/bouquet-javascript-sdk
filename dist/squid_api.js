@@ -138,11 +138,9 @@
                     success: function(domain) {
                         metrics.fetch({
                             success: function(metrics) {
-                                if (domain.get("dynamic")) {
-                                    for (i=0; i<metrics.models.length; i++) {
-                                        if (metrics.models[i].get("dynamic")) {
-                                            metrics.remove(metrics.models[i]);
-                                        }
+                                for (i=0; i<metrics.models.length; i++) {
+                                    if ((domain.get("dynamic") === false) && (metrics.models[i].get("dynamic") === true)) {
+                                        metrics.remove(metrics.models[i]);
                                     }
                                 }
                                 dfd.resolve(metrics);
