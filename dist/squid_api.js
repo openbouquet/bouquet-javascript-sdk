@@ -1232,7 +1232,7 @@
         },
         definition : "Project",
         ignoredAttributes : ['accessRights', 'config', 'relations', 'domains'],
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"dbUrl":{"type":"Text","editorClass":"form-control","position":1,"fieldClass":"dbUrl"},"dbUser":{"type":"Text","editorClass":"form-control","position":2,"fieldClass":"dbUser"},"dbPassword":{"type":"Password","editorClass":"form-control","position":3,"fieldClass":"dbPassword"},"dbSchemas":{"type":"Checkboxes","editorClass":" ","options":[],"position":4,"fieldClass":"dbSchemas"}}
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"dbUrl":{"title":"Database URL","type":"Text","editorClass":"form-control","position":1,"fieldClass":"dbUrl"},"dbUser":{"title":"Database User","type":"Text","editorClass":"form-control","position":2,"fieldClass":"dbUser"},"dbPassword":{"title":"Database Password","type":"Password","editorClass":"form-control","position":3,"fieldClass":"dbPassword"},"dbSchemas":{"title":"Database Schemas","type":"Checkboxes","editorClass":" ","options":[],"position":4,"fieldClass":"dbSchemas"}}
     });
 
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
@@ -1314,7 +1314,7 @@
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
         },
         definition: "Metric",
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic hidden"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"type":"Object","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic hidden"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"title":"","type":"Object","subSchema":{"value":{"title":"Expression Value","type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
