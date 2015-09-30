@@ -498,7 +498,7 @@
         },
 
         /**
-         * Init the API default settings.
+         * Setup the API default settings.
          * @param a config json object
          */
         setup : function(args) {
@@ -552,10 +552,6 @@
                 this.browsers = args.browsers;
             }
 
-            if (args.browsers) {
-                this.browsers = args.browsers;
-            }
-
             // config handling
 
             var configModel = new Backbone.Model();
@@ -598,28 +594,29 @@
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
 
-            if (!apiUrl) {
-                // default api url
-                apiUrl = "https://api.squidsolutions.com";
-            }
             apiUrl = squid_api.utils.getParamValue("apiUrl", apiUrl);
-            if (apiUrl.indexOf("://") < 0) {
-                apiUrl = "https://"+apiUrl;
-            }
-            this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
-            this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
+            if (!apiUrl) {
+                console.error("Please provide an API endpoint URL");
+            } else {
+                if (apiUrl.indexOf("://") < 0) {
+                    apiUrl = "https://"+apiUrl;
+                }
+                this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
+                this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
 
-            // init the Login URL
-            loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
-            loginUrl += "/"+api+"/auth/oauth?response_type=code";
-            if (this.clientId) {
-                loginUrl += "&client_id=" + this.clientId;
+                // init the Login URL
+                loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
+                loginUrl += "/"+api+"/auth/oauth?response_type=code";
+                if (this.clientId) {
+                    loginUrl += "&client_id=" + this.clientId;
+                }
+                if (this.customerId) {
+                    loginUrl += "&customerId=" + this.customerId;
+                }
+                this.loginURL = loginUrl;
+                console.log("loginURL : "+this.loginURL);
             }
-            if (this.customerId) {
-                loginUrl += "&customerId=" + this.customerId;
-            }
-            this.loginURL = loginUrl;
-            console.log("loginURL : "+this.loginURL);
+            
 
             // init the timout
             timeoutMillis = args.timeoutMillis;
@@ -650,11 +647,27 @@
                 browserOK = true;
             }
             if (browserOK) {
-                // continue init process
-                this.initStep1(args);
+                if (!this.apiURL) {
+                    this.model.status
+                    .set(
+                            "error",
+                            {
+                                "dismissible" : false,
+                                "message" : "Please provide an API endpoint URL"
+                            });
+                } else {
+                    // continue init process
+                    this.initStep1(args);
+                }
             } else {
                 console.error("Unsupported browser : "+navigator.userAgent);
-                this.model.status.set('error', {"dismissible" : false, "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"});
+                this.model.status
+                .set(
+                        'error',
+                        {
+                            "dismissible" : false,
+                            "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
+                        });
             }
         },
 
@@ -989,14 +1002,6 @@
 
         urlRoot: function() {
             return this.baseRoot() + "/user";
-        },
-
-        getDefaultLoginUrl : function() {
-            var url = "https://api.squidsolutions.com/release/v4.2/auth/oauth?client_id=" + squid_api.clientId;
-            if (squid_api.customerId) {
-                url += "&customerId=" + squid_api.customerId;
-            }
-            return url;
         },
 
         /**
