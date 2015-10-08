@@ -2093,7 +2093,11 @@
                     var facets = selection.facets;
                     for (var i = 0; i < facets.length; i++) {
                         var facet = facets[i];
-                        if (facet.dimension.type == "CONTINUOUS") {
+                        // V2 way
+                        if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
+                            timeFacets.push(facet);
+                        } else if (facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
+                            // V1 way
                             timeFacets.push(facet);
                         }
                     }
