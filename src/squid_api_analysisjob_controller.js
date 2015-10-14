@@ -406,6 +406,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
+            return observer;
         },
         
         /**
