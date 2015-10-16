@@ -86,6 +86,21 @@
                 return obj;
             },
 
+            getProjectDomains : function() {
+                var dfd = new $.Deferred();
+                var domains = new squid_api.model.DomainCollection();
+                domains.parentId = {"projectId":squid_api.model.config.get("project")};
+                domains.fetch({
+                    success: function(domains) {
+                        dfd.resolve(domains);
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
             /*
              * Returns an array of domain relations based on left/right id
              */
@@ -101,6 +116,60 @@
                     }
                 }
                 return models;
+            },
+
+            fetchModel : function(modelName) {
+                var dfd = new $.Deferred();
+                var name = modelName.toLowerCase();
+                var model = new squid_api.model[name.charAt(0).toUpperCase() + name.slice(1) + "Model"]();
+                model.set("id", {
+                    projectId : squid_api.model.config.get("project"),
+                    domainId : squid_api.model.config.get("domain")
+                });
+                model.fetch({
+                    success: function(data) {
+                        dfd.resolve(data);
+                    },
+                    error: function() {
+                        dfd.reject();
+                    }
+                });
+                return dfd.promise();
+            },
+
+            getDomainMetrics : function() {
+                var dfd = new $.Deferred();
+                var domain = new squid_api.model.DomainModel();
+                var metrics = new squid_api.model.MetricCollection();
+                var currentProject = squid_api.model.config.get("project");
+                var currentDomain = squid_api.model.config.get("domain");
+                /*
+                    if the Domain is still dynamic, display all metrics
+                    if the Domain is not dynamic, only display concrete metrics
+                */
+                if (currentDomain) {
+                    domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
+                    metrics.parentId = {projectId : currentProject, domainId : currentDomain};
+                    domain.fetch({
+                        success: function(domain) {
+                            metrics.fetch({
+                                success: function(metrics) {
+                                    if (domain.get("dynamic") === false) {
+                                        metrics.set(metrics.where({dynamic: false}));
+                                    }
+                                    dfd.resolve(metrics);
+                                },
+                                error: function() {
+                                    dfd.reject();
+                                }
+                            });
+                        },
+                        error: function() {
+                            dfd.reject();
+                        }
+                    });
+                }
+                return dfd.promise();
             },
 
             /*
@@ -328,6 +397,45 @@
             }
         },
 
+        validateDB: function(projectId, url,username,password) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/connections/validate" + "?access_token="+squid_api.model.login.get("accessToken")+"&projectId="+projectId+"&url="+url+"&username="+ username +"&password=" + password,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    error: function(xhr, textStatus, error){
+                        squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                        squid_api.model.status.set("error",true);
+                        return 500;
+                    },
+                    statusCode: {
+                        500: function() {
+                            squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                            squid_api.model.status.set("error",true);
+                            return 500;
+                        },
+                        404: function() {
+                            squid_api.model.status.set({"message":"Unable to login"}, {silent:true});
+                            squid_api.model.status.set("error",true);
+                            return 404;
+                        }
+                    }
+
+                });
+
+                request.done(function() {
+                    squid_api.model.status.set({"message":"Login for jdbc access validated"}, {silent:true});
+                    squid_api.model.status.set("error",true);
+                    return 200;
+                });
+
+                request.fail(function() {
+                    squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
+                    squid_api.model.status.set("error",true);
+                    return 404;
+                });
+        },
+
         setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
@@ -390,7 +498,7 @@
         },
 
         /**
-         * Init the API default settings.
+         * Setup the API default settings.
          * @param a config json object
          */
         setup : function(args) {
@@ -439,7 +547,7 @@
             }
             this.projectId = projectId;
             this.model.project = new squid_api.model.ProjectModel();
-            
+
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
@@ -486,28 +594,29 @@
             api = squid_api.utils.getParamValue("api","release");
             version = squid_api.utils.getParamValue("version","v4.2");
 
-            if (!apiUrl) {
-                // default api url
-                apiUrl = "https://api.squidsolutions.com";
-            }
             apiUrl = squid_api.utils.getParamValue("apiUrl", apiUrl);
-            if (apiUrl.indexOf("://") < 0) {
-                apiUrl = "https://"+apiUrl;
-            }
-            this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
-            this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
+            if (!apiUrl) {
+                console.error("Please provide an API endpoint URL");
+            } else {
+                if (apiUrl.indexOf("://") < 0) {
+                    apiUrl = "https://"+apiUrl;
+                }
+                this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
+                this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
 
-            // init the Login URL
-            loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
-            loginUrl += "/"+api+"/auth/oauth?response_type=code";
-            if (this.clientId) {
-                loginUrl += "&client_id=" + this.clientId;
+                // init the Login URL
+                loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
+                loginUrl += "/"+api+"/auth/oauth?response_type=code";
+                if (this.clientId) {
+                    loginUrl += "&client_id=" + this.clientId;
+                }
+                if (this.customerId) {
+                    loginUrl += "&customerId=" + this.customerId;
+                }
+                this.loginURL = loginUrl;
+                console.log("loginURL : "+this.loginURL);
             }
-            if (this.customerId) {
-                loginUrl += "&customerId=" + this.customerId;
-            }
-            this.loginURL = loginUrl;
-            console.log("loginURL : "+this.loginURL);
+            
 
             // init the timout
             timeoutMillis = args.timeoutMillis;
@@ -518,14 +627,14 @@
 
             return this;
         },
-        
+
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * @param a config json object (if present will call the setup method).
          */
         init: function(args) {
             var browserOK = false;
-            
+
             if (this.browsers) {
                 // check browser compatibility
                 for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
@@ -538,11 +647,27 @@
                 browserOK = true;
             }
             if (browserOK) {
-                // continue init process
-                this.initStep1(args);
+                if (!this.apiURL) {
+                    this.model.status
+                    .set(
+                            "error",
+                            {
+                                "dismissible" : false,
+                                "message" : "Please provide an API endpoint URL"
+                            });
+                } else {
+                    // continue init process
+                    this.initStep1(args);
+                }
             } else {
                 console.error("Unsupported browser : "+navigator.userAgent);
-                this.model.status.set('error', {"dismissible" : false, "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"});
+                this.model.status
+                .set(
+                        'error',
+                        {
+                            "dismissible" : false,
+                            "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
+                        });
             }
         },
 
@@ -879,14 +1004,6 @@
             return this.baseRoot() + "/user";
         },
 
-        getDefaultLoginUrl : function() {
-            var url = "https://api.squidsolutions.com/release/v4.2/auth/oauth?client_id=" + squid_api.clientId;
-            if (squid_api.customerId) {
-                url += "&customerId=" + squid_api.customerId;
-            }
-            return url;
-        },
-
         /**
          * Login the user using an access_token
          */
@@ -1119,7 +1236,8 @@
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
         },
         definition : "Project",
-        ignoredAttributes : ['accessRights', 'config', 'relations', 'domains']
+        ignoredAttributes : ['accessRights', 'config', 'relations', 'domains'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"dbUrl":{"title":"Database URL","type":"Text","editorClass":"form-control","position":1,"fieldClass":"dbUrl"},"dbUser":{"title":"Database User","type":"Text","editorClass":"form-control","position":2,"fieldClass":"dbUser"},"dbPassword":{"title":"Database Password","type":"Password","editorClass":"form-control","position":3,"fieldClass":"dbPassword"},"dbSchemas":{"title":"Database Schemas","type":"Checkboxes","editorClass":" ","options":[],"position":4,"fieldClass":"dbSchemas"}}
     });
 
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
@@ -1153,7 +1271,8 @@
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
         },
         definition : "Domain",
-        ignoredAttributes : ['accessRights', 'dimensions', 'metrics']
+        ignoredAttributes : ['accessRights', 'dimensions', 'metrics'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"subject":{"type":"Object","title":"","subSchema":{"value":{"title":"Subject Value","type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"subject"}}
     });
 
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
@@ -1168,7 +1287,8 @@
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
         },
         definition: "Relation",
-        ignoredAttributes : ['accessRights']
+        ignoredAttributes : ['accessRights'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"relationId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"leftId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Left Domain"}},"fieldClass":"leftId"},"leftCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"leftCardinality"},"rightCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"rightCardinality"},"rightId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Right Domain"}},"fieldClass":"rightId"},"leftName":{"type":"Text","editorClass":"form-control","fieldClass":"leftName"},"rightName":{"type":"Text","editorClass":"form-control","fieldClass":"rightName"},"joinExpression":{"title":" ","type":"Object","subSchema":{"value":{"title":"Join Expression","type":"TextArea","editorClass":"form-control suggestion-box"}},"fieldClass":"joinExpression"}}
     });
 
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
@@ -1183,7 +1303,8 @@
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
         },
         definition: "Dimension",
-        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes']
+        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes', 'valueType'],
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"type":{"type":"Checkboxes","editorClass":" ","options":[{"val":"CATEGORICAL","label":"Indexed"},{"val":"CONTINUOUS","label":"Period"}],"position":1,"fieldClass":"type"},"parentId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden","fieldClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control","fieldClass":"hidden"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control","title":"Parent Dimension"}},"position":2,"fieldClass":"parentId"},"expression":{"type":"Object",title:"","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box","title":"Expression Value"}},"position":3,"fieldClass":"expression"}}
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
@@ -1197,7 +1318,8 @@
         urlRoot: function() {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
         },
-        definition: "Metric"
+        definition: "Metric",
+        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic hidden"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"title":"","type":"Object","subSchema":{"value":{"title":"Expression Value","type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
@@ -1971,7 +2093,11 @@
                     var facets = selection.facets;
                     for (var i = 0; i < facets.length; i++) {
                         var facet = facets[i];
-                        if (facet.dimension.type == "CONTINUOUS") {
+                        // V2 way
+                        if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
+                            timeFacets.push(facet);
+                        } else if (facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
+                            // V1 way
                             timeFacets.push(facet);
                         }
                     }
