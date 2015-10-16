@@ -754,6 +754,9 @@
 
         addParameter : function(name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
+                if (!this.parameters) {
+                    this.parameters = [];
+                }
                 this.parameters.push({"name" : name, "value" : value});
             }
         },
@@ -775,6 +778,9 @@
 
         setParameter : function(name, value) {
             var index = null;
+            if (!this.parameters) {
+                this.parameters = [];
+            }
             for (var i=0; i<this.parameters.length; i++) {
                 if (this.parameters[i].name === name) {
                     index = i;
