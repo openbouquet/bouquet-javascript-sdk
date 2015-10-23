@@ -377,21 +377,30 @@
             }
         },
 
-        refreshDb: function(project) {
-            if (project) {
+        refreshObjectType: function(model) {
+        	var objectType = model.get("objectType");
+        	var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;    	
+    	
+        	if (objectType == "Project") {
+        		url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
+        	} else if (objectType == "Domain") {
+        		url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
+        	}
+
+            if (model) {
                 var request = $.ajax({
                     type: "GET",
-                    url: squid_api.apiURL + "/projects/" + project.get("id").projectId + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken"),
+                    url: url,
                     dataType: 'json',
                     contentType: 'application/json'
                 });
 
                 request.done(function() {
-                    squid_api.model.status.set("message", "database successfully refreshed");
+                    squid_api.model.status.set("message", objectType + " successfully refreshed");
                 });
 
                 request.fail(function() {
-                    squid_api.model.status.set("message", "database refresh failed");
+                    squid_api.model.status.set("message", objectType + " refresh failed");
                     squid_api.model.status.set("error", "error");
                 });
             }
