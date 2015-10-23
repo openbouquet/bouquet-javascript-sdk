@@ -763,6 +763,9 @@
 
         addParameter : function(name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
+                if (!this.parameters) {
+                    this.parameters = [];
+                }
                 this.parameters.push({"name" : name, "value" : value});
             }
         },
@@ -784,6 +787,9 @@
 
         setParameter : function(name, value) {
             var index = null;
+            if (!this.parameters) {
+                this.parameters = [];
+            }
             for (var i=0; i<this.parameters.length; i++) {
                 if (this.parameters[i].name === name) {
                     index = i;
@@ -831,15 +837,15 @@
             var url = this.urlRoot();
             if (!this.hasParam("timeout")) {
                 if (typeof this.timeoutMillis === 'undefined' ) {
-                    url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+                    this.setParameter("timeout",squid_api.timeoutMillis);
                 } else {
                     if (this.timeoutMillis !== null) {
-                        url = this.addParam(url, "timeout",this.timeoutMillis());
+                        this.setParameter("timeout",this.timeoutMillis());
                     }
                 }
             }
             if (!this.hasParam("access_token")) {
-                url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+                this.setParameter("access_token",squid_api.model.login.get("accessToken"));
             }
             // add parameters
             if (this.parameters) {
@@ -1749,6 +1755,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
+            return observer;
         },
         
         /**
