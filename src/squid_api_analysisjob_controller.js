@@ -23,6 +23,13 @@
             selection: null
         });
 
+    squid_api.model.ProjectAnalysisJobViewSQL = squid_api.model.ProjectAnalysisJob.extend({
+            urlRoot: function() {
+                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
+            },
+            error: null
+        });
+
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
             urlRoot: function() {
                 return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
