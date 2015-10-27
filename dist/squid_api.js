@@ -377,21 +377,30 @@
             }
         },
 
-        refreshDb: function(project) {
-            if (project) {
+        refreshObjectType: function(model) {
+        	var objectType = model.get("objectType");
+        	var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;    	
+    	
+        	if (objectType == "Project") {
+        		url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
+        	} else if (objectType == "Domain") {
+        		url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
+        	}
+
+            if (model) {
                 var request = $.ajax({
                     type: "GET",
-                    url: squid_api.apiURL + "/projects/" + project.get("id").projectId + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken"),
+                    url: url,
                     dataType: 'json',
                     contentType: 'application/json'
                 });
 
                 request.done(function() {
-                    squid_api.model.status.set("message", "database successfully refreshed");
+                    squid_api.model.status.set("message", objectType + " successfully refreshed");
                 });
 
                 request.fail(function() {
-                    squid_api.model.status.set("message", "database refresh failed");
+                    squid_api.model.status.set("message", objectType + " refresh failed");
                     squid_api.model.status.set("error", "error");
                 });
             }
@@ -754,6 +763,9 @@
 
         addParameter : function(name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
+                if (!this.parameters) {
+                    this.parameters = [];
+                }
                 this.parameters.push({"name" : name, "value" : value});
             }
         },
@@ -775,6 +787,9 @@
 
         setParameter : function(name, value) {
             var index = null;
+            if (!this.parameters) {
+                this.parameters = [];
+            }
             for (var i=0; i<this.parameters.length; i++) {
                 if (this.parameters[i].name === name) {
                     index = i;
@@ -822,15 +837,15 @@
             var url = this.urlRoot();
             if (!this.hasParam("timeout")) {
                 if (typeof this.timeoutMillis === 'undefined' ) {
-                    url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+                    this.setParameter("timeout",squid_api.timeoutMillis);
                 } else {
                     if (this.timeoutMillis !== null) {
-                        url = this.addParam(url, "timeout",this.timeoutMillis());
+                        this.setParameter("timeout",this.timeoutMillis());
                     }
                 }
             }
             if (!this.hasParam("access_token")) {
-                url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+                this.setParameter("access_token",squid_api.model.login.get("accessToken"));
             }
             // add parameters
             if (this.parameters) {
@@ -1357,6 +1372,13 @@
             selection: null
         });
 
+    squid_api.model.ProjectAnalysisJobViewSQL = squid_api.model.ProjectAnalysisJob.extend({
+            urlRoot: function() {
+                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
+            },
+            error: null
+        });
+
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
             urlRoot: function() {
                 return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
@@ -1740,6 +1762,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
+            return observer;
         },
         
         /**
