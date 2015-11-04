@@ -1118,6 +1118,8 @@
                         } else {
                             squid_api.model.login.set("error", response);
                             squid_api.model.login.set("login", "error");
+                            squid_api.model.status.set({"message":"Cannot connect to Bouquet", "canStart":false});
+                            squid_api.model.status.set("error",true);
                         }
                     }
                 });
