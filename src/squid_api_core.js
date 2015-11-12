@@ -19,6 +19,7 @@
     var squid_api = {
         debug : null,
         version : "2.1.0",
+        DATE_FORMAT : "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
