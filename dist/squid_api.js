@@ -19,6 +19,7 @@
     var squid_api = {
         debug : null,
         version : "2.1.0",
+        DATE_FORMAT : "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiURL: null,
         loginURL : null,
         timeoutMillis : null,
@@ -943,6 +944,25 @@
         }
 
     });
+    
+    Backbone.Collection.prototype.saveAll = function(models) {
+    	var dfd = new $.Deferred();
+    	
+    	// create array of deferreds to save    		
+    	var deferreds = [];
+    	for (var i=0; i<models.length; i++) {
+    		if (models[i].hasChanged()) {
+    			deferreds.push(models[i].save());
+    		}
+    	}
+    	
+    	// resolve promise once all models have been saved  	
+    	$.when.apply($, deferreds).done(function() {
+    		dfd.resolve();
+    	});
+    	
+        return dfd.promise();
+    };
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
         parentId : null,
@@ -1118,7 +1138,11 @@
                         } else {
                             squid_api.model.login.set("error", response);
                             squid_api.model.login.set("login", "error");
-                            squid_api.model.status.set({"message":"Cannot connect to Bouquet", "canStart":false});
+                            var mes = "Cannot connect to Bouquet (error "+model.status+")";
+                            if (model.status ===  404) {
+                            	mes += "\nCheck that the apiUrl parameter is correct";
+                            }
+                            squid_api.model.status.set({"message":mes, "canStart":false},{silent:true});// must silent to avoid double display
                             squid_api.model.status.set("error",true);
                         }
                     }
