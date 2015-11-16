@@ -1369,6 +1369,70 @@
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
         }
     });
+    
+    squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
+        },
+        definition : "Bookmark",
+        ignoredAttributes : ['accessRights'],
+        schema : {
+            "id" : {
+                "title" : " ",
+                "type" : "Object",
+                "subSchema" : {
+                    "projectId" : {
+                        "options" : [],
+                        "type" : "Text",
+                        "editorClass" : "hidden"
+                    },
+                    "bookmarkId" : {
+                        "options" : [],
+                        "type" : "Text",
+                        "editorClass" : "form-control"
+                    }
+                },
+                "editorClass" : "hidden",
+                "fieldClass" : "id"
+            },
+            "name" : {
+                "type" : "Text",
+                "editorClass" : "form-control",
+                "fieldClass" : "name"
+            },
+            "description" : {
+                "type" : "Text",
+                "editorClass" : "form-control",
+                "fieldClass" : "description"
+            },
+            "path" : {
+                "type" : "Text",
+                "editorClass" : "form-control",
+                "fieldClass" : "path"
+            },
+            "config" : {
+                "type" : "Object",
+                "title" : "",
+                "subSchema" : {
+                    "value" : {
+                        "title" : "Value",
+                        "type" : "TextArea",
+                        "editorClass" : "form-control suggestion-box"
+                    }
+                },
+                "position" : 1,
+                "fieldClass" : "config"
+            }
+        }
+    });
+
+    squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.BookmarkModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/bookmarks";
+        }
+    });
+
 
     return squid_api;
 }));
