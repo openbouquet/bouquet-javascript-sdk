@@ -1281,6 +1281,7 @@
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
+<<<<<<< HEAD
         },
         definition: "Project",
         ignoredAttributes: ['accessRights', 'config', 'relations', 'domains'],
@@ -1322,6 +1323,8 @@
                 "position": 4,
                 "fieldClass": "dbSchemas"
             }
+=======
+>>>>>>> feature/T632
         }
     });
 
@@ -1354,6 +1357,7 @@
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
         urlRoot: function () {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
+<<<<<<< HEAD
         },
         definition: "Domain",
         ignoredAttributes: ['accessRights', 'dimensions', 'metrics'],
@@ -1382,6 +1386,8 @@
                 "position": 1,
                 "fieldClass": "subject"
             }
+=======
+>>>>>>> feature/T632
         }
     });
 
@@ -1395,6 +1401,7 @@
     squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
         urlRoot: function () {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
+<<<<<<< HEAD
         },
         definition: "Relation",
         ignoredAttributes: ['accessRights'],
@@ -1458,6 +1465,8 @@
                 },
                 "fieldClass": "joinExpression"
             }
+=======
+>>>>>>> feature/T632
         }
     });
 
@@ -1471,6 +1480,7 @@
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
         urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
+<<<<<<< HEAD
         },
         definition: "Dimension",
         ignoredAttributes: ['options', 'accessRights', 'dynamic', 'attributes', 'valueType'],
@@ -1528,6 +1538,8 @@
                 "position": 3,
                 "fieldClass": "expression"
             }
+=======
+>>>>>>> feature/T632
         }
     });
 
@@ -1541,6 +1553,7 @@
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
         urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
+<<<<<<< HEAD
         },
         definition: "Metric",
         schema: {
@@ -1570,6 +1583,8 @@
                 "position": 1,
                 "fieldClass": "expression"
             }
+=======
+>>>>>>> feature/T632
         }
     });
 
@@ -1579,6 +1594,20 @@
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
         }
     });
+    
+    squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
+        }
+    });
+
+    squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.BookmarkModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/bookmarks";
+        }
+    });
+
 
     return squid_api;
 }));
