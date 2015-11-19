@@ -7,28 +7,28 @@
         factory(root.Backbone, _, root.squid_api);
     }
 }(this, function (Backbone, _, squid_api) {
-    
+
     // here we expose some models
 
     squid_api.model.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
-            urlRoot: function() {
-                var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
-                url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
-                return url;
-            },
-            error: null,
-            domains: null,
-            dimensions: null,
-            metrics: null,
-            selection: null
-        });
+        urlRoot: function () {
+            var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
+            url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+            return url;
+        },
+        error: null,
+        domains: null,
+        dimensions: null,
+        metrics: null,
+        selection: null
+    });
 
     squid_api.model.ProjectAnalysisJobViewSQL = squid_api.model.ProjectAnalysisJob.extend({
-            urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
-            },
-            error: null
-        });
+        urlRoot: function () {
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
+        },
+        error: null
+    });
 
     squid_api.model.ProjectAnalysisJobViewMaterializeDatasets = squid_api.model.ProjectAnalysisJob.extend({
         urlRoot: function() {
@@ -38,23 +38,23 @@
     });
 
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
-            urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
-            },
-            error: null
-        });
-    
+        urlRoot: function () {
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
+        },
+        error: null
+    });
+
     squid_api.model.ProjectAnalysisJobRender = squid_api.model.ProjectAnalysisJob.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "." + this.get("format");
         },
         error: null
     });
-    
+
     squid_api.model.AnalysisJob = squid_api.model.BaseModel.extend({
         results: null,
 
-        initialize: function(attributes, options) {
+        initialize: function (attributes, options) {
             this.set("id", {
                 "projectId": squid_api.projectId,
                 "analysisJobId": null
@@ -64,32 +64,33 @@
             }
         },
 
-        setProjectId : function(projectId) {
-            this.set({"id": {
-                "projectId": projectId,
-                "analysisJobId": null
-            },
-            "oid" : null,
-            "domains": null,
-            "dimensions" : null,
-            "metrics" : null,
-            "selection" : null,
-                "results" : null
+        setProjectId: function (projectId) {
+            this.set({
+                "id": {
+                    "projectId": projectId,
+                    "analysisJobId": null
+                },
+                "oid": null,
+                "domains": null,
+                "dimensions": null,
+                "metrics": null,
+                "selection": null,
+                "results": null
             });
             return this;
         },
-        
-        setDomain :  function(domain) {
+
+        setDomain: function (domain) {
             if (domain) {
                 this.setDomainIds([domain]);
             }
         },
 
-        setDomainIds : function(domainIdList) {
+        setDomainIds: function (domainIdList) {
             var domains;
             if (domainIdList) {
                 domains = [];
-                for (var i=0; i<domainIdList.length; i++) {
+                for (var i = 0; i < domainIdList.length; i++) {
                     if (domainIdList[i].projectId) {
                         domains.push({
                             "projectId": domainIdList[i].projectId,
@@ -105,25 +106,26 @@
             } else {
                 domains = null;
             }
-            this.set({"id": {
+            this.set({
+                "id": {
                     "projectId": this.get("id").projectId,
                     "analysisJobId": null
                 },
-                "oid" : null,
+                "oid": null,
                 "domains": domains,
                 "dimensions": null,
                 "metrics": null,
                 "selection": null,
-                "results" : null
+                "results": null
             });
             return this;
         },
 
-        setDimensionIds : function(dimensionIdList, silent) {
+        setDimensionIds: function (dimensionIdList, silent) {
             var dims;
             if (dimensionIdList) {
                 dims = [];
-                for (var i=0; i<dimensionIdList.length; i++) {
+                for (var i = 0; i < dimensionIdList.length; i++) {
                     if (dimensionIdList[i]) {
                         if (dimensionIdList[i].projectId) {
                             dims.push({
@@ -146,12 +148,12 @@
             this.setDimensions(dims, silent);
             return this;
         },
-        
-        setFacets : function(facetList, silent) {
+
+        setFacets: function (facetList, silent) {
             var facets;
             if (facetList) {
                 facets = [];
-                for (var i=0; i<facetList.length; i++) {
+                for (var i = 0; i < facetList.length; i++) {
                     if (facetList[i]) {
                         facets.push({
                             "value": facetList[i]
@@ -162,18 +164,18 @@
                 facets = null;
             }
             silent = silent || false;
-            this.set({"facets": facets}, {"silent" : silent});
+            this.set({"facets": facets}, {"silent": silent});
             return this;
         },
 
-        setDimensions : function(dimensions, silent) {
+        setDimensions: function (dimensions, silent) {
             silent = silent || false;
-            this.set({"dimensions": dimensions}, {"silent" : silent});
+            this.set({"dimensions": dimensions}, {"silent": silent});
             return this;
         },
 
-        setDimensionId : function(dimensionId, index) {
-            var dims = this.get("dimensions") || [];
+        setDimensionId: function (dimensionId, index) {
+            var dims = this.get("dimensions") || [];
             dims = dims.slice(0);
             index = index || 0;
             if (dimensionId.projectId) {
@@ -192,9 +194,9 @@
             this.setDimensions(dims);
             return this;
         },
-        
-        setFacet : function(facetId, index) {
-            var facets = this.get("facets") || [];
+
+        setFacet: function (facetId, index) {
+            var facets = this.get("facets") || [];
             facets = facets.slice(0);
             index = index || 0;
             facets[index] = facetId;
@@ -202,11 +204,11 @@
             return this;
         },
 
-        setMetricIds : function(metricIdList, silent) {
+        setMetricIds: function (metricIdList, silent) {
             var metrics;
             if (metricIdList) {
                 metrics = [];
-                for (var i=0; i<metricIdList.length; i++) {
+                for (var i = 0; i < metricIdList.length; i++) {
                     if (metricIdList[i]) {
                         metrics.push({
                             "projectId": this.get("id").projectId,
@@ -221,12 +223,12 @@
             this.setMetrics(metrics, silent);
             return this;
         },
-        
-        setMetrics : function(metricsArg, silent) {
+
+        setMetrics: function (metricsArg, silent) {
             var metrics = [];
             silent = silent || false;
             if (metricsArg) {
-                for (var i=0; i<metricsArg.length; i++) {
+                for (var i = 0; i < metricsArg.length; i++) {
                     var metric = metricsArg[i];
                     if (metric) {
                         if (metric instanceof Object) {
@@ -234,7 +236,7 @@
                             if (metric.projectId) {
                                 // but is just a PK
                                 metrics.push({
-                                    "id" : metric
+                                    "id": metric
                                 });
                             } else {
                                 metrics.push(metric);
@@ -242,7 +244,7 @@
                         } else {
                             // metric is just an Id
                             metrics.push({
-                                "id" : {
+                                "id": {
                                     "projectId": this.get("id").projectId,
                                     "domainId": this.get("domains")[0].domainId,
                                     "metricId": metric
@@ -251,13 +253,13 @@
                         }
                     }
                 }
-                this.set({"metricList": metrics}, {"silent" : silent});
+                this.set({"metricList": metrics}, {"silent": silent});
             }
             return this;
         },
-        
-        setMetricId : function(metricId, index) {
-            var items = this.get("metrics") || [];
+
+        setMetricId: function (metricId, index) {
+            var items = this.get("metrics") || [];
             items = items.slice(0);
             index = index || 0;
             items[index] = {
@@ -268,32 +270,32 @@
             this.setMetrics(items);
             return this;
         },
-        
-        setSelection : function(selection, silent) {
+
+        setSelection: function (selection, silent) {
             silent = silent || false;
             var cleanSelection = squid_api.utils.buildCleanSelection(selection);
             selection = cleanSelection;
-            this.set({"selection": selection}, {"silent" : silent});
+            this.set({"selection": selection}, {"silent": silent});
             return this;
         },
 
-        isDone : function() {
+        isDone: function () {
             return (this.get("status") == "DONE");
         }
     });
 
     squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
-        
-        setProjectId : function(projectId) {
+
+        setProjectId: function (projectId) {
             var analyses = this.get("analyses");
             if (analyses) {
-                for (var i=0; i<analyses.length;i++) {
+                for (var i = 0; i < analyses.length; i++) {
                     analyses[i].setProjectId(projectId);
                 }
             }
         },
-        
-        isDone : function() {
+
+        isDone: function () {
             return (this.get("status") == "DONE");
         }
     });
@@ -308,11 +310,11 @@
          * Create (and execute) a new AnalysisJob.
          * @returns a Jquery Deferred
          */
-        createAnalysisJob: function(analysisModel, selection) {
+        createAnalysisJob: function (analysisModel, selection) {
 
             var observer = $.Deferred();
 
-            analysisModel.set("status","RUNNING");
+            analysisModel.set("status", "RUNNING");
 
             // create a new AnalysisJob
             var projectAnalysisJob = new squid_api.model.ProjectAnalysisJob();
@@ -325,14 +327,17 @@
             projectAnalysisJob.parameters = analysisModel.parameters;
             projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set(analysisModel.attributes);
-            if ( (!analysisModel.get("selection")) && selection) {
+            if ((!analysisModel.get("selection")) && selection) {
                 projectAnalysisJob.set("selection", selection);
             }
-            projectAnalysisJob.set({"id" : {
-                projectId: projectId,
-                analysisJobId: null},
-                "results" : null,
-                "error" : null});
+            projectAnalysisJob.set({
+                "id": {
+                    projectId: projectId,
+                    analysisJobId: null
+                },
+                "results": null,
+                "error": null
+            });
 
             // save the analysisJob to API
             if (this.fakeServer) {
@@ -340,7 +345,7 @@
             }
 
             projectAnalysisJob.save({}, {
-                success : function(model, response) {
+                success: function (model, response) {
                     if (model.get("error")) {
                         console.error("createAnalysis error " + model.get("error").message);
                         analysisModel.set("results", null);
@@ -354,7 +359,7 @@
                         observer.resolve(model, response);
                     }
                 },
-                error : function(model, response) {
+                error: function (model, response) {
                     console.error("createAnalysis error");
                     analysisModel.set("results", null);
                     analysisModel.set("error", response);
@@ -370,7 +375,7 @@
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          * @return a Promise
          */
-        compute: function(analysisJob, filters) {
+        compute: function (analysisJob, filters) {
             if (analysisJob.get("analyses")) {
                 // compute a multi analysis
                 return this.computeMultiAnalysis(analysisJob, filters);
@@ -383,7 +388,7 @@
         /**
          * Retrieve job results (loop until DONE or error)
          */
-        getAnalysisJobResults: function(observer, analysisModel) {
+        getAnalysisJobResults: function (observer, analysisModel) {
             observer = observer || $.Deferred();
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
@@ -394,19 +399,19 @@
 
             // get the results from API
             analysisJobResults.fetch({
-                error: function(model, response) {
-                    analysisModel.set("error", {message : response.statusText});
+                error: function (model, response) {
+                    analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
                 },
-                success: function(model, response) {
+                success: function (model, response) {
                     if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
                         var t = model.get("statistics");
                         if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                         }
                         // update the analysis Model
                         analysisModel.set("statistics", t);
@@ -422,11 +427,11 @@
             }
             return observer;
         },
-        
+
         /**
          * Retrieve job (loop until DONE or error)
          */
-        getAnalysisJob: function(observer, analysisModel) {
+        getAnalysisJob: function (observer, analysisModel) {
             console.log("getAnalysisJob");
             var analysisJob = new squid_api.model.ProjectAnalysisJob();
             analysisJob.statusModel = squid_api.model.status;
@@ -435,22 +440,22 @@
 
             // get the results from API
             analysisJob.fetch({
-                error: function(model, response) {
-                    analysisModel.set("error", {message : response.statusText});
+                error: function (model, response) {
+                    analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
                 },
-                success: function(model, response) {
+                success: function (model, response) {
                     if (model.get("status") && (model.get("status") != "DONE")) {
                         // retry in 1s
-                        setTimeout(function() { 
-                                controller.getAnalysisJob(observer, analysisModel); 
-                            }, 1000);
-                        
+                        setTimeout(function () {
+                            controller.getAnalysisJob(observer, analysisModel);
+                        }, 1000);
+
                     } else {
                         var t = model.get("statistics");
                         if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                         }
                         // update the analysis Model
                         analysisModel.set("statistics", t);
@@ -464,39 +469,39 @@
                 this.fakeServer.respond();
             }
         },
-        
+
         /**
          * Create (and execute) a new Single AnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          * @return Observer (Deferred)
          */
-        computeSingleAnalysis: function(analysisJob, filters) {
+        computeSingleAnalysis: function (analysisJob, filters) {
             var selection, observer = $.Deferred();
-               
+
             // compute a single analysis
             if (!filters) {
                 if (!analysisJob.get("selection")) {
                     // use default filters
-                    selection =  squid_api.model.filters.get("selection");
+                    selection = squid_api.model.filters.get("selection");
                 } else {
                     selection = analysisJob.get("selection");
                 }
             } else {
-                selection =  filters.get("selection");
+                selection = filters.get("selection");
             }
-            
+
             selection = squid_api.utils.buildCleanSelection(selection);
-            
+
             // validate job
-            if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
-                observer.reject({"err" : "invalid_analysis", "message" : "Must at least define a metric or a dimension"});
+            if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
+                observer.reject({"err": "invalid_analysis", "message": "Must at least define a metric or a dimension"});
             } else {
                 this.createAnalysisJob(analysisJob, selection)
-                    .done(function(model, response) {
+                    .done(function (model, response) {
                         if (model.get("status") == "DONE") {
                             var t = model.get("statistics");
                             if (t) {
-                                console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                                console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                             }
                             // update the analysis Model
                             analysisJob.set("statistics", t);
@@ -509,7 +514,7 @@
                             controller.getAnalysisJobResults(observer, analysisJob);
                         }
                     })
-                    .fail(function(model, response) {
+                    .fail(function (model, response) {
                         observer.reject(model, response);
                     });
             }
@@ -521,23 +526,23 @@
          * Create (and execute) a new MultiAnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          */
-        computeMultiAnalysis: function(multiAnalysisModel, filters) {
+        computeMultiAnalysis: function (multiAnalysisModel, filters) {
             var me = this;
             multiAnalysisModel.set("status", "RUNNING");
             var analyses = multiAnalysisModel.get("analyses");
             var analysesCount = analyses.length;
             // build all jobs
             var jobs = [];
-            for (var i=0; i<analysesCount; i++) {
+            for (var i = 0; i < analysesCount; i++) {
                 var analysisModel = analyses[i];
                 jobs.push(this.computeSingleAnalysis(analysisModel, filters));
             }
-            console.log("analysesCount : "+analysesCount);
+            console.log("analysesCount : " + analysesCount);
             // wait for jobs completion
-            var combinedPromise = $.when.apply($,jobs);
-            
-            combinedPromise.always( function() {
-                for (var i=0; i<analysesCount; i++) {
+            var combinedPromise = $.when.apply($, jobs);
+
+            combinedPromise.always(function () {
+                for (var i = 0; i < analysesCount; i++) {
                     var analysis = analyses[i];
                     if (analysis.get("error")) {
                         multiAnalysisModel.set("error", analysis.get("error"));
@@ -547,20 +552,20 @@
             });
             return combinedPromise;
         },
-        
+
         // backward compatibility
-        
-        computeAnalysis: function(analysisJob, filters) {
+
+        computeAnalysis: function (analysisJob, filters) {
             return this.compute(analysisJob, filters);
         },
-        
+
         AnalysisModel: squid_api.model.AnalysisJob,
-        
+
         MultiAnalysisModel: squid_api.model.MultiAnalysisJob
-        
+
 
     };
-    
+
 
     squid_api.controller.analysisjob = controller;
     return controller;
