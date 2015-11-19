@@ -10,18 +10,20 @@
     // just make sure console.log will not crash
     if (!root.console) {
         root.console = {
-            log : function() {}
+            log: function () {
+            }
         };
     }
 }(this, "squid_api", function ($, Backbone) {
 
     // Squid API definition
     var squid_api = {
-        debug : null,
-        version : "2.1.0",
+        debug: null,
+        version: "2.1.0",
+        DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiURL: null,
-        loginURL : null,
-        timeoutMillis : null,
+        loginURL: null,
+        timeoutMillis: null,
         customerId: null,
         projectId: null,
         domainId: null,
@@ -38,16 +40,16 @@
         collection: {},
         controller: {},
 
-        setApiURL: function(a1) {
+        setApiURL: function (a1) {
             if (a1 && a1[a1.length - 1] == "/") {
                 a1 = a1.substring(0, a1.length - 1);
             }
             this.apiURL = a1;
-            console.log("apiURL : "+this.apiURL);
+            console.log("apiURL : " + this.apiURL);
             return this;
         },
 
-        setTimeoutMillis: function(t) {
+        setTimeoutMillis: function (t) {
             this.timeoutMillis = t;
             return this;
         },
@@ -56,7 +58,7 @@
          * Compute an AnalysisJob or a FacetJob.
          * @return a Promise
          */
-        compute : function(job, filters) {
+        compute: function (job, filters) {
             if (this.model.AnalysisJob && this.model.FiltersJob) {
                 if (job instanceof this.model.FiltersJob) {
                     return this.controller.facetjob.compute(job, filters);
@@ -71,7 +73,7 @@
 
         utils: {
 
-            mergeAttributes : function(obj1, obj2) {
+            mergeAttributes: function (obj1, obj2) {
                 var obj = {};
                 if (obj1) {
                     for (var att1 in obj1) {
@@ -86,15 +88,15 @@
                 return obj;
             },
 
-            getProjectDomains : function() {
+            getProjectDomains: function () {
                 var dfd = new $.Deferred();
                 var domains = new squid_api.model.DomainCollection();
-                domains.parentId = {"projectId":squid_api.model.config.get("project")};
+                domains.parentId = {"projectId": squid_api.model.config.get("project")};
                 domains.fetch({
-                    success: function(domains) {
+                    success: function (domains) {
                         dfd.resolve(domains);
                     },
-                    error: function() {
+                    error: function () {
                         dfd.reject();
                     }
                 });
@@ -104,10 +106,10 @@
             /*
              * Returns an array of domain relations based on left/right id
              */
-            getDomainRelations : function(relations, oid) {
+            getDomainRelations: function (relations, oid) {
                 var models = [];
                 if (relations && oid) {
-                    for (i=0; i<relations.length; i++) {
+                    for (i = 0; i < relations.length; i++) {
                         if (relations[i].get("leftId") && relations[i].get("rightId")) {
                             if (relations[i].get("leftId").domainId == oid || relations[i].get("rightId").domainId == oid) {
                                 models.push(relations[i]);
@@ -118,53 +120,53 @@
                 return models;
             },
 
-            fetchModel : function(modelName) {
+            fetchModel: function (modelName) {
                 var dfd = new $.Deferred();
                 var name = modelName.toLowerCase();
                 var model = new squid_api.model[name.charAt(0).toUpperCase() + name.slice(1) + "Model"]();
                 model.set("id", {
-                    projectId : squid_api.model.config.get("project"),
-                    domainId : squid_api.model.config.get("domain")
+                    projectId: squid_api.model.config.get("project"),
+                    domainId: squid_api.model.config.get("domain")
                 });
                 model.fetch({
-                    success: function(data) {
+                    success: function (data) {
                         dfd.resolve(data);
                     },
-                    error: function() {
+                    error: function () {
                         dfd.reject();
                     }
                 });
                 return dfd.promise();
             },
 
-            getDomainMetrics : function() {
+            getDomainMetrics: function () {
                 var dfd = new $.Deferred();
                 var domain = new squid_api.model.DomainModel();
                 var metrics = new squid_api.model.MetricCollection();
                 var currentProject = squid_api.model.config.get("project");
                 var currentDomain = squid_api.model.config.get("domain");
                 /*
-                    if the Domain is still dynamic, display all metrics
-                    if the Domain is not dynamic, only display concrete metrics
-                */
+                 if the Domain is still dynamic, display all metrics
+                 if the Domain is not dynamic, only display concrete metrics
+                 */
                 if (currentDomain) {
-                    domain.set("id", {"projectId" : currentProject, domainId : currentDomain});
-                    metrics.parentId = {projectId : currentProject, domainId : currentDomain};
+                    domain.set("id", {"projectId": currentProject, domainId: currentDomain});
+                    metrics.parentId = {projectId: currentProject, domainId: currentDomain};
                     domain.fetch({
-                        success: function(domain) {
+                        success: function (domain) {
                             metrics.fetch({
-                                success: function(metrics) {
+                                success: function (metrics) {
                                     if (domain.get("dynamic") === false) {
                                         metrics.set(metrics.where({dynamic: false}));
                                     }
                                     dfd.resolve(metrics);
                                 },
-                                error: function() {
+                                error: function () {
                                     dfd.reject();
                                 }
                             });
                         },
-                        error: function() {
+                        error: function () {
                             dfd.reject();
                         }
                     });
@@ -175,7 +177,7 @@
             /*
              * Get a parameter value from the current location url
              */
-            getParamValue: function(name, defaultValue) {
+            getParamValue: function (name, defaultValue) {
                 var uri = new URI(window.location.href);
                 var value;
                 if (uri.hasQuery(name) === true) {
@@ -186,7 +188,7 @@
                 return value;
             },
 
-            clearParam : function(name) {
+            clearParam: function (name) {
                 var uri = new URI(window.location.href);
                 uri.removeQuery(name);
             },
@@ -198,7 +200,7 @@
              * @param exp cookie expiration delay in minutes
              * @param v cookie value
              */
-            writeCookie: function(name, dom, exp, v) {
+            writeCookie: function (name, dom, exp, v) {
                 var d = null;
                 if (exp) {
                     d = new Date();
@@ -211,9 +213,9 @@
                 document.cookie = nc;
             },
 
-            readCookie: function(name) {
+            readCookie: function (name) {
                 var c = null,
-                dc = document.cookie;
+                    dc = document.cookie;
                 if (dc.length > 0) {
                     var cs = dc.indexOf(name + "=");
                     if (cs != -1) {
@@ -228,7 +230,7 @@
                 return c;
             },
 
-            clearLogin : function() {
+            clearLogin: function () {
                 var cookiePrefix = "sq-token";
                 squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", -100000, null);
                 squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
@@ -241,18 +243,18 @@
             /**
              * Deep find an object having a given property value and objectType in a JSON object.
              */
-            find : function(theObject, key, value, objectType) {
+            find: function (theObject, key, value, objectType) {
                 var result = null, i;
                 if (theObject instanceof Array) {
                     for (i = 0; i < theObject.length; i++) {
                         result = this.find(theObject[i], key,
-                                value, objectType);
+                            value, objectType);
                         if (result) {
                             break;
                         }
                     }
                 } else {
-                    for ( var prop in theObject) {
+                    for (var prop in theObject) {
                         if (prop == key) {
                             if (theObject[prop] == value) {
                                 if (!objectType || (objectType == theObject.objectType)) {
@@ -274,20 +276,20 @@
             /**
              * Streamline a selection (get rid of the facet items).
              */
-            buildCleanSelection : function(selectionOpt) {
+            buildCleanSelection: function (selectionOpt) {
                 var selection = {
-                        "facets" : []
+                    "facets": []
                 };
                 if (selectionOpt) {
                     var facets = selectionOpt.facets;
                     if (facets) {
                         for (var is = 0; is < facets.length; is++) {
                             var facet = facets[is];
-                            if (facet.selectedItems && (facet.selectedItems.length>0)) {
+                            if (facet.selectedItems && (facet.selectedItems.length > 0)) {
                                 var newFacet = {
-                                        "selectedItems" : facet.selectedItems,
-                                        "dimension" : facet.dimension,
-                                        "id" : facet.id
+                                    "selectedItems": facet.selectedItems,
+                                    "dimension": facet.dimension,
+                                    "id": facet.id
                                 };
                                 selection.facets.push(newFacet);
                             }
@@ -298,19 +300,19 @@
             },
         },
 
-        setProjectId : function(oid) {
+        setProjectId: function (oid) {
             if (oid) {
                 var me = this;
                 var dfd = new $.Deferred();
                 this.projectId = oid;
-                this.model.project.set({"id" : {"customerId" : this.customerId, "projectId" : oid}}, {"silent" : true});
+                this.model.project.set({"id": {"customerId": this.customerId, "projectId": oid}}, {"silent": true});
                 this.model.project.addParameter("deepread", "1");
                 this.model.project.fetch({
-                    success : function(model, response, options) {
-                        console.log("project fetched : "+model.get("name"));
+                    success: function (model, response, options) {
+                        console.log("project fetched : " + model.get("name"));
                         dfd.resolve();
                     },
-                    error : function(model, response, options) {
+                    error: function (model, response, options) {
                         console.error("project fetch failed");
                         dfd.reject();
                     }
@@ -329,15 +331,15 @@
          * Save the current State model
          * @param an array of extra config elements
          */
-        saveState : function(config) {
+        saveState: function (config) {
             var me = this;
             var attributes = {
-                    "config" : me.model.config.attributes
+                "config": me.model.config.attributes
             };
 
             // add the extra config
             if (config) {
-                for (var i=0; i<config.length; i++) {
+                for (var i = 0; i < config.length; i++) {
                     var c = config[i];
                     for (var prop in c) {
                         attributes.config[prop] = c[prop];
@@ -349,17 +351,17 @@
             if ((!me.model.state) || (!_.isEqual(me.model.state.get("config"), attributes.config))) {
                 var stateModel = new me.model.StateModel();
                 stateModel.set({
-                    "id" : {
-                        "customerId" : this.customerId,
-                        "stateId" : null
-                     }
+                    "id": {
+                        "customerId": this.customerId,
+                        "stateId": null
+                    }
                 });
 
                 // save
                 stateModel.save(attributes, {
-                    success : function(model, response, options) {
+                    success: function (model, response, options) {
                         var oid = model.get("oid");
-                        console.log("state saved : "+oid);
+                        console.log("state saved : " + oid);
                         // keep for comparison when saved again
                         me.model.state = model;
 
@@ -370,22 +372,22 @@
                             window.history.pushState(model.toJSON(), "", uri);
                         }
                     },
-                    error : function(model, response, options) {
+                    error: function (model, response, options) {
                         console.error("state save failed");
                     }
                 });
             }
         },
 
-        refreshObjectType: function(model) {
-        	var objectType = model.get("objectType");
-        	var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;    	
-    	
-        	if (objectType == "Project") {
-        		url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
-        	} else if (objectType == "Domain") {
-        		url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
-        	}
+        refreshObjectType: function (model) {
+            var objectType = model.get("objectType");
+            var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;
+
+            if (objectType == "Project") {
+                url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
+            } else if (objectType == "Domain") {
+                url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
+            }
 
             if (model) {
                 var request = $.ajax({
@@ -395,73 +397,73 @@
                     contentType: 'application/json'
                 });
 
-                request.done(function() {
+                request.done(function () {
                     squid_api.model.status.set("message", objectType + " successfully refreshed");
                 });
 
-                request.fail(function() {
+                request.fail(function () {
                     squid_api.model.status.set("message", objectType + " refresh failed");
                     squid_api.model.status.set("error", "error");
                 });
             }
         },
 
-        validateDB: function(projectId, url,username,password) {
-                var request = $.ajax({
-                    type: "GET",
-                    url: squid_api.apiURL + "/connections/validate" + "?access_token="+squid_api.model.login.get("accessToken")+"&projectId="+projectId+"&url="+url+"&username="+ username +"&password=" + password,
-                    dataType: 'json',
-                    contentType: 'application/json',
-                    error: function(xhr, textStatus, error){
-                        squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
-                        squid_api.model.status.set("error",true);
+        validateDB: function (projectId, url, username, password) {
+            var request = $.ajax({
+                type: "GET",
+                url: squid_api.apiURL + "/connections/validate" + "?access_token=" + squid_api.model.login.get("accessToken") + "&projectId=" + projectId + "&url=" + url + "&username=" + username + "&password=" + password,
+                dataType: 'json',
+                contentType: 'application/json',
+                error: function (xhr, textStatus, error) {
+                    squid_api.model.status.set({"message": "Invalid Login/password for JDBC access"}, {silent: true});
+                    squid_api.model.status.set("error", true);
+                    return 500;
+                },
+                statusCode: {
+                    500: function () {
+                        squid_api.model.status.set({"message": "Invalid Login/password for JDBC access"}, {silent: true});
+                        squid_api.model.status.set("error", true);
                         return 500;
                     },
-                    statusCode: {
-                        500: function() {
-                            squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
-                            squid_api.model.status.set("error",true);
-                            return 500;
-                        },
-                        404: function() {
-                            squid_api.model.status.set({"message":"Unable to login"}, {silent:true});
-                            squid_api.model.status.set("error",true);
-                            return 404;
-                        }
+                    404: function () {
+                        squid_api.model.status.set({"message": "Unable to login"}, {silent: true});
+                        squid_api.model.status.set("error", true);
+                        return 404;
                     }
+                }
 
-                });
+            });
 
-                request.done(function() {
-                    squid_api.model.status.set({"message":"Login for jdbc access validated"}, {silent:true});
-                    squid_api.model.status.set("error",true);
-                    return 200;
-                });
+            request.done(function () {
+                squid_api.model.status.set({"message": "Login for jdbc access validated"}, {silent: true});
+                squid_api.model.status.set("error", true);
+                return 200;
+            });
 
-                request.fail(function() {
-                    squid_api.model.status.set({"message":"Invalid Login/password for JDBC access"}, {silent:true});
-                    squid_api.model.status.set("error",true);
-                    return 404;
-                });
+            request.fail(function () {
+                squid_api.model.status.set({"message": "Invalid Login/password for JDBC access"}, {silent: true});
+                squid_api.model.status.set("error", true);
+                return 404;
+            });
         },
 
-        setStateId : function(dfd, stateId, baseConfig, forcedConfig) {
+        setStateId: function (dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
             var stateModel = new squid_api.model.StateModel();
             stateModel.set({
-                "id" : {
-                    "customerId" : this.customerId,
-                    "stateId" : stateId
+                "id": {
+                    "customerId": this.customerId,
+                    "stateId": stateId
                 }
             });
             stateModel.fetch({
-                success : function(model, response, options) {
+                success: function (model, response, options) {
                     var oid = model.get("oid");
                     // keep for comparison when saved again
                     me.model.state = model;
                     var config = model.get("config");
-                    config = me.utils.mergeAttributes(baseConfig,config);
+                    config = me.utils.mergeAttributes(baseConfig, config);
                     if (_.isFunction(forcedConfig)) {
                         config = forcedConfig(config);
                     } else {
@@ -469,7 +471,7 @@
                     }
                     me.model.config.set(config);
                 },
-                error : function(model, response, options) {
+                error: function (model, response, options) {
                     // state fetch failed
                     dfd.reject();
                 }
@@ -477,26 +479,26 @@
             return dfd.promise();
         },
 
-        setShortcutId : function(shortcutId, baseConfig, forcedConfig) {
+        setShortcutId: function (shortcutId, baseConfig, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             if (shortcutId) {
                 var shortcutModel = new squid_api.model.ShortcutModel();
                 shortcutModel.set({
-                    "id" : {
-                        "customerId" : this.customerId,
-                        "shortcutId" : shortcutId
+                    "id": {
+                        "customerId": this.customerId,
+                        "shortcutId": shortcutId
                     }
                 });
                 shortcutModel.fetch({
-                    success : function(model, response, options) {
-                        console.log("shortcut fetched : "+model.get("name"));
+                    success: function (model, response, options) {
+                        console.log("shortcut fetched : " + model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
                         me.setStateId(dfd, model.get("stateId"), baseConfig, forcedConfig);
                     },
-                    error : function(model, response, options) {
-                        console.error("shortcut fetch failed : "+shortcutId);
+                    error: function (model, response, options) {
+                        console.error("shortcut fetch failed : " + shortcutId);
                         dfd.reject();
                     }
                 });
@@ -510,7 +512,7 @@
          * Setup the API default settings.
          * @param a config json object
          */
-        setup : function(args) {
+        setup: function (args) {
             var me = this, api, apiUrl, loginUrl, timeoutMillis;
 
             args = args || {};
@@ -539,7 +541,7 @@
                 this.clientId = args.clientId;
             }
 
-            var domainId = squid_api.utils.getParamValue("domainId",null);
+            var domainId = squid_api.utils.getParamValue("domainId", null);
             if (!domainId) {
                 domainId = args.domainId;
             } else {
@@ -548,7 +550,7 @@
             this.domainId = domainId;
             this.model.domain = new squid_api.model.DomainModel();
 
-            var projectId = squid_api.utils.getParamValue("projectId",null);
+            var projectId = squid_api.utils.getParamValue("projectId", null);
             if (!projectId) {
                 projectId = args.projectId;
             } else {
@@ -566,7 +568,7 @@
             var configModel = new Backbone.Model();
             this.model.config = configModel;
 
-            configModel.on("change:project", function(model) {
+            configModel.on("change:project", function (model) {
                 me.setProjectId(model.get("project"));
             });
 
@@ -577,45 +579,45 @@
                 if (args.selection.date) {
                     // setup default filters
                     defaultSelection = {
-                            "facets" : [ {
-                                "dimension" : {
-                                    "id" : {
-                                        "projectId" : this.projectId,
-                                        "domainId" : this.domainId,
-                                        "dimensionId" : args.selection.date.dimensionId
-                                    }
-                                },
-                                "selectedItems" : [ {
-                                    "type" : "i",
-                                    "lowerBound" : (args.selection.date.lowerBound + "T00:00:00.000Z"),
-                                    "upperBound" : (args.selection.date.upperBound + "T00:00:00.000Z")
-                                } ]
-                            } ]
+                        "facets": [{
+                            "dimension": {
+                                "id": {
+                                    "projectId": this.projectId,
+                                    "domainId": this.domainId,
+                                    "dimensionId": args.selection.date.dimensionId
+                                }
+                            },
+                            "selectedItems": [{
+                                "type": "i",
+                                "lowerBound": (args.selection.date.lowerBound + "T00:00:00.000Z"),
+                                "upperBound": (args.selection.date.upperBound + "T00:00:00.000Z")
+                            }]
+                        }]
                     };
                 }
             }
 
             var filters = new squid_api.controller.facetjob.FiltersModel();
-            filters.set("selection" , defaultSelection);
+            filters.set("selection", defaultSelection);
             squid_api.model.filters = filters;
 
             // init the api server URL
-            api = squid_api.utils.getParamValue("api","release");
-            version = squid_api.utils.getParamValue("version","v4.2");
+            api = squid_api.utils.getParamValue("api", "release");
+            version = squid_api.utils.getParamValue("version", "v4.2");
 
             apiUrl = squid_api.utils.getParamValue("apiUrl", apiUrl);
             if (!apiUrl) {
                 console.error("Please provide an API endpoint URL");
             } else {
                 if (apiUrl.indexOf("://") < 0) {
-                    apiUrl = "https://"+apiUrl;
+                    apiUrl = "https://" + apiUrl;
                 }
-                this.setApiURL(apiUrl + "/"+api+"/"+version+"/rs");
-                this.swaggerURL = apiUrl + "/"+api+"/"+version+"/swagger.json";
+                this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
+                this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
 
                 // init the Login URL
-                loginUrl = squid_api.utils.getParamValue("loginUrl",apiUrl);
-                loginUrl += "/"+api+"/auth/oauth?response_type=code";
+                loginUrl = squid_api.utils.getParamValue("loginUrl", apiUrl);
+                loginUrl += "/" + api + "/auth/oauth?response_type=code";
                 if (this.clientId) {
                     loginUrl += "&client_id=" + this.clientId;
                 }
@@ -623,14 +625,14 @@
                     loginUrl += "&customerId=" + this.customerId;
                 }
                 this.loginURL = loginUrl;
-                console.log("loginURL : "+this.loginURL);
+                console.log("loginURL : " + this.loginURL);
             }
-            
+
 
             // init the timout
             timeoutMillis = args.timeoutMillis;
             if (!timeoutMillis) {
-                timeoutMillis = 10*1000; // 10 Sec.
+                timeoutMillis = 10 * 1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
 
@@ -641,7 +643,7 @@
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * @param a config json object (if present will call the setup method).
          */
-        init: function(args) {
+        init: function (args) {
             var browserOK = false;
 
             if (this.browsers) {
@@ -658,29 +660,29 @@
             if (browserOK) {
                 if (!this.apiURL) {
                     this.model.status
-                    .set(
+                        .set(
                             "error",
                             {
-                                "dismissible" : false,
-                                "message" : "Please provide an API endpoint URL"
+                                "dismissible": false,
+                                "message": "Please provide an API endpoint URL"
                             });
                 } else {
                     // continue init process
                     this.initStep1(args);
                 }
             } else {
-                console.error("Unsupported browser : "+navigator.userAgent);
+                console.error("Unsupported browser : " + navigator.userAgent);
                 this.model.status
-                .set(
+                    .set(
                         'error',
                         {
-                            "dismissible" : false,
-                            "message" : "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
+                            "dismissible": false,
+                            "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
                         });
             }
         },
 
-        initStep1: function(args) {
+        initStep1: function (args) {
             var me = this, loginModel;
 
             if (args) {
@@ -689,7 +691,7 @@
             }
 
             // handle session expiration
-            this.model.status.on('change:error', function(model) {
+            this.model.status.on('change:error', function (model) {
                 var err = model.get("error");
                 if (err) {
                     var status = err.status;
@@ -704,15 +706,15 @@
             }
 
             // check for login performed
-            loginModel.on('change:login', function(model) {
+            loginModel.on('change:login', function (model) {
                 if (model.get("login")) {
                     // login ok
                     // perform init chain
-                    var state = squid_api.utils.getParamValue("state",null);
+                    var state = squid_api.utils.getParamValue("state", null);
                     var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                     if (state) {
                         var dfd = me.setStateId(null, state, me.defaultConfig);
-                        dfd.fail(function() {
+                        dfd.fail(function () {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         });
                     } else {
@@ -739,13 +741,13 @@
          * @param forceRefresh if true schema will be fetched
          * @return a Promise wrapping a schema json object or null if fetch failed.
          */
-        getSchema : function(forceRefresh) {
+        getSchema: function (forceRefresh) {
             var dfd;
             var me = this;
             if ((!me.apiSchema) || (forceRefresh === true)) {
                 // not in cache, execute the query
                 return $.ajax({
-                    url : me.swaggerURL
+                    url: me.swaggerURL
                 }).done(null, function (xhr, status, error) {
                     // put in cache
                     me.apiSchema = xhr;
@@ -761,19 +763,19 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
 
-        addParameter : function(name, value) {
+        addParameter: function (name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
                 if (!this.parameters) {
                     this.parameters = [];
                 }
-                this.parameters.push({"name" : name, "value" : value});
+                this.parameters.push({"name": name, "value": value});
             }
         },
 
-        getParameter : function(name) {
-            var i=0, param;
+        getParameter: function (name) {
+            var i = 0, param;
             if (this.parameters) {
-                while (i<this.parameters.length) {
+                while (i < this.parameters.length) {
                     param = this.parameters[i];
                     if (param.name == name) {
                         return param.value;
@@ -785,12 +787,12 @@
         },
 
 
-        setParameter : function(name, value) {
+        setParameter: function (name, value) {
             var index = null;
             if (!this.parameters) {
                 this.parameters = [];
             }
-            for (var i=0; i<this.parameters.length; i++) {
+            for (var i = 0; i < this.parameters.length; i++) {
                 if (this.parameters[i].name === name) {
                     index = i;
                     break;
@@ -799,24 +801,24 @@
             if (index !== null) {
                 if ((typeof value === 'undefined') || (value === null)) {
                     // unset
-                    this.parameters.splice(index,1);
+                    this.parameters.splice(index, 1);
                 } else {
                     // set
                     this.parameters[index].value = value;
                 }
             } else {
-                this.parameters.push({"name" : name, "value" : value});
+                this.parameters.push({"name": name, "value": value});
             }
         },
 
-        initialize: function(attributes, options) {
+        initialize: function (attributes, options) {
             if (options) {
                 this.parameters = options.parameters;
                 this.statusModel = options.statusModel;
             }
         },
 
-        constructor: function() {
+        constructor: function () {
             // Define some attributes off of the prototype chain
             this.parameters = [];
             this.statusModel = null;
@@ -825,31 +827,31 @@
             Backbone.Model.apply(this, arguments);
         },
 
-        idAttribute : "oid",
+        idAttribute: "oid",
 
-        baseRoot: function() {
+        baseRoot: function () {
             return squid_api.apiURL;
         },
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot();
         },
-        url: function() {
+        url: function () {
             var url = this.urlRoot();
             if (!this.hasParam("timeout")) {
-                if (typeof this.timeoutMillis === 'undefined' ) {
-                    this.setParameter("timeout",squid_api.timeoutMillis);
+                if (typeof this.timeoutMillis === 'undefined') {
+                    this.setParameter("timeout", squid_api.timeoutMillis);
                 } else {
                     if (this.timeoutMillis !== null) {
-                        this.setParameter("timeout",this.timeoutMillis());
+                        this.setParameter("timeout", this.timeoutMillis());
                     }
                 }
             }
             if (!this.hasParam("access_token")) {
-                this.setParameter("access_token",squid_api.model.login.get("accessToken"));
+                this.setParameter("access_token", squid_api.model.login.get("accessToken"));
             }
             // add parameters
             if (this.parameters) {
-                for (var i=0; i<this.parameters.length; i++) {
+                for (var i = 0; i < this.parameters.length; i++) {
                     var param = this.parameters[i];
                     if (param.value !== null) {
                         url = this.addParam(url, param.name, param.value);
@@ -859,10 +861,10 @@
             return url;
         },
         error: null,
-        hasParam: function(name) {
-            var hasParam = false, i=0;
+        hasParam: function (name) {
+            var hasParam = false, i = 0;
             if (this.parameters) {
-                while (i<this.parameters.length && (!hasParam)) {
+                while (i < this.parameters.length && (!hasParam)) {
                     var param = this.parameters[i];
                     if (param.name == name) {
                         hasParam = true;
@@ -873,10 +875,10 @@
 
             return hasParam;
         },
-        addParam : function(url, name, value) {
+        addParam: function (url, name, value) {
             if (value) {
                 var delim;
-                if (url.indexOf("?")<0) {
+                if (url.indexOf("?") < 0) {
                     delim = "?";
                 } else {
                     delim = "&";
@@ -886,15 +888,15 @@
             return url;
         },
 
-        optionsFilter : function(options) {
+        optionsFilter: function (options) {
             // success
             var success, me = this;
             if (!options) {
-                options = {success : null, error : null};
+                options = {success: null, error: null};
             } else {
                 success = options.success;
             }
-            options.success =  function(model, response, options) {
+            options.success = function (model, response, options) {
                 if (me.statusModel) {
                     me.statusModel.pullTask(model);
                 }
@@ -906,13 +908,13 @@
 
             var error;
             error = options.error;
-            options.error =  function(model, response, options) {
+            options.error = function (model, response, options) {
                 if (me.statusModel) {
                     me.statusModel.set("error", response);
                     me.statusModel.pullTask(model);
                 }
                 if (!response.status) {
-                    squid_api.model.status.set("error" , {"message" : "Unable to reach API Services"});
+                    squid_api.model.status.set("error", {"message": "Unable to reach API Services"});
                 }
                 if (error) {
                     // normal behavior
@@ -925,7 +927,7 @@
         /*
          * Overriding fetch to handle token expiration
          */
-        fetch : function(options) {
+        fetch: function (options) {
             if (this.statusModel) {
                 this.statusModel.pushTask(this);
             }
@@ -935,7 +937,7 @@
         /*
          * Overriding save to handle token expiration
          */
-        save : function(attributes, options) {
+        save: function (attributes, options) {
             if (this.statusModel) {
                 this.statusModel.pushTask(this);
             }
@@ -944,41 +946,60 @@
 
     });
 
+    Backbone.Collection.prototype.saveAll = function (models) {
+        var dfd = new $.Deferred();
+
+        // create array of deferreds to save
+        var deferreds = [];
+        for (var i = 0; i < models.length; i++) {
+            if (models[i].hasChanged()) {
+                deferreds.push(models[i].save());
+            }
+        }
+
+        // resolve promise once all models have been saved
+        $.when.apply($, deferreds).done(function () {
+            dfd.resolve();
+        });
+
+        return dfd.promise();
+    };
+
     squid_api.model.BaseCollection = Backbone.Collection.extend({
-        parentId : null,
+        parentId: null,
 
-        parameters : [],
+        parameters: [],
 
-        addParameter : function(name, value) {
-            this.parameters.push({"name" : name, "value" : value});
+        addParameter: function (name, value) {
+            this.parameters.push({"name": name, "value": value});
         },
 
-        initialize : function(model, options) {
+        initialize: function (model, options) {
             if (options) {
                 this.parentId = options.parentId;
                 this.parameters = options.parameters;
             }
         },
-        baseRoot: function() {
+        baseRoot: function () {
             return squid_api.apiURL;
         },
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot();
         },
 
-        url: function() {
+        url: function () {
             var url = this.urlRoot();
-            if (typeof this.timeoutMillis === 'undefined' ) {
-                url = this.addParam(url, "timeout",squid_api.timeoutMillis);
+            if (typeof this.timeoutMillis === 'undefined') {
+                url = this.addParam(url, "timeout", squid_api.timeoutMillis);
             } else {
                 if (this.timeoutMillis !== null) {
-                    url = this.addParam(url, "timeout",this.timeoutMillis());
+                    url = this.addParam(url, "timeout", this.timeoutMillis());
                 }
             }
-            url = this.addParam(url, "access_token",squid_api.model.login.get("accessToken"));
+            url = this.addParam(url, "access_token", squid_api.model.login.get("accessToken"));
             // add parameters
             if (this.parameters) {
-                for (var i=0; i<this.parameters.length; i++) {
+                for (var i = 0; i < this.parameters.length; i++) {
                     var param = this.parameters[i];
                     url = this.addParam(url, param.name, param.value);
                 }
@@ -987,10 +1008,10 @@
         },
 
         error: null,
-        addParam : function(url, name, value) {
+        addParam: function (url, name, value) {
             if (value) {
                 var delim;
-                if (url.indexOf("?")<0) {
+                if (url.indexOf("?") < 0) {
                     delim = "?";
                 } else {
                     delim = "&";
@@ -1002,7 +1023,7 @@
     });
 
     squid_api.model.TokenModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/tokeninfo";
         }
     });
@@ -1015,14 +1036,14 @@
 
         resetPassword: null,
 
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/user";
         },
 
         /**
          * Login the user using an access_token
          */
-        setAccessCode: function(code, cookieExpiration) {
+        setAccessCode: function (code, cookieExpiration) {
             var me = this;
 
             // remove from browser history
@@ -1037,14 +1058,19 @@
                 type: "POST",
                 url: squid_api.apiURL + "/token",
                 dataType: 'json',
-                data: {"grant_type" : "authorization_code", "code": code, "client_id" : squid_api.clientId, "redirect_uri" : null}
+                data: {
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": squid_api.clientId,
+                    "redirect_uri": null
+                }
             });
 
-            request.fail(function(jqXHR) {
+            request.fail(function (jqXHR) {
                 me.setAccessToken(null, cookieExpiration);
             });
 
-            request.done(function(data) {
+            request.done(function (data) {
                 var token = data.oid;
                 me.setAccessToken(token, cookieExpiration);
             });
@@ -1054,8 +1080,8 @@
         /**
          * Login the user using an access_token
          */
-        setAccessToken: function(token, cookieExpiration) {
-            var cookiePrefix = "sq-token",cookie, me = this;
+        setAccessToken: function (token, cookieExpiration) {
+            var cookiePrefix = "sq-token", cookie, me = this;
 
             if (!cookieExpiration) {
                 cookieExpiration = 120; // 2 hours
@@ -1082,7 +1108,7 @@
                     "token": token
                 });
 
-                tokenModel.on("change:customerId", function(model) {
+                tokenModel.on("change:customerId", function (model) {
                     // set the customerId
                     squid_api.customerId = model.get("customerId");
 
@@ -1099,27 +1125,31 @@
                     }
 
                     // update login model from server
-                    squid_api.model.login.fetch().then(function() {
+                    squid_api.model.login.fetch().then(function () {
                         // fetch the customer
                         squid_api.model.customer.fetch()
-                        .done(function(customer) {
-                            console.log("customer fetched : "+customer.name);
-                        })
-                        .fail(function() {
-                            console.log("customer fetched failed");
-                        });
+                            .done(function (customer) {
+                                console.log("customer fetched : " + customer.name);
+                            })
+                            .fail(function () {
+                                console.log("customer fetched failed");
+                            });
                     });
                 });
 
                 tokenModel.fetch({
-                    error: function(model, response, options) {
-                        if (model.status ===  401) {
+                    error: function (model, response, options) {
+                        if (model.status === 401) {
                             squid_api.model.login.set("login", null);
                         } else {
                             squid_api.model.login.set("error", response);
                             squid_api.model.login.set("login", "error");
-                            squid_api.model.status.set({"message":"Cannot connect to Bouquet", "canStart":false});
-                            squid_api.model.status.set("error",true);
+                            var mes = "Cannot connect to Bouquet (error " + model.status + ")";
+                            if (model.status === 404) {
+                                mes += "\nCheck that the apiUrl parameter is correct";
+                            }
+                            squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
+                            squid_api.model.status.set("error", true);
                         }
                     }
                 });
@@ -1131,7 +1161,7 @@
         /**
          * Logout the current user
          */
-        logout: function() {
+        logout: function () {
             var me = this;
             // set the access token and refresh data
             var request = $.ajax({
@@ -1141,11 +1171,11 @@
                 contentType: 'application/json'
             });
 
-            request.done(function(jsonData) {
+            request.done(function (jsonData) {
                 squid_api.utils.clearLogin();
             });
 
-            request.fail(function(jqXHR, textStatus, errorThrown) {
+            request.fail(function (jqXHR, textStatus, errorThrown) {
                 squid_api.model.status.set("message", "logout failed");
                 squid_api.model.status.set("error", "error");
             });
@@ -1174,7 +1204,7 @@
 
         error: "",
 
-        url: function() {
+        url: function () {
             return this.baseRoot() + this.wsName + "?access_token=" + this.accessToken; // get user
         }
 
@@ -1184,31 +1214,31 @@
 
     // Status Model
     squid_api.model.StatusModel = squid_api.model.BaseModel.extend({
-        STATUS_RUNNING : "RUNNING",
-        STATUS_DONE : "DONE",
-        runningTasks : [],
-        pushTask : function(task) {
+        STATUS_RUNNING: "RUNNING",
+        STATUS_DONE: "DONE",
+        runningTasks: [],
+        pushTask: function (task) {
             this.runningTasks.push(task);
-            console.log("running tasks count : "+this.runningTasks.length);
-            Backbone.Model.prototype.set.call(this,"status",this.STATUS_RUNNING);
+            console.log("running tasks count : " + this.runningTasks.length);
+            Backbone.Model.prototype.set.call(this, "status", this.STATUS_RUNNING);
         },
-        pullTask : function(task) {
+        pullTask: function (task) {
             var i = this.runningTasks.indexOf(task);
             if (i != -1) {
                 this.runningTasks.splice(i, 1);
             }
-            console.log("running tasks count : "+this.runningTasks.length);
+            console.log("running tasks count : " + this.runningTasks.length);
             if (this.runningTasks.length === 0) {
-                Backbone.Model.prototype.set.call(this,"status",this.STATUS_DONE);
+                Backbone.Model.prototype.set.call(this, "status", this.STATUS_DONE);
             }
         }
     });
     squid_api.model.status = new squid_api.model.StatusModel({
-        status : null,
-        error : null,
-        message : null,
-        project : null,
-        domain : null
+        status: null,
+        error: null,
+        message: null,
+        project: null,
+        domain: null
     });
 
     /*
@@ -1216,7 +1246,7 @@
      */
 
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/";
         }
     });
@@ -1224,127 +1254,127 @@
     squid_api.model.customer = new squid_api.model.CustomerInfoModel();
 
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/clients/" + this.get("id").clientId;
         }
     });
 
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/states/" + (this.get("id").stateId || "");
         }
     });
 
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
         }
     });
 
     squid_api.model.ShortcutCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.ShortcutModel,
-        urlRoot: function() {
+        model: squid_api.model.ShortcutModel,
+        urlRoot: function () {
             return this.baseRoot() + "/shortcuts";
         }
     });
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
-        },
-        definition : "Project",
-        ignoredAttributes : ['accessRights', 'config', 'relations', 'domains'],
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"dbUrl":{"title":"Database URL","type":"Text","editorClass":"form-control","position":1,"fieldClass":"dbUrl"},"dbUser":{"title":"Database User","type":"Text","editorClass":"form-control","position":2,"fieldClass":"dbUser"},"dbPassword":{"title":"Database Password","type":"Password","editorClass":"form-control","position":3,"fieldClass":"dbPassword"},"dbSchemas":{"title":"Database Schemas","type":"Checkboxes","editorClass":" ","options":[],"position":4,"fieldClass":"dbSchemas"}}
+        }
     });
 
     squid_api.model.ProjectCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.ProjectModel,
-        urlRoot: function() {
+        model: squid_api.model.ProjectModel,
+        urlRoot: function () {
             return this.baseRoot() + "/projects";
         }
     });
 
     squid_api.model.UserModel = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/users/" + this.get("id").userId;
         }
     });
 
     squid_api.model.GroupCollection = squid_api.model.BaseModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return this.baseRoot() + "/usergroups";
         }
     });
 
     squid_api.model.UserCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.UserModel,
-        urlRoot: function() {
+        model: squid_api.model.UserModel,
+        urlRoot: function () {
             return this.baseRoot() + "/users";
         }
     });
 
     squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
-        },
-        definition : "Domain",
-        ignoredAttributes : ['accessRights', 'dimensions', 'metrics'],
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"subject":{"type":"Object","title":"","subSchema":{"value":{"title":"Subject Value","type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"subject"}}
+        }
     });
 
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.DomainModel,
-        urlRoot: function() {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/domains";
+        model: squid_api.model.DomainModel,
+        urlRoot: function () {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.projectId + "/domains";
         }
     });
 
     squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
-        },
-        definition: "Relation",
-        ignoredAttributes : ['accessRights'],
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"relationId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"leftId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Left Domain"}},"fieldClass":"leftId"},"leftCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"leftCardinality"},"rightCardinality":{"type":"Select","editorClass":"form-control","options":["ZERO_OR_ONE","ONE","MANY"],"fieldClass":"rightCardinality"},"rightId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","title":" ","editorClass":"hidden"},"domainId":{"options":[],"type":"Select","editorClass":"form-control","title":"Right Domain"}},"fieldClass":"rightId"},"leftName":{"type":"Text","editorClass":"form-control","fieldClass":"leftName"},"rightName":{"type":"Text","editorClass":"form-control","fieldClass":"rightName"},"joinExpression":{"title":" ","type":"Object","subSchema":{"value":{"title":"Join Expression","type":"TextArea","editorClass":"form-control suggestion-box"}},"fieldClass":"joinExpression"}}
+        }
     });
 
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.RelationModel,
-        urlRoot: function() {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/relations";
+        model: squid_api.model.RelationModel,
+        urlRoot: function () {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.projectId + "/relations";
         }
     });
 
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
-        },
-        definition: "Dimension",
-        ignoredAttributes : ['options', 'accessRights', 'dynamic', 'attributes', 'valueType'],
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"type":{"type":"Checkboxes","editorClass":" ","options":[{"val":"CATEGORICAL","label":"Indexed"},{"val":"CONTINUOUS","label":"Period"}],"position":1,"fieldClass":"type"},"parentId":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden","fieldClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control","fieldClass":"hidden"},"dimensionId":{"options":[],"type":"Text","editorClass":"form-control","title":"Parent Dimension"}},"position":2,"fieldClass":"parentId"},"expression":{"type":"Object",title:"","subSchema":{"value":{"type":"TextArea","editorClass":"form-control suggestion-box","title":"Expression Value"}},"position":3,"fieldClass":"expression"}}
+        }
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.DimensionModel,
-        urlRoot: function() {
+        model: squid_api.model.DimensionModel,
+        urlRoot: function () {
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/dimensions";
         }
     });
 
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
-        },
-        definition: "Metric",
-        schema : {"id":{"title":" ","type":"Object","subSchema":{"projectId":{"options":[],"type":"Text","editorClass":"hidden"},"domainId":{"options":[],"type":"Text","editorClass":"form-control"},"metricId":{"options":[],"type":"Text","editorClass":"form-control"}},"editorClass":"hidden","fieldClass":"id"},"dynamic":{"type":"Text","editorClass":"form-control","fieldClass":"dynamic hidden"},"name":{"type":"Text","editorClass":"form-control","fieldClass":"name"},"expression":{"title":"","type":"Object","subSchema":{"value":{"title":"Expression Value","type":"TextArea","editorClass":"form-control suggestion-box"}},"position":1,"fieldClass":"expression"}}
+        }
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
-        model : squid_api.model.MetricModel,
-        urlRoot: function() {
+        model: squid_api.model.MetricModel,
+        urlRoot: function () {
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
         }
     });
+    
+    squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+        urlRoot: function() {
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
+        }
+    });
+
+    squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
+        model : squid_api.model.BookmarkModel,
+        urlRoot: function() {
+            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/bookmarks";
+        }
+    });
+
 
     return squid_api;
 }));
@@ -1358,47 +1388,47 @@
         factory(root.Backbone, _, root.squid_api);
     }
 }(this, function (Backbone, _, squid_api) {
-    
+
     // here we expose some models
 
     squid_api.model.ProjectAnalysisJob = squid_api.model.ProjectModel.extend({
-            urlRoot: function() {
-                var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
-                url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
-                return url;
-            },
-            error: null,
-            domains: null,
-            dimensions: null,
-            metrics: null,
-            selection: null
-        });
+        urlRoot: function () {
+            var url = squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments);
+            url = url + "/analysisjobs/" + (this.get("id").analysisJobId ? this.get("id").analysisJobId : "");
+            return url;
+        },
+        error: null,
+        domains: null,
+        dimensions: null,
+        metrics: null,
+        selection: null
+    });
 
     squid_api.model.ProjectAnalysisJobViewSQL = squid_api.model.ProjectAnalysisJob.extend({
-            urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
-            },
-            error: null
-        });
+        urlRoot: function () {
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
+        },
+        error: null
+    });
 
     squid_api.model.ProjectAnalysisJobResult = squid_api.model.ProjectAnalysisJob.extend({
-            urlRoot: function() {
-                return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
-            },
-            error: null
-        });
-    
+        urlRoot: function () {
+            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/results";
+        },
+        error: null
+    });
+
     squid_api.model.ProjectAnalysisJobRender = squid_api.model.ProjectAnalysisJob.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "." + this.get("format");
         },
         error: null
     });
-    
+
     squid_api.model.AnalysisJob = squid_api.model.BaseModel.extend({
         results: null,
 
-        initialize: function(attributes, options) {
+        initialize: function (attributes, options) {
             this.set("id", {
                 "projectId": squid_api.projectId,
                 "analysisJobId": null
@@ -1408,32 +1438,33 @@
             }
         },
 
-        setProjectId : function(projectId) {
-            this.set({"id": {
-                "projectId": projectId,
-                "analysisJobId": null
-            },
-            "oid" : null,
-            "domains": null,
-            "dimensions" : null,
-            "metrics" : null,
-            "selection" : null,
-                "results" : null
+        setProjectId: function (projectId) {
+            this.set({
+                "id": {
+                    "projectId": projectId,
+                    "analysisJobId": null
+                },
+                "oid": null,
+                "domains": null,
+                "dimensions": null,
+                "metrics": null,
+                "selection": null,
+                "results": null
             });
             return this;
         },
-        
-        setDomain :  function(domain) {
+
+        setDomain: function (domain) {
             if (domain) {
                 this.setDomainIds([domain]);
             }
         },
 
-        setDomainIds : function(domainIdList) {
+        setDomainIds: function (domainIdList) {
             var domains;
             if (domainIdList) {
                 domains = [];
-                for (var i=0; i<domainIdList.length; i++) {
+                for (var i = 0; i < domainIdList.length; i++) {
                     if (domainIdList[i].projectId) {
                         domains.push({
                             "projectId": domainIdList[i].projectId,
@@ -1449,25 +1480,26 @@
             } else {
                 domains = null;
             }
-            this.set({"id": {
+            this.set({
+                "id": {
                     "projectId": this.get("id").projectId,
                     "analysisJobId": null
                 },
-                "oid" : null,
+                "oid": null,
                 "domains": domains,
                 "dimensions": null,
                 "metrics": null,
                 "selection": null,
-                "results" : null
+                "results": null
             });
             return this;
         },
 
-        setDimensionIds : function(dimensionIdList, silent) {
+        setDimensionIds: function (dimensionIdList, silent) {
             var dims;
             if (dimensionIdList) {
                 dims = [];
-                for (var i=0; i<dimensionIdList.length; i++) {
+                for (var i = 0; i < dimensionIdList.length; i++) {
                     if (dimensionIdList[i]) {
                         if (dimensionIdList[i].projectId) {
                             dims.push({
@@ -1490,12 +1522,12 @@
             this.setDimensions(dims, silent);
             return this;
         },
-        
-        setFacets : function(facetList, silent) {
+
+        setFacets: function (facetList, silent) {
             var facets;
             if (facetList) {
                 facets = [];
-                for (var i=0; i<facetList.length; i++) {
+                for (var i = 0; i < facetList.length; i++) {
                     if (facetList[i]) {
                         facets.push({
                             "value": facetList[i]
@@ -1506,18 +1538,18 @@
                 facets = null;
             }
             silent = silent || false;
-            this.set({"facets": facets}, {"silent" : silent});
+            this.set({"facets": facets}, {"silent": silent});
             return this;
         },
 
-        setDimensions : function(dimensions, silent) {
+        setDimensions: function (dimensions, silent) {
             silent = silent || false;
-            this.set({"dimensions": dimensions}, {"silent" : silent});
+            this.set({"dimensions": dimensions}, {"silent": silent});
             return this;
         },
 
-        setDimensionId : function(dimensionId, index) {
-            var dims = this.get("dimensions") || [];
+        setDimensionId: function (dimensionId, index) {
+            var dims = this.get("dimensions") || [];
             dims = dims.slice(0);
             index = index || 0;
             if (dimensionId.projectId) {
@@ -1536,9 +1568,9 @@
             this.setDimensions(dims);
             return this;
         },
-        
-        setFacet : function(facetId, index) {
-            var facets = this.get("facets") || [];
+
+        setFacet: function (facetId, index) {
+            var facets = this.get("facets") || [];
             facets = facets.slice(0);
             index = index || 0;
             facets[index] = facetId;
@@ -1546,11 +1578,11 @@
             return this;
         },
 
-        setMetricIds : function(metricIdList, silent) {
+        setMetricIds: function (metricIdList, silent) {
             var metrics;
             if (metricIdList) {
                 metrics = [];
-                for (var i=0; i<metricIdList.length; i++) {
+                for (var i = 0; i < metricIdList.length; i++) {
                     if (metricIdList[i]) {
                         metrics.push({
                             "projectId": this.get("id").projectId,
@@ -1565,12 +1597,12 @@
             this.setMetrics(metrics, silent);
             return this;
         },
-        
-        setMetrics : function(metricsArg, silent) {
+
+        setMetrics: function (metricsArg, silent) {
             var metrics = [];
             silent = silent || false;
             if (metricsArg) {
-                for (var i=0; i<metricsArg.length; i++) {
+                for (var i = 0; i < metricsArg.length; i++) {
                     var metric = metricsArg[i];
                     if (metric) {
                         if (metric instanceof Object) {
@@ -1578,7 +1610,7 @@
                             if (metric.projectId) {
                                 // but is just a PK
                                 metrics.push({
-                                    "id" : metric
+                                    "id": metric
                                 });
                             } else {
                                 metrics.push(metric);
@@ -1586,7 +1618,7 @@
                         } else {
                             // metric is just an Id
                             metrics.push({
-                                "id" : {
+                                "id": {
                                     "projectId": this.get("id").projectId,
                                     "domainId": this.get("domains")[0].domainId,
                                     "metricId": metric
@@ -1595,13 +1627,13 @@
                         }
                     }
                 }
-                this.set({"metricList": metrics}, {"silent" : silent});
+                this.set({"metricList": metrics}, {"silent": silent});
             }
             return this;
         },
-        
-        setMetricId : function(metricId, index) {
-            var items = this.get("metrics") || [];
+
+        setMetricId: function (metricId, index) {
+            var items = this.get("metrics") || [];
             items = items.slice(0);
             index = index || 0;
             items[index] = {
@@ -1612,32 +1644,32 @@
             this.setMetrics(items);
             return this;
         },
-        
-        setSelection : function(selection, silent) {
+
+        setSelection: function (selection, silent) {
             silent = silent || false;
             var cleanSelection = squid_api.utils.buildCleanSelection(selection);
             selection = cleanSelection;
-            this.set({"selection": selection}, {"silent" : silent});
+            this.set({"selection": selection}, {"silent": silent});
             return this;
         },
 
-        isDone : function() {
+        isDone: function () {
             return (this.get("status") == "DONE");
         }
     });
 
     squid_api.model.MultiAnalysisJob = Backbone.Model.extend({
-        
-        setProjectId : function(projectId) {
+
+        setProjectId: function (projectId) {
             var analyses = this.get("analyses");
             if (analyses) {
-                for (var i=0; i<analyses.length;i++) {
+                for (var i = 0; i < analyses.length; i++) {
                     analyses[i].setProjectId(projectId);
                 }
             }
         },
-        
-        isDone : function() {
+
+        isDone: function () {
             return (this.get("status") == "DONE");
         }
     });
@@ -1652,11 +1684,11 @@
          * Create (and execute) a new AnalysisJob.
          * @returns a Jquery Deferred
          */
-        createAnalysisJob: function(analysisModel, selection) {
+        createAnalysisJob: function (analysisModel, selection) {
 
             var observer = $.Deferred();
 
-            analysisModel.set("status","RUNNING");
+            analysisModel.set("status", "RUNNING");
 
             // create a new AnalysisJob
             var projectAnalysisJob = new squid_api.model.ProjectAnalysisJob();
@@ -1669,14 +1701,17 @@
             projectAnalysisJob.parameters = analysisModel.parameters;
             projectAnalysisJob.statusModel = squid_api.model.status;
             projectAnalysisJob.set(analysisModel.attributes);
-            if ( (!analysisModel.get("selection")) && selection) {
+            if ((!analysisModel.get("selection")) && selection) {
                 projectAnalysisJob.set("selection", selection);
             }
-            projectAnalysisJob.set({"id" : {
-                projectId: projectId,
-                analysisJobId: null},
-                "results" : null,
-                "error" : null});
+            projectAnalysisJob.set({
+                "id": {
+                    projectId: projectId,
+                    analysisJobId: null
+                },
+                "results": null,
+                "error": null
+            });
 
             // save the analysisJob to API
             if (this.fakeServer) {
@@ -1684,7 +1719,7 @@
             }
 
             projectAnalysisJob.save({}, {
-                success : function(model, response) {
+                success: function (model, response) {
                     if (model.get("error")) {
                         console.error("createAnalysis error " + model.get("error").message);
                         analysisModel.set("results", null);
@@ -1698,7 +1733,7 @@
                         observer.resolve(model, response);
                     }
                 },
-                error : function(model, response) {
+                error: function (model, response) {
                     console.error("createAnalysis error");
                     analysisModel.set("results", null);
                     analysisModel.set("error", response);
@@ -1714,7 +1749,7 @@
          * Create (and execute) a new AnalysisJob, then retrieve the results.
          * @return a Promise
          */
-        compute: function(analysisJob, filters) {
+        compute: function (analysisJob, filters) {
             if (analysisJob.get("analyses")) {
                 // compute a multi analysis
                 return this.computeMultiAnalysis(analysisJob, filters);
@@ -1727,7 +1762,7 @@
         /**
          * Retrieve job results (loop until DONE or error)
          */
-        getAnalysisJobResults: function(observer, analysisModel) {
+        getAnalysisJobResults: function (observer, analysisModel) {
             observer = observer || $.Deferred();
             console.log("getAnalysisJobResults");
             var analysisJobResults = new squid_api.model.ProjectAnalysisJobResult();
@@ -1738,19 +1773,19 @@
 
             // get the results from API
             analysisJobResults.fetch({
-                error: function(model, response) {
-                    analysisModel.set("error", {message : response.statusText});
+                error: function (model, response) {
+                    analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
                 },
-                success: function(model, response) {
+                success: function (model, response) {
                     if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
                         var t = model.get("statistics");
                         if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                         }
                         // update the analysis Model
                         analysisModel.set("statistics", t);
@@ -1766,11 +1801,11 @@
             }
             return observer;
         },
-        
+
         /**
          * Retrieve job (loop until DONE or error)
          */
-        getAnalysisJob: function(observer, analysisModel) {
+        getAnalysisJob: function (observer, analysisModel) {
             console.log("getAnalysisJob");
             var analysisJob = new squid_api.model.ProjectAnalysisJob();
             analysisJob.statusModel = squid_api.model.status;
@@ -1779,22 +1814,22 @@
 
             // get the results from API
             analysisJob.fetch({
-                error: function(model, response) {
-                    analysisModel.set("error", {message : response.statusText});
+                error: function (model, response) {
+                    analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
                 },
-                success: function(model, response) {
+                success: function (model, response) {
                     if (model.get("status") && (model.get("status") != "DONE")) {
                         // retry in 1s
-                        setTimeout(function() { 
-                                controller.getAnalysisJob(observer, analysisModel); 
-                            }, 1000);
-                        
+                        setTimeout(function () {
+                            controller.getAnalysisJob(observer, analysisModel);
+                        }, 1000);
+
                     } else {
                         var t = model.get("statistics");
                         if (t) {
-                            console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                            console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                         }
                         // update the analysis Model
                         analysisModel.set("statistics", t);
@@ -1808,39 +1843,39 @@
                 this.fakeServer.respond();
             }
         },
-        
+
         /**
          * Create (and execute) a new Single AnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          * @return Observer (Deferred)
          */
-        computeSingleAnalysis: function(analysisJob, filters) {
+        computeSingleAnalysis: function (analysisJob, filters) {
             var selection, observer = $.Deferred();
-               
+
             // compute a single analysis
             if (!filters) {
                 if (!analysisJob.get("selection")) {
                     // use default filters
-                    selection =  squid_api.model.filters.get("selection");
+                    selection = squid_api.model.filters.get("selection");
                 } else {
                     selection = analysisJob.get("selection");
                 }
             } else {
-                selection =  filters.get("selection");
+                selection = filters.get("selection");
             }
-            
+
             selection = squid_api.utils.buildCleanSelection(selection);
-            
+
             // validate job
-            if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
-                observer.reject({"err" : "invalid_analysis", "message" : "Must at least define a metric or a dimension"});
+            if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
+                observer.reject({"err": "invalid_analysis", "message": "Must at least define a metric or a dimension"});
             } else {
                 this.createAnalysisJob(analysisJob, selection)
-                    .done(function(model, response) {
+                    .done(function (model, response) {
                         if (model.get("status") == "DONE") {
                             var t = model.get("statistics");
                             if (t) {
-                                console.log("AnalysisJob computation time : "+(t.endTime-t.startTime) + " ms");
+                                console.log("AnalysisJob computation time : " + (t.endTime - t.startTime) + " ms");
                             }
                             // update the analysis Model
                             analysisJob.set("statistics", t);
@@ -1853,7 +1888,7 @@
                             controller.getAnalysisJobResults(observer, analysisJob);
                         }
                     })
-                    .fail(function(model, response) {
+                    .fail(function (model, response) {
                         observer.reject(model, response);
                     });
             }
@@ -1865,23 +1900,23 @@
          * Create (and execute) a new MultiAnalysisJob, retrieve the results
          * and set the 'done' or 'error' attribute to true when all analysis are done or any failed.
          */
-        computeMultiAnalysis: function(multiAnalysisModel, filters) {
+        computeMultiAnalysis: function (multiAnalysisModel, filters) {
             var me = this;
             multiAnalysisModel.set("status", "RUNNING");
             var analyses = multiAnalysisModel.get("analyses");
             var analysesCount = analyses.length;
             // build all jobs
             var jobs = [];
-            for (var i=0; i<analysesCount; i++) {
+            for (var i = 0; i < analysesCount; i++) {
                 var analysisModel = analyses[i];
                 jobs.push(this.computeSingleAnalysis(analysisModel, filters));
             }
-            console.log("analysesCount : "+analysesCount);
+            console.log("analysesCount : " + analysesCount);
             // wait for jobs completion
-            var combinedPromise = $.when.apply($,jobs);
-            
-            combinedPromise.always( function() {
-                for (var i=0; i<analysesCount; i++) {
+            var combinedPromise = $.when.apply($, jobs);
+
+            combinedPromise.always(function () {
+                for (var i = 0; i < analysesCount; i++) {
                     var analysis = analyses[i];
                     if (analysis.get("error")) {
                         multiAnalysisModel.set("error", analysis.get("error"));
@@ -1891,20 +1926,20 @@
             });
             return combinedPromise;
         },
-        
+
         // backward compatibility
-        
-        computeAnalysis: function(analysisJob, filters) {
+
+        computeAnalysis: function (analysisJob, filters) {
             return this.compute(analysisJob, filters);
         },
-        
+
         AnalysisModel: squid_api.model.AnalysisJob,
-        
+
         MultiAnalysisModel: squid_api.model.MultiAnalysisJob
-        
+
 
     };
-    
+
 
     squid_api.controller.analysisjob = controller;
     return controller;
@@ -1919,19 +1954,19 @@
         factory(root.Backbone, root.squid_api);
     }
 }(this, function (Backbone, squid_api) {
-    
+
     /**
      * ProjectFacetJob : used to compute Facets from a Selection
      */
     squid_api.model.ProjectFacetJob = squid_api.model.ProjectModel.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             var id = this.get("id").facetJobId;
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/facetjobs/" + (id ? id : "");
         },
         error: null,
         domains: null,
-        timeoutMillis: function() { 
-            return squid_api.timeoutMillis; 
+        timeoutMillis: function () {
+            return squid_api.timeoutMillis;
         }
     });
 
@@ -1939,30 +1974,30 @@
      * ProjectFacetJobResult : get the ProjectFacetJob's computation results (a Selection).
      */
     squid_api.model.ProjectFacetJobResult = squid_api.model.ProjectFacetJob.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             return squid_api.model.ProjectFacetJob.prototype.urlRoot.apply(this, arguments) + "/results/";
         },
         error: null,
-        timeoutMillis: function() { 
-            return squid_api.timeoutMillis; 
+        timeoutMillis: function () {
+            return squid_api.timeoutMillis;
         }
     });
-    
+
     /**
      * ProjectFacetJobFacet : get the Members of a single Facet.
      */
     squid_api.model.ProjectFacetJobFacet = squid_api.model.ProjectFacetJobResult.extend({
-        urlRoot: function() {
+        urlRoot: function () {
             // facet id need url-encoding
             var id = encodeURIComponent(this.get("oid"));
             return squid_api.model.ProjectFacetJobResult.prototype.urlRoot.apply(this, arguments) + id;
         },
         error: null,
-        timeoutMillis: function() { 
-            return squid_api.timeoutMillis; 
+        timeoutMillis: function () {
+            return squid_api.timeoutMillis;
         }
     });
-    
+
     /**
      * FilterJob is the Model which is manipulated be the Filters panel.
      * This is not an API model but a JSSDK internal model.
@@ -1971,26 +2006,28 @@
      */
     squid_api.model.FiltersJob = Backbone.Model.extend({
 
-        initialize: function() {
+        initialize: function () {
             this.set("id", {
                 "projectId": squid_api.projectId
             });
         },
-        
-        setProjectId : function(projectId) {
-            this.set({"id": {
-                "projectId": projectId
-            },
-            "domains": null,
-            "selection" : null}
+
+        setProjectId: function (projectId) {
+            this.set({
+                    "id": {
+                        "projectId": projectId
+                    },
+                    "domains": null,
+                    "selection": null
+                }
             );
             return this;
         },
 
-        setDomainIds : function(domainIdList) {
+        setDomainIds: function (domainIdList) {
             if (domainIdList) {
                 var domains = [];
-                for (var i=0; i<domainIdList.length; i++) {
+                for (var i = 0; i < domainIdList.length; i++) {
                     var id = domainIdList[i];
                     if (id.domainId) {
                         domains.push(id);
@@ -2001,94 +2038,98 @@
                         });
                     }
                 }
-                this.set({"domains" : domains});
+                this.set({"domains": domains});
             } else {
                 if (this.get("domains")) {
-                    this.set({"domains" : null});
+                    this.set({"domains": null});
                 }
             }
-            
+
             return this;
         },
 
-        addSelection : function(dimension,value) {
+        addSelection: function (dimension, value) {
             var facets = this.get("selection").facets;
             // check if the facet already exists
             var facetToUpdate;
-            for (var i=0;i<facets.length;i++) {
+            for (var i = 0; i < facets.length; i++) {
                 var facet = facets[i];
-                if (facet.dimension.oid==dimension.id.dimensionId) {
+                if (facet.dimension.oid == dimension.id.dimensionId) {
                     facetToUpdate = facet;
                 }
             }
             if (!facetToUpdate) {
                 facetToUpdate = {
-                        "dimension" : {
-                            "id" : {
-                                "projectId" : this.get("id").projectId,
-                                "domainId" : dimension.id.domainId,
-                                "dimensionId" : dimension.id.dimensionId
-                            }
-                        },
-                        "selectedItems" : []
+                    "dimension": {
+                        "id": {
+                            "projectId": this.get("id").projectId,
+                            "domainId": dimension.id.domainId,
+                            "dimensionId": dimension.id.dimensionId
+                        }
+                    },
+                    "selectedItems": []
                 };
                 facets.push(facetToUpdate);
             }
             // update the facet
             facetToUpdate.selectedItems.push({
-                "type" : "v",
-                "id" : -1,
-                "value" : value
+                "type": "v",
+                "id": -1,
+                "value": value
             });
         },
 
-        isDone : function() {
+        isDone: function () {
             return (this.get("status") == "DONE");
         },
-        
+
         /*
          * Extract the selectedItem from the filters (in a more usable form).
          */
-        getSelection : function() {
+        getSelection: function () {
             var data = {}, item;
             var selection = this.get("selection");
             if (selection && selection.facets) {
                 var index = 0;
                 var facets = selection.facets;
-                for (var i=facets.length-1;i>=0;i--) {
+                for (var i = facets.length - 1; i >= 0; i--) {
                     var facet = facets[i];
-                    if ((!facet.dimension.type || facet.dimension.type=="CATEGORICAL" || facet.dimension.type=="INDEX") && facet.selectedItems && facet.selectedItems.length>0) {
+                    if ((!facet.dimension.type || facet.dimension.type == "CATEGORICAL" || facet.dimension.type == "INDEX") && facet.selectedItems && facet.selectedItems.length > 0) {
                         var temp = [];
                         if (facet.items) {
-                            for (var i2=0;i2<facet.items.length;i2++) {
+                            for (var i2 = 0; i2 < facet.items.length; i2++) {
                                 item = facet.items[i2];
-                                if (item.type=="v") {
+                                if (item.type == "v") {
                                     temp[item.id] = item.value;
                                 }
                             }
                         }
                         var unique = [];
-                        for (var j=0;j<facet.selectedItems.length;j++) {
+                        for (var j = 0; j < facet.selectedItems.length; j++) {
                             item = facet.selectedItems[j];
-                            if (item.type=="v") {
+                            if (item.type == "v") {
                                 var sel = null;
                                 var oid = facet.dimension.id.dimensionId;
                                 var group = data[oid];
                                 if (!group) {
                                     sel = [];
-                                    data[oid] = 
-                                    {"dimension":facet.dimension,
-                                            "selection":sel};
+                                    data[oid] =
+                                    {
+                                        "dimension": facet.dimension,
+                                        "selection": sel
+                                    };
                                 } else {
                                     sel = group.selection;
                                 }
-                                var value = (item.id>=0 && item.id<temp.length)?temp[item.id]:item.value;
+                                var value = (item.id >= 0 && item.id < temp.length) ? temp[item.id] : item.value;
                                 if (!unique[value]) {
                                     unique[value] = true;
-                                    sel.push({"name":facet.dimension.name?facet.dimension.name:facet.dimension.id.dimensionId,
-                                            "value":value,
-                                            "item":item,
-                                            "index":index++});
+                                    sel.push({
+                                        "name": facet.dimension.name ? facet.dimension.name : facet.dimension.id.dimensionId,
+                                        "value": value,
+                                        "item": item,
+                                        "index": index++
+                                    });
                                 }
                             }
                         }
@@ -2098,327 +2139,330 @@
             return data;
         }
     });
-    
+
     // Main Controller
-    
+
     var controller = {
 
-            fakeServer: null,
-            
-            /**
-             * Streamline a selection (get rid of the facet items).
-             */
-            buildCleanSelection : function(selectionOpt) {
-                return squid_api.utils.buildCleanSelection(selectionOpt);
-            },
-            
-            getTemporalFacets : function(selection) {
-                var timeFacets = [];
-                if (selection && selection.facets) {
-                    var facets = selection.facets;
-                    for (var i = 0; i < facets.length; i++) {
-                        var facet = facets[i];
-                        // V2 way
-                        if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
-                            timeFacets.push(facet);
-                        } else if (facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
-                            // V1 way
-                            timeFacets.push(facet);
-                        }
+        fakeServer: null,
+
+        /**
+         * Streamline a selection (get rid of the facet items).
+         */
+        buildCleanSelection: function (selectionOpt) {
+            return squid_api.utils.buildCleanSelection(selectionOpt);
+        },
+
+        getTemporalFacets: function (selection) {
+            var timeFacets = [];
+            if (selection && selection.facets) {
+                var facets = selection.facets;
+                for (var i = 0; i < facets.length; i++) {
+                    var facet = facets[i];
+                    // V2 way
+                    if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
+                        timeFacets.push(facet);
+                    } else if (facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
+                        // V1 way
+                        timeFacets.push(facet);
                     }
                 }
-                return timeFacets;
-            },
-            
-            getTemporalFacet : function(selection) {
-                var timeFacet;
-                var temporalFacets = this.getTemporalFacets(selection);
-                if (temporalFacets.length>0) {
-                    timeFacet = temporalFacets[0];
-                }
-                return timeFacet;
-            },
+            }
+            return timeFacets;
+        },
 
-            /**
-             * Create (and execute) a new Job.
-             */
-            createJob: function(jobModel, selectionOpt, successCallback, dfd) {
-                dfd = dfd || new $.Deferred();
-                
-                jobModel.set({"userSelection" :  null}, {"silent" : true});
-                jobModel.set("status","RUNNING");
+        getTemporalFacet: function (selection) {
+            var timeFacet;
+            var temporalFacets = this.getTemporalFacets(selection);
+            if (temporalFacets.length > 0) {
+                timeFacet = temporalFacets[0];
+            }
+            return timeFacet;
+        },
 
-                // create a new Job
-                
-                if (!selectionOpt) {
-                    selectionOpt =  jobModel.get("selection");
-                }
-                
-                var selection = this.buildCleanSelection(selectionOpt);
+        /**
+         * Create (and execute) a new Job.
+         */
+        createJob: function (jobModel, selectionOpt, successCallback, dfd) {
+            dfd = dfd || new $.Deferred();
 
-                var projectFacetJob = new squid_api.model.ProjectFacetJob();
-                projectFacetJob.statusModel = squid_api.model.status;
-                var projectId;
-                if (jobModel.get("id").projectId) {
-                    projectId = jobModel.get("id").projectId;
-                } else {
-                    projectId = jobModel.get("projectId");
-                }
-                
-                if (jobModel.get("engineVersion")) {
-                    projectFacetJob.set("engineVersion",jobModel.get("engineVersion"));
-                }
+            jobModel.set({"userSelection": null}, {"silent": true});
+            jobModel.set("status", "RUNNING");
 
-                projectFacetJob.set({"id" : {
-                    projectId: projectId},
-                    "domains" : jobModel.get("domains"),
-                    "selection": selection});
+            // create a new Job
 
-                // save the job
-                if (this.fakeServer) {
-                    this.fakeServer.respond();
-                }
+            if (!selectionOpt) {
+                selectionOpt = jobModel.get("selection");
+            }
 
-                projectFacetJob.save({}, {
-                    success : function(model, response) {
-                        if (successCallback) {
-                            successCallback(model, jobModel, dfd);
-                        } else {
-                            dfd.resolve();
-                        }
-                    },
-                    error: function(model, response) {
-                        console.error("create job error");
-                        jobModel.set("error", response);
-                        jobModel.set("status", "DONE");
-                        dfd.reject();
+            var selection = this.buildCleanSelection(selectionOpt);
+
+            var projectFacetJob = new squid_api.model.ProjectFacetJob();
+            projectFacetJob.statusModel = squid_api.model.status;
+            var projectId;
+            if (jobModel.get("id").projectId) {
+                projectId = jobModel.get("id").projectId;
+            } else {
+                projectId = jobModel.get("projectId");
+            }
+
+            if (jobModel.get("engineVersion")) {
+                projectFacetJob.set("engineVersion", jobModel.get("engineVersion"));
+            }
+
+            projectFacetJob.set({
+                "id": {
+                    projectId: projectId
+                },
+                "domains": jobModel.get("domains"),
+                "selection": selection
+            });
+
+            // save the job
+            if (this.fakeServer) {
+                this.fakeServer.respond();
+            }
+
+            projectFacetJob.save({}, {
+                success: function (model, response) {
+                    if (successCallback) {
+                        successCallback(model, jobModel, dfd);
+                    } else {
+                        dfd.resolve();
                     }
-
-                });
-                
-                return dfd.promise();
-            },
-
-            jobCreationCallback : function(projectFacetJob, jobModel, dfd) {
-                dfd = dfd || new $.Deferred();
-                jobModel.set("id", projectFacetJob.get("id"));
-                jobModel.set("oid", projectFacetJob.get("oid"));
-                if (projectFacetJob.get("status") == "DONE") {
-                    var t = projectFacetJob.get("statistics");
-                    if (t) {
-                        console.log("FacetJob computation time : "+(t.endTime-t.startTime) + " ms");
-                    }
-                    // update the Model
-                    jobModel.set("statistics", t);
-                    jobModel.set("error", projectFacetJob.get("error"));
-                    if (projectFacetJob.get("error")) {
-                        // jobs returned an error
-                        console.error("FacetJob computation error " + projectFacetJob.get("error").message);
-                        squid_api.model.status.set("error", projectFacetJob.get("error"));
-                    }
-                    if (projectFacetJob.get("results")) {
-                    	var facets = projectFacetJob.get("results").facets;
-                        jobModel.set("selection", {"facets" : facets});
-                    }
+                },
+                error: function (model, response) {
+                    console.error("create job error");
+                    jobModel.set("error", response);
                     jobModel.set("status", "DONE");
-                    dfd.resolve();
-                } else {
-                    // try to get the results
-                    controller.getJobResults(jobModel, dfd);
+                    dfd.reject();
                 }
-                return dfd.promise();
-            },
 
-            /**
-             * Create (and execute) a new Job, then retrieve the results.
-             * @param jobModel a FiltersJob
-             * @param selection an optional array of Facets
-             */
-            compute: function(jobModel, selection, dfd) {
-                dfd = dfd || new $.Deferred();
-                this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
-                return dfd.promise();
-            },
-            
-            /**
-             * Retrieve facet members and retry until it is fully loaded.
-             */
-            getFacetMembers: function(jobModel, facetId, startIndex, maxResults, delay, dfd) {
-                dfd = dfd || new $.Deferred();
-                startIndex = startIndex || 0;
-                maxResults = maxResults || 100;
-                if (delay) {
-                    // retry with a delay
-                    setTimeout(function() {
-                        controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, null, dfd);
-                    }, delay);
-                } else {
-                    console.log("getting Facet : "+facetId);
-                    var facetJob = new squid_api.model.ProjectFacetJobFacet();
-                    facetJob.statusModel = squid_api.model.status;
-                    facetJob.set("id", jobModel.get("id"));
-                    facetJob.set("oid", facetId);
-                    if (startIndex) {
-                        facetJob.addParameter("startIndex", startIndex);
-                    }
-                    if (maxResults) {
-                        facetJob.addParameter("maxResults", maxResults);
-                    }
-                    facetJob.addParameter("waitComplete", true);
-    
-                    // get the results from API
-                    facetJob.fetch({
-                        error: function(model, response) {
-                            jobModel.set("error", {message : response.statusText});
-                            jobModel.set("status", "DONE");
-                            dfd.reject();
-                        },
-                        success: function(model, response) {
-                            if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
-                                // retry
-                                controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000, dfd);
-                            } else {
-                                // update the Model
-                                var facet;
-                                var selection = jobModel.get("selection");
-                                if (selection) {
-                                    var facets = selection.facets;         
-                                    for (fIdx = 0; fIdx < facets.length; fIdx++) {
-                                        if (facets[fIdx].id == facetId) {
-                                            facet = facets[fIdx];
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    selection = [];
-                                }
-                                if (!facet) {
-                                    // add a new facet to the selection
-                                    selection.push(model);
-                                    jobModel.set("selection", selection);
-                                    dfd.resolve();
-                                } else {
-                                    // update the existing facet's items
-                                    facet.items = model.get("items");
-                                    if (model.get("done") === false) {
-                                        // re-poll facet content
-                                        controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000, dfd);
-                                    } else {
-                                        dfd.resolve();
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    if (this.fakeServer) {
-                        this.fakeServer.respond();
-                    }
+            });
+
+            return dfd.promise();
+        },
+
+        jobCreationCallback: function (projectFacetJob, jobModel, dfd) {
+            dfd = dfd || new $.Deferred();
+            jobModel.set("id", projectFacetJob.get("id"));
+            jobModel.set("oid", projectFacetJob.get("oid"));
+            if (projectFacetJob.get("status") == "DONE") {
+                var t = projectFacetJob.get("statistics");
+                if (t) {
+                    console.log("FacetJob computation time : " + (t.endTime - t.startTime) + " ms");
                 }
-                return dfd.promise();
-            },
+                // update the Model
+                jobModel.set("statistics", t);
+                jobModel.set("error", projectFacetJob.get("error"));
+                if (projectFacetJob.get("error")) {
+                    // jobs returned an error
+                    console.error("FacetJob computation error " + projectFacetJob.get("error").message);
+                    squid_api.model.status.set("error", projectFacetJob.get("error"));
+                }
+                if (projectFacetJob.get("results")) {
+                    var facets = projectFacetJob.get("results").facets;
+                    jobModel.set("selection", {"facets": facets});
+                }
+                jobModel.set("status", "DONE");
+                dfd.resolve();
+            } else {
+                // try to get the results
+                controller.getJobResults(jobModel, dfd);
+            }
+            return dfd.promise();
+        },
 
-            /**
-             * retrieve the results.
-             */
-            getJobResults: function(jobModel, dfd) {
-                dfd = dfd || new $.Deferred();
-                var jobResults = new squid_api.model.ProjectFacetJobResult();
-                jobResults.statusModel = squid_api.model.status;
-                jobResults.set("id", jobModel.get("id"));
-                jobResults.set("oid", jobModel.get("oid"));
+        /**
+         * Create (and execute) a new Job, then retrieve the results.
+         * @param jobModel a FiltersJob
+         * @param selection an optional array of Facets
+         */
+        compute: function (jobModel, selection, dfd) {
+            dfd = dfd || new $.Deferred();
+            this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
+            return dfd.promise();
+        },
+
+        /**
+         * Retrieve facet members and retry until it is fully loaded.
+         */
+        getFacetMembers: function (jobModel, facetId, startIndex, maxResults, delay, dfd) {
+            dfd = dfd || new $.Deferred();
+            startIndex = startIndex || 0;
+            maxResults = maxResults || 100;
+            if (delay) {
+                // retry with a delay
+                setTimeout(function () {
+                    controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, null, dfd);
+                }, delay);
+            } else {
+                console.log("getting Facet : " + facetId);
+                var facetJob = new squid_api.model.ProjectFacetJobFacet();
+                facetJob.statusModel = squid_api.model.status;
+                facetJob.set("id", jobModel.get("id"));
+                facetJob.set("oid", facetId);
+                if (startIndex) {
+                    facetJob.addParameter("startIndex", startIndex);
+                }
+                if (maxResults) {
+                    facetJob.addParameter("maxResults", maxResults);
+                }
+                facetJob.addParameter("waitComplete", true);
 
                 // get the results from API
-                jobResults.fetch({
-                    error: function(model, response) {
-                        jobModel.set("error", {message : response.statusText});
+                facetJob.fetch({
+                    error: function (model, response) {
+                        jobModel.set("error", {message: response.statusText});
                         jobModel.set("status", "DONE");
                         dfd.reject();
                     },
-                    success: function(model, response) {
+                    success: function (model, response) {
                         if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                             // retry
-                            controller.getJobResults(jobModel);
+                            controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000, dfd);
                         } else {
-                            var t = model.get("statistics");
-                            if (t) {
-                                console.log("FacetJob computation time : "+(t.endTime-t.startTime) + " ms");
-                            }
                             // update the Model
-                            jobModel.set("statistics", t);
-                            jobModel.set("error", null);
-                            jobModel.set("selection", {"facets" : model.get("facets")});
-                            jobModel.set("status", "DONE");
-                            dfd.resolve();
+                            var facet;
+                            var selection = jobModel.get("selection");
+                            if (selection) {
+                                var facets = selection.facets;
+                                for (fIdx = 0; fIdx < facets.length; fIdx++) {
+                                    if (facets[fIdx].id == facetId) {
+                                        facet = facets[fIdx];
+                                        break;
+                                    }
+                                }
+                            } else {
+                                selection = [];
+                            }
+                            if (!facet) {
+                                // add a new facet to the selection
+                                selection.push(model);
+                                jobModel.set("selection", selection);
+                                dfd.resolve();
+                            } else {
+                                // update the existing facet's items
+                                facet.items = model.get("items");
+                                if (model.get("done") === false) {
+                                    // re-poll facet content
+                                    controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000, dfd);
+                                } else {
+                                    dfd.resolve();
+                                }
+                            }
                         }
                     }
                 });
                 if (this.fakeServer) {
                     this.fakeServer.respond();
                 }
-                return dfd.promise();
-            },
-            
-            /**
-             * Unselect recursively all children
-             */
-            unSelectChildren : function(facets, facet, includeSelf) {
-                var childDimension;
-                var i=0;
-                if (includeSelf) {
-                    facet.selectedItems = [];
-                }
-                // treat children dimensions
-                // build a facet map to retrieve parents by dimension id and not facet id
-                var facetMap = {};
-                for (i=0; i<facets.length; i++) {
-                    facetMap[facets[i].dimension.oid] = facets[i];
-                }
-                // look for a child dimension
-                for (i=0; ((i<facets.length) && !childDimension); i++) {
-                    var facet1 = facets[i];
-                    if (facet1.dimension.parentId) {
-                        if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
-                            childDimension = facet1;
-                        }
-                    }
-                }
-                if (childDimension) {
-                    this.unSelectChildren(facets, childDimension, true);
-                }
-            },
-            
-            unSelect : function(facets, facetId, memberId) {
-                var childDimension;
-                var i=0;
-                var selectedFacet;
-                for (i=0; i<facets.length; i++) {
-                    var facet = facets[i];
-                    if ((memberId === null) || (facet.id === facetId)) {
-                        this.unSelectMember(facet, memberId);
-                        selectedFacet = facet;
-                        break;
-                    }
-                }
-                // unselect recursively
-                if (selectedFacet) {
-                    this.unSelectChildren(facets, selectedFacet, false);
-                }
-            },
-            
-            unSelectMember : function(facet, memberId) {
-                var selectedItems = facet.selectedItems;
-                var facetIndex;
-                for (var ix=0; ((ix<selectedItems.length) && !facetIndex); ix++) {
-                    if ((memberId === null) || (memberId === selectedItems[ix].id)) {
-                        facetIndex = ix;
-                        selectedItems.splice(facetIndex,1);
-                    }
-                }
-                return facetIndex;
-            },
+            }
+            return dfd.promise();
+        },
 
-            // backward compatibility
-            FiltersModel : squid_api.model.FiltersJob
+        /**
+         * retrieve the results.
+         */
+        getJobResults: function (jobModel, dfd) {
+            dfd = dfd || new $.Deferred();
+            var jobResults = new squid_api.model.ProjectFacetJobResult();
+            jobResults.statusModel = squid_api.model.status;
+            jobResults.set("id", jobModel.get("id"));
+            jobResults.set("oid", jobModel.get("oid"));
+
+            // get the results from API
+            jobResults.fetch({
+                error: function (model, response) {
+                    jobModel.set("error", {message: response.statusText});
+                    jobModel.set("status", "DONE");
+                    dfd.reject();
+                },
+                success: function (model, response) {
+                    if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
+                        // retry
+                        controller.getJobResults(jobModel);
+                    } else {
+                        var t = model.get("statistics");
+                        if (t) {
+                            console.log("FacetJob computation time : " + (t.endTime - t.startTime) + " ms");
+                        }
+                        // update the Model
+                        jobModel.set("statistics", t);
+                        jobModel.set("error", null);
+                        jobModel.set("selection", {"facets": model.get("facets")});
+                        jobModel.set("status", "DONE");
+                        dfd.resolve();
+                    }
+                }
+            });
+            if (this.fakeServer) {
+                this.fakeServer.respond();
+            }
+            return dfd.promise();
+        },
+
+        /**
+         * Unselect recursively all children
+         */
+        unSelectChildren: function (facets, facet, includeSelf) {
+            var childDimension;
+            var i = 0;
+            if (includeSelf) {
+                facet.selectedItems = [];
+            }
+            // treat children dimensions
+            // build a facet map to retrieve parents by dimension id and not facet id
+            var facetMap = {};
+            for (i = 0; i < facets.length; i++) {
+                facetMap[facets[i].dimension.oid] = facets[i];
+            }
+            // look for a child dimension
+            for (i = 0; ((i < facets.length) && !childDimension); i++) {
+                var facet1 = facets[i];
+                if (facet1.dimension.parentId) {
+                    if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+                        childDimension = facet1;
+                    }
+                }
+            }
+            if (childDimension) {
+                this.unSelectChildren(facets, childDimension, true);
+            }
+        },
+
+        unSelect: function (facets, facetId, memberId) {
+            var childDimension;
+            var i = 0;
+            var selectedFacet;
+            for (i = 0; i < facets.length; i++) {
+                var facet = facets[i];
+                if ((memberId === null) || (facet.id === facetId)) {
+                    this.unSelectMember(facet, memberId);
+                    selectedFacet = facet;
+                    break;
+                }
+            }
+            // unselect recursively
+            if (selectedFacet) {
+                this.unSelectChildren(facets, selectedFacet, false);
+            }
+        },
+
+        unSelectMember: function (facet, memberId) {
+            var selectedItems = facet.selectedItems;
+            var facetIndex;
+            for (var ix = 0; ((ix < selectedItems.length) && !facetIndex); ix++) {
+                if ((memberId === null) || (memberId === selectedItems[ix].id)) {
+                    facetIndex = ix;
+                    selectedItems.splice(facetIndex, 1);
+                }
+            }
+            return facetIndex;
+        },
+
+        // backward compatibility
+        FiltersModel: squid_api.model.FiltersJob
 
     };
 
