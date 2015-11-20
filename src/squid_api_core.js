@@ -1278,6 +1278,20 @@
         }
     });
 
+
+    squid_api.model.InternalanalysisjobModel = squid_api.model.BaseModel.extend({
+        urlRoot: function () {
+            return this.baseRoot() + "/internalanalysisjobs/";
+        }
+    });
+
+    squid_api.model.InternalanalysisjobCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.InternalanalysisjobModel,
+        urlRoot: function () {
+            return this.baseRoot() + "/internalanalysisjobs";
+        }
+    });
+
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
