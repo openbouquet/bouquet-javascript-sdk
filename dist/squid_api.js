@@ -446,7 +446,7 @@
                 return 404;
             });
         },
-        
+
         setConfig : function(config, baseConfig, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
@@ -511,7 +511,7 @@
             }
             return dfd.promise();
         },
-        
+
         setBookmarkId: function (bookmarkId, baseConfig, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
@@ -1295,6 +1295,8 @@
      * --- API Meta-Model objects Mapping to Backbone Models---
      */
 
+
+
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/";
@@ -1411,7 +1413,7 @@
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
         }
     });
-    
+
     squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
@@ -1425,6 +1427,12 @@
         }
     });
 
+    // implement a beforeFetch event for collections
+    var fetch = Backbone.Collection.prototype.fetch;
+    Backbone.Collection.prototype.fetch = function() {
+        this.trigger('beforeFetch');
+        return fetch.apply(this, arguments);
+    };
 
     return squid_api;
 }));
