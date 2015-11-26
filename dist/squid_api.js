@@ -1278,6 +1278,20 @@
         }
     });
 
+
+    squid_api.model.InternalanalysisjobModel = squid_api.model.BaseModel.extend({
+        urlRoot: function () {
+            return this.baseRoot() + "/internalanalysisjobs/";
+        }
+    });
+
+    squid_api.model.InternalanalysisjobCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.InternalanalysisjobModel,
+        urlRoot: function () {
+            return this.baseRoot() + "/internalanalysisjobs";
+        }
+    });
+
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
@@ -1407,13 +1421,6 @@
     squid_api.model.ProjectAnalysisJobViewSQL = squid_api.model.ProjectAnalysisJob.extend({
         urlRoot: function () {
             return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/sql";
-        },
-        error: null
-    });
-
-    squid_api.model.ProjectAnalysisJobViewMaterializeDatasets = squid_api.model.ProjectAnalysisJob.extend({
-        urlRoot: function() {
-            return squid_api.model.ProjectAnalysisJob.prototype.urlRoot.apply(this, arguments) + "/reinject?destSchema="+this.get("destSchema")+"&destProjectId="+this.get("destProject")+"&destDomain="+this.get("destDomain")+"&run=false";
         },
         error: null
     });
