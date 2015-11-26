@@ -348,7 +348,7 @@
             }
 
             // check if save is required
-            if ((!me.model.state) || (!_.isEqual(me.model.state.get("config"), attributes.config))) {
+            if ((!me.model.state) || (!_.isEqual(me.model.state, attributes.config))) {
                 var stateModel = new me.model.StateModel();
                 stateModel.set({
                     "id": {
@@ -363,7 +363,7 @@
                         var oid = model.get("oid");
                         console.log("state saved : " + oid);
                         // keep for comparison when saved again
-                        me.model.state = model;
+                        me.model.state = model.get("config");
 
                         // save in browser history
                         if (window.history) {
@@ -447,9 +447,22 @@
             });
         },
 
+        setConfig : function(config, baseConfig, forcedConfig) {
+            // keep for comparison when saved again
+            squid_api.model.state = config;
+            config = squid_api.utils.mergeAttributes(baseConfig, config);
+            if (_.isFunction(forcedConfig)) {
+                config = forcedConfig(config);
+            } else {
+                config = squid_api.utils.mergeAttributes(config, forcedConfig);
+            }
+            squid_api.model.config.set(config);
+        },
+
         setStateId: function (dfd, stateId, baseConfig, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
+            // fetch the State
             var stateModel = new squid_api.model.StateModel();
             stateModel.set({
                 "id": {
@@ -459,17 +472,8 @@
             });
             stateModel.fetch({
                 success: function (model, response, options) {
-                    var oid = model.get("oid");
-                    // keep for comparison when saved again
-                    me.model.state = model;
-                    var config = model.get("config");
-                    config = me.utils.mergeAttributes(baseConfig, config);
-                    if (_.isFunction(forcedConfig)) {
-                        config = forcedConfig(config);
-                    } else {
-                        config = me.utils.mergeAttributes(config, forcedConfig);
-                    }
-                    me.model.config.set(config);
+                    // set the config
+                    me.setConfig(model.get("config"),baseConfig, forcedConfig);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -499,6 +503,43 @@
                     },
                     error: function (model, response, options) {
                         console.error("shortcut fetch failed : " + shortcutId);
+                        dfd.reject();
+                    }
+                });
+            } else {
+                me.model.config.set(baseConfig);
+            }
+            return dfd.promise();
+        },
+
+        setBookmarkId: function (bookmarkId, baseConfig, forcedConfig) {
+            var me = this;
+            var dfd = new $.Deferred();
+            var projectId = me.model.config.get("project");
+            if (projectId && bookmarkId) {
+                // fetch the Bookmark
+                var bookmarkModel = new squid_api.model.BookmarkModel();
+                bookmarkModel.set({
+                    "id": {
+                        "customerId": this.customerId,
+                        "projectId": projectId,
+                        "bookmarkId": bookmarkId
+                    }
+                });
+                bookmarkModel.fetch({
+                    success: function (model, response, options) {
+                        console.log("bookmark fetched : " + model.get("name"));
+                        me.model.status.set("bookmark", model);
+                        // current bookmark id goes to the config (whereas shortcut)
+                        if (!forcedConfig) {
+                            forcedConfig = {};
+                        }
+                        forcedConfig.bookmark = bookmarkId;
+                        // set the config
+                        me.setConfig(model.get("config"), baseConfig, forcedConfig);
+                    },
+                    error: function (model, response, options) {
+                        console.error("bookmark fetch failed : " + bookmarkId);
                         dfd.reject();
                     }
                 });
@@ -712,13 +753,22 @@
                     // perform init chain
                     var state = squid_api.utils.getParamValue("state", null);
                     var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
+                    var bookmark = squid_api.utils.getParamValue("bookmark", null);
                     if (state) {
                         var dfd = me.setStateId(null, state, me.defaultConfig);
                         dfd.fail(function () {
-                            me.setShortcutId(shortcut, me.defaultConfig);
+                            if (shortcut) {
+                                me.setShortcutId(shortcut, me.defaultConfig);
+                            } else if (bookmark) {
+                                me.setBookmarkId(bookmark, me.defaultConfig);
+                            }
                         });
                     } else {
-                        me.setShortcutId(shortcut, me.defaultConfig);
+                        if (shortcut) {
+                            me.setShortcutId(shortcut, me.defaultConfig);
+                        } else if (bookmark) {
+                            me.setBookmarkId(bookmark, me.defaultConfig);
+                        }
                     }
                 }
             });
@@ -1245,6 +1295,8 @@
      * --- API Meta-Model objects Mapping to Backbone Models---
      */
 
+
+
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/";
@@ -1375,7 +1427,7 @@
             return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
         }
     });
-    
+
     squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
         urlRoot: function() {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
@@ -1389,6 +1441,12 @@
         }
     });
 
+    // implement a beforeFetch event for collections
+    var fetch = Backbone.Collection.prototype.fetch;
+    Backbone.Collection.prototype.fetch = function() {
+        this.trigger('beforeFetch');
+        return fetch.apply(this, arguments);
+    };
 
     return squid_api;
 }));
