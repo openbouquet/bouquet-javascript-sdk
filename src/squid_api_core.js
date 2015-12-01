@@ -754,9 +754,11 @@
                     var state = squid_api.utils.getParamValue("state", null);
                     var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                     var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                    var status = squid_api.model.status;
                     if (state) {
                         var dfd = me.setStateId(null, state, me.defaultConfig);
                         dfd.fail(function () {
+                            status.set("message", "State not found");
                             if (shortcut) {
                                 me.setShortcutId(shortcut, me.defaultConfig);
                             } else if (bookmark) {
