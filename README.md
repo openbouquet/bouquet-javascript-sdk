@@ -59,15 +59,21 @@ The init method will check for the user login by fetching the Access Token assoc
 If user login is granted, the `squid_api.model.login` Model object will be set accordingly. 
 It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
 
+## Application Models
+The JSSDK provides various Backbone Models under the `squid_api.model` object.  
 
-## Authentication management
-TBD
+### config 
+Represents the application state (current filters selection, selected dimensions...).  
+Will be persisted as a State object upon every change.  
+Example : ```squid_api.model.config.get("selection")``` returns the current filters selection as a JSON object.  
 
-## Application state management
-The api object holds various Models :  
+### login
+The current logged-in user (also contains the auth token).  
+Will be fetched at api.init().  
 
-### FiltersModel
-`squid_api.model.filters` : the default FiltersModel object (the one used by the FiltersWidget by default).  
+### filters
+This model holds the results of a FacetJob computation (triggered by a config.selection change).  
+Example : ```squid_api.model.filters.get("selection").facets[0].items``` returns the actual values (facetItems) of the first facet.  
 Here is a sample FiltersModel :
 ```json
 {
@@ -100,33 +106,15 @@ Here is a sample FiltersModel :
 	}
 }	
 ```
-## Default Filter controller
-If not disabled the following event listeners will be set on api setup :  
 
-```javascript
-// check for new filter selection
-filters.on('change:userSelection', function() {
-    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-});
+### customer
+Holds the nested backbone model for a customer.  
+It will be lazily updated with nested models as they will be fetched.  
+For instance, when selecting a project, the  ``squid_api.model.customer.get("projects")``` will be updated with the corresponding fetched project Model.  
+It will be fetched at api.init().  
 
-// check for domain change performed
-squid_api.model.status.on('change:domain', function(model) {
-    var domain = model.get("domain");
-    if (domain) {
-        me.domain = domain.domainId;
-        // launch the filters computation
-        filters.set("id", {
-            "projectId": model.get("domain").projectId
-        });
-        filters.setDomainIds([me.domain]);
-        squid_api.controller.facetjob.compute(filters);
-    } else {
-        // reset the domains
-        me.domain = null;
-        filters.setDomainIds(null);
-    }
-});
-```
+## Authentication management
+TODO
 
 ## Utility methods
-TBD
+TODO
