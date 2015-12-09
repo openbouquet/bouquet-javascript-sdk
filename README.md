@@ -1,7 +1,7 @@
 jssdk2
 ======
 
-The JSSDK core library (Version 2)
+The JSSDK core library (Version 3)
 
 Provides the base services to build an app using the Squid Analyitcs API. 
 Exposes the API Data Model as Backbone Models to easely build MVC apps.
@@ -86,7 +86,8 @@ Holds the nested backbone model for the current Customer.
 It will be lazily updated with nested models as they are be fetched by views such as CollectionManagementWidget.
 For instance, when selecting a project from the ProjectManagementWidget, the  ```squid_api.model.customer.get("projects")``` Collection will be updated with the corresponding fetched project Model.  
 Behaviors :  
-* Initial value will be fetched at api.init().  
+* Initial value will be fetched at api.init()  
+* If changed, then fetch the projects collection  
 
 ### squid_api.model.filters
 This model holds the results of a FacetJob computation (triggered by a config.selection change).  
