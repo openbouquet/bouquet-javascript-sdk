@@ -75,13 +75,14 @@ Behaviors :
 ### squid_api.model.login
 The current logged-in user (also contains the auth token).  
 Behaviors :  
-* Will be fetched at api.init()  
+* Initial value will be fetched at api.init()  
 
 ### squid_api.model.customer
 Holds the nested backbone model for the current Customer.  
-It will be lazily updated with nested models as they will be fetched.  
-For instance, when selecting a project, the  ``squid_api.model.customer.get("projects")``` will be updated with the corresponding fetched project Model.  
-It will be fetched at api.init().  
+It will be lazily updated with nested models as they are be fetched by views such as CollectionManagementWidget.
+For instance, when selecting a project from the ProjectManagementWidget, the  ```squid_api.model.customer.get("projects")``` Collection will be updated with the corresponding fetched project Model.  
+Behaviors :  
+* Initial value will be fetched at api.init().  
 
 ### squid_api.model.filters
 This model holds the results of a FacetJob computation (triggered by a config.selection change).  
