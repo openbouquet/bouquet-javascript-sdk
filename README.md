@@ -1,9 +1,9 @@
 jssdk2
 ======
 
-The JSSDK core library (Version 2)
+The JSSDK core library (Version 3)
 
-Provides the base services to build an app using the Squid Analyitcs API. 
+Provides the base services to build an app using the Bouquet API. 
 Exposes the API Data Model as Backbone Models to easely build MVC apps.
 
 Also provides the following core services :
@@ -37,8 +37,6 @@ The arguments are :
 * `customerId` : an optional Customer Id
 * `projectId` : an optional Project Id,
 * `domainId` : an optional Domain Id,
-* `selection` : an optional filter selection,
-* `filtersDefaultEvents` : if true or non specified, the default filters controller will be used.
 * `defaultShortcut` : an optional Shortcut id to retrieve app State from.
 * `config`: an optional default configuration (state)
 
@@ -60,11 +58,17 @@ If user login is granted, the `squid_api.model.login` Model object will be set a
 It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
 
 ## Application Models
-The JSSDK provides various Backbone Models under the `squid_api.model` object.  
+The JSSDK provides various Backbone Models under the `squid_api.model` namespace.  
 
 ### squid_api.model.config 
 Represents the application state (current filters selection, selected dimensions...).  
+Config is a schema-free object nevetheless some attributes are commonly used :  
+* selection : the current filters selection  
+* project : the current project ID (oid)  
+* domain : the current domain ID (oid)  
+
 Example : ```squid_api.model.config.get("selection")``` returns the current filters selection as a JSON object.  
+
 Behaviors :  
 * set at api.init() if a state or a shortcut or a bookmark parameter is set  
 * will be persisted to an API State object upon any change  
@@ -82,7 +86,8 @@ Holds the nested backbone model for the current Customer.
 It will be lazily updated with nested models as they are be fetched by views such as CollectionManagementWidget.
 For instance, when selecting a project from the ProjectManagementWidget, the  ```squid_api.model.customer.get("projects")``` Collection will be updated with the corresponding fetched project Model.  
 Behaviors :  
-* Initial value will be fetched at api.init().  
+* Initial value will be fetched at api.init()  
+* If changed, then fetch the projects collection  
 
 ### squid_api.model.filters
 This model holds the results of a FacetJob computation (triggered by a config.selection change).  
