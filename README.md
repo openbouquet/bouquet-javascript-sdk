@@ -64,7 +64,13 @@ The JSSDK provides various Backbone Models under the `squid_api.model` object.
 
 ### squid_api.model.config 
 Represents the application state (current filters selection, selected dimensions...).  
+Config is a schema-free object nevetheless some attributes are commonly used :  
+* selection : the current filters selection  
+* project : the current project ID (oid)  
+* domain : the current domain ID (oid)  
+
 Example : ```squid_api.model.config.get("selection")``` returns the current filters selection as a JSON object.  
+
 Behaviors :  
 * set at api.init() if a state or a shortcut or a bookmark parameter is set  
 * will be persisted to an API State object upon any change  
