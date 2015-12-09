@@ -62,16 +62,28 @@ It will also fetch for the Customer model object associated to the verified user
 ## Application Models
 The JSSDK provides various Backbone Models under the `squid_api.model` object.  
 
-### config 
+### squid_api.model.config 
 Represents the application state (current filters selection, selected dimensions...).  
-Will be persisted as a State object upon every change.  
 Example : ```squid_api.model.config.get("selection")``` returns the current filters selection as a JSON object.  
+Behaviors :  
+* set at api.init() if a state or a shortcut or a bookmark parameter is set  
+* will be persisted to an API State object upon any change  
+* will trigger a FacetJob computation if its "selection" is changed
+* if its "project" attribute is changed then the "domain" attribute is reset to null
+* if its "domain" attribute is changed then the "selection" is reset
 
-### login
+### squid_api.model.login
 The current logged-in user (also contains the auth token).  
-Will be fetched at api.init().  
+Behaviors :  
+* Will be fetched at api.init()  
 
-### filters
+### squid_api.model.customer
+Holds the nested backbone model for the current Customer.  
+It will be lazily updated with nested models as they will be fetched.  
+For instance, when selecting a project, the  ``squid_api.model.customer.get("projects")``` will be updated with the corresponding fetched project Model.  
+It will be fetched at api.init().  
+
+### squid_api.model.filters
 This model holds the results of a FacetJob computation (triggered by a config.selection change).  
 Example : ```squid_api.model.filters.get("selection").facets[0].items``` returns the actual values (facetItems) of the first facet.  
 Here is a sample FiltersModel :
@@ -106,12 +118,6 @@ Here is a sample FiltersModel :
 	}
 }	
 ```
-
-### customer
-Holds the nested backbone model for a customer.  
-It will be lazily updated with nested models as they will be fetched.  
-For instance, when selecting a project, the  ``squid_api.model.customer.get("projects")``` will be updated with the corresponding fetched project Model.  
-It will be fetched at api.init().  
 
 ## Authentication management
 TODO
