@@ -3,7 +3,7 @@ jssdk2
 
 The JSSDK core library (Version 3)
 
-Provides the base services to build an app using the Squid Analyitcs API. 
+Provides the base services to build an app using the Bouquet API. 
 Exposes the API Data Model as Backbone Models to easely build MVC apps.
 
 Also provides the following core services :
