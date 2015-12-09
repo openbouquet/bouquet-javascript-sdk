@@ -30,6 +30,20 @@ module.exports = function(grunt) {
                 dest : 'dist/squid_api.js',
             }
         },
+
+        copy: {
+            devDist: {
+                files: [{
+                    expand: true,
+                    flatten: true,
+                    src : [ 'src/squid_api_core.js',
+                        'src/squid_api_analysisjob_controller.js',
+                        'src/squid_api_facetjob_controller.js' ],
+                    dest: 'dist'
+                }]
+            }
+        },
+
         watch : {
             js : {
                 files : [ 'src/**/*.*' ],
@@ -42,6 +56,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-bower-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-copy');
 
+    grunt.registerTask('devDist', [ 'jshint', 'clean', 'copy:devDist' ]);
     grunt.registerTask('default', [ 'jshint', 'clean', 'concat' ]);
 };
