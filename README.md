@@ -37,8 +37,6 @@ The arguments are :
 * `customerId` : an optional Customer Id
 * `projectId` : an optional Project Id,
 * `domainId` : an optional Domain Id,
-* `selection` : an optional filter selection,
-* `filtersDefaultEvents` : if true or non specified, the default filters controller will be used.
 * `defaultShortcut` : an optional Shortcut id to retrieve app State from.
 * `config`: an optional default configuration (state)
 
@@ -60,7 +58,7 @@ If user login is granted, the `squid_api.model.login` Model object will be set a
 It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
 
 ## Application Models
-The JSSDK provides various Backbone Models under the `squid_api.model` object.  
+The JSSDK provides various Backbone Models under the `squid_api.model` namespace.  
 
 ### squid_api.model.config 
 Represents the application state (current filters selection, selected dimensions...).  
