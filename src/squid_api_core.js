@@ -363,7 +363,7 @@
                         var oid = model.get("oid");
                         console.log("state saved : " + oid);
                         // keep for comparison when saved again
-                        me.model.state = model.get("config");
+                        me.model.state = model;
 
                         // save in browser history
                         if (window.history) {
@@ -449,7 +449,6 @@
 
         setConfig : function(config, baseConfig, forcedConfig) {
             // keep for comparison when saved again
-            squid_api.model.state = config;
             config = squid_api.utils.mergeAttributes(baseConfig, config);
             if (_.isFunction(forcedConfig)) {
                 config = forcedConfig(config);
