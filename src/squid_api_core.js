@@ -213,6 +213,33 @@
                 return selection;
             },
         },
+        
+        /**
+         * Get the current Project Model.
+         */
+        getSelectedProject : function() {
+            var project = null;
+            var projects = squid_api.model.customer.get("projects");
+            if (projects) {
+                project = projects.findWhere({"oid" : squid_api.model.config.get("project")});
+            }
+            return project;
+        },
+        
+        /**
+         * Get the current Domain Model.
+         */
+        getSelectedDomain : function() {
+            var domain;
+            var project = this.getSelectedProject();
+            if (project) {
+                var domains = project.get("domains");
+                if (domains) {
+                    domain = domains.findWhere({"oid" : squid_api.model.config.get("domain")});
+                }
+            }
+            return domain;
+        },
 
         /**
          * Save the current State model
@@ -478,6 +505,7 @@
                         // fetch the project
                         project = new squid_api.model.ProjectModel({"id" : { "projectId" : config.get("project")}});
                         project.fetch().then( function() {
+                            // add to projects list
                             squid_api.model.customer.get("projects").add(project);
                             if (config.hasChanged("domain")) {
                                 // deal with domain
@@ -493,6 +521,7 @@
                                                 }
                                             });
                                     domain.fetch().then( function() {
+                                        // add to domains list
                                         project.get("domains").add(domain);
                                     });
                                 }
@@ -516,6 +545,7 @@
                                     }
                                 });
                         domain.fetch().then( function() {
+                            // add to domains list
                             project.get("domains").add(domain);
                         });
                     }
