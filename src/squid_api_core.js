@@ -363,7 +363,7 @@
                         var oid = model.get("oid");
                         console.log("state saved : " + oid);
                         // keep for comparison when saved again
-                        me.model.state = model.get("config");
+                        me.model.state = model;
 
                         // save in browser history
                         if (window.history) {
@@ -449,7 +449,6 @@
 
         setConfig : function(config, baseConfig, forcedConfig) {
             // keep for comparison when saved again
-            squid_api.model.state = config;
             config = squid_api.utils.mergeAttributes(baseConfig, config);
             if (_.isFunction(forcedConfig)) {
                 config = forcedConfig(config);
@@ -754,9 +753,11 @@
                     var state = squid_api.utils.getParamValue("state", null);
                     var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                     var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                    var status = squid_api.model.status;
                     if (state) {
                         var dfd = me.setStateId(null, state, me.defaultConfig);
                         dfd.fail(function () {
+                            status.set("message", "State not found");
                             if (shortcut) {
                                 me.setShortcutId(shortcut, me.defaultConfig);
                             } else if (bookmark) {
