@@ -216,29 +216,50 @@
         
         /**
          * Get the current Project Model.
+         * Returns a Promise
          */
         getSelectedProject : function() {
             var project = null;
             var projects = squid_api.model.customer.get("projects");
             if (projects) {
                 project = projects.findWhere({"oid" : squid_api.model.config.get("project")});
+                if (project) {
+                    return $.Deferred().resolve(project);
+                } else {
+                    // fetch the project
+                    project = new squid_api.model.ProjectModel({"id" : { "projectId" : squid_api.model.config.get("project")}});
+                    projects.add(project);
+                    return project.fetch();
+                }
+            } else {
+                return $.Deferred().resolve(null);
             }
-            return project;
         },
         
         /**
          * Get the current Domain Model.
+         * Returns a Promise
          */
         getSelectedDomain : function() {
             var domain;
-            var project = this.getSelectedProject();
-            if (project) {
+            this.getSelectedProject().always( function(project) {
                 var domains = project.get("domains");
-                if (domains) {
-                    domain = domains.findWhere({"oid" : squid_api.model.config.get("domain")});
+                var domainId = squid_api.model.config.get("domain");
+                domain = domains.findWhere({"oid" : domainId});
+                if (domain) {
+                    return $.Deferred().resolve(domain);
+                } else { 
+                    // fetch the domain
+                    domain = new squid_api.model.DomainModel({
+                        "id" : {
+                            "projectId" : project.get("oid"),
+                            "domainId" : domainId
+                        }
+                    });
+                    domains.add(domain);
+                    return domain.fetch();
                 }
-            }
-            return domain;
+            });
         },
 
         /**
@@ -500,55 +521,18 @@
             this.model.config.on("change", function (config) {
                 var project;
                 if (config.hasChanged("project")) {
-                    project = squid_api.model.customer.get("projects").findWhere({"oid" : config.get("project")});
-                    if (!project) {
-                        // fetch the project
-                        project = new squid_api.model.ProjectModel({"id" : { "projectId" : config.get("project")}});
-                        project.fetch().then( function() {
-                            // add to projects list
-                            squid_api.model.customer.get("projects").add(project);
-                            if (config.hasChanged("domain")) {
-                                // deal with domain
-                                var domain = project.get("domains").findWhere({"oid" : config.get("domain")});
-                                if (!domain) {
-                                    // fetch the domain
-                                    domain = new squid_api.model.DomainModel({
-                                                "id" : {
-                                                    "projectId" : config
-                                                    .get("project"),
-                                                    "domainId" : config
-                                                    .get("domain")
-                                                }
-                                            });
-                                    domain.fetch().then( function() {
-                                        // add to domains list
-                                        project.get("domains").add(domain);
-                                    });
-                                }
-                            } else {
-                                config.set("domain", null);
-                            }
-                        });
-                    }
+                    squid_api.getSelectedProject().always( function(project) {
+                        if (config.hasChanged("domain")) {
+                            // deal with domain
+                            squid_api.getSelectedDomain();
+                        } else {
+                            // reset the domain
+                            config.set("domain", null);
+                        }
+                    });
                 } else if (config.hasChanged("domain")) {
                     // deal with domain
-                    project = squid_api.model.customer.get("projects").findWhere({"oid" : config.get("project")});
-                    var domain = project.get("domains").findWhere({"oid" : config.get("domain")});
-                    if (!domain) {
-                        // fetch the domain
-                        domain = new squid_api.model.DomainModel({
-                                    "id" : {
-                                        "projectId" : config
-                                        .get("project"),
-                                        "domainId" : config
-                                        .get("domain")
-                                    }
-                                });
-                        domain.fetch().then( function() {
-                            // add to domains list
-                            project.get("domains").add(domain);
-                        });
-                    }
+                    squid_api.getSelectedDomain();
                 }
             });
 
