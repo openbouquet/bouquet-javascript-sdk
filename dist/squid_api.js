@@ -213,7 +213,7 @@
                 return selection;
             },
         },
-        
+
         getLoginFromToken: function (token, cookieExpiration) {
             var deferred = $.Deferred();
             var cookiePrefix = "sq-token", cookie, me = this;
@@ -235,7 +235,7 @@
             } else {
                 // TODO should update this after we fetch the token
                 squid_api.model.login.set("accessToken", token);
-                
+
                 // fetch the token info from server
                 var tokenModel = new squid_api.model.TokenModel();
                 tokenModel.fetch().fail(function (model, response, options) {
@@ -281,7 +281,7 @@
         getLogin : function() {
             var deferred = $.Deferred();
             var me = this;
-            
+
             // set the access_token (to start the login model update)
             var code = squid_api.utils.getParamValue("code", null);
             if (code) {
@@ -319,7 +319,7 @@
             }
             return deferred;
         },
-        
+
         /**
          * Get the current Customer Model.
          * Returns a Promise
@@ -353,7 +353,7 @@
             }
             return deferred;
         },
-        
+
         /**
          * Get the current Project Model.
          * Returns a Promise
@@ -388,7 +388,7 @@
             }
             return deferred;
         },
-        
+
         /**
          * Get the current Domain Model.
          * Returns a Promise
@@ -402,7 +402,7 @@
                 domain = domains.findWhere({"oid" : domainId});
                 if (domain) {
                     deferred.resolve(domain);
-                } else { 
+                } else {
                     // fetch the domain
                     domain = new squid_api.model.DomainModel({
                         "id" : {
@@ -665,19 +665,19 @@
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
-            
+
             this.defaultConfig.selection = {
                     "facets" : []
             };
 
             // Application Models
-            
+
             // support for backward compatibility
             squid_api.model.project = new squid_api.model.ProjectModel();
-            
+
             // config
             this.model.config = new Backbone.Model();
-            
+
             // listen for project/domain change
             this.model.config.on("change", function (config) {
                 var project;
@@ -694,9 +694,15 @@
                 } else if (config.hasChanged("domain")) {
                     // deal with domain
                     squid_api.getSelectedDomain();
+
+                    // reset the selection
+                    config.set("selection",{
+                        "domain" : config.get("domain"),
+                        "facets": []
+                    });
                 }
             });
-            
+
             // filters
             this.model.filters = new squid_api.controller.facetjob.FiltersModel();
 
@@ -1141,7 +1147,7 @@
         urlRoot: function () {
             return this.baseRoot() + "/user";
         },
-    
+
         /**
          * Logout the current user
          */
@@ -1379,23 +1385,23 @@
     });
 
     // declare nested models after Model and Collections as there are cyclic dependencies
-    
+
     squid_api.model.CustomerInfoModel.prototype.relations = {
         "projects" : squid_api.model.ProjectCollection,
         "users" : squid_api.model.UserCollection
     };
-    
+
     squid_api.model.ProjectModel.prototype.relations = {
         "domains" : squid_api.model.DomainCollection,
         "relations" : squid_api.model.RelationCollection,
         "bookmarks" : squid_api.model.BookmarkCollection
     };
-    
+
     squid_api.model.DomainModel.prototype.relations = {
         "dimensions" : squid_api.model.DimensionCollection,
         "metrics" : squid_api.model.MetricCollection
     };
-    
+
     // implement a beforeFetch event for collections
     var fetch = Backbone.Collection.prototype.fetch;
     Backbone.Collection.prototype.fetch = function() {
