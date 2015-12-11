@@ -430,6 +430,37 @@
         },
 
         /**
+         * Get the current Domain Model.
+         * Returns a Promise
+         */
+        getSelectedDomainCollection : function(collectionName) {
+            var deferred;
+            // check if not already executing
+            var deferredName = "deferredGetSelectedDomainCollection"+collectionName;
+            if (this[deferredName] && (this[deferredName].state() === "pending")) {
+                // return existing pending deferredGetSelectedDomainCollection
+                deferred = this[deferredName];
+            } else {
+                // create a new deferredGetSelectedDomainCollection
+                this[deferredName] = $.Deferred();
+                deferred = this[deferredName];
+                var collection;
+                this.getSelectedDomain().always( function(domain) {
+                    collection = domain.get(collectionName);
+                    // TODO set a way of checking if already fetched
+                    if (collection.size() === 0) {
+                        collection.fetch().always( function() {
+                            deferred.resolve(collection);
+                        });
+                    } else {
+                        deferred.resolve(collection);
+                    }
+                });
+            }
+            return deferred;
+        },
+
+        /**
          * Save the current State model
          * @param an array of extra config elements
          */
