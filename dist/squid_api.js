@@ -2245,7 +2245,7 @@
             }
             
             var domains = jobModel.get("domains");
-            if (!domains) {
+            if ((!domains) || (!projectId)) {
                 // take first dimension's
                 if (selectionOpt) {
                     var facets = selectionOpt.facets;
@@ -2257,6 +2257,9 @@
                                 "projectId" : facet.dimension.id.projectId,
                                 "domainId" : facet.dimension.id.domainId
                             });
+                            if (!projectId) {
+                                projectId = facet.dimension.id.projectId;
+                            }
                             break;
                         }
                     }
