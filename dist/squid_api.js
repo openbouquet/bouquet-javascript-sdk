@@ -1326,7 +1326,7 @@
                 parentId = this.parentId.projectId;
             } else {
                 // use the parent from nested model
-                parentId = this.parent.id;
+                parentId = this.parent.get("id").projectId;
             }
             return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/domains";
         }
@@ -1354,7 +1354,14 @@
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DimensionModel,
         urlRoot: function () {
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/dimensions";
+            var parentId;
+            if (this.parentId) {
+                parentId = this.parent.get("id").domainId;
+            } else {
+                // use the parent from nested model
+                parentId = this.parent.id;
+            }
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/dimensions";
         }
     });
 
@@ -1367,7 +1374,14 @@
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.MetricModel,
         urlRoot: function () {
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
+            var parentId;
+            if (this.parentId) {
+                parentId = this.parentId.domainId;
+            } else {
+                // use the parent from nested model
+                parentId = this.parent.get("id").domainId;
+            }
+            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/metrics";
         }
     });
 
@@ -1400,13 +1414,6 @@
     squid_api.model.DomainModel.prototype.relations = {
         "dimensions" : squid_api.model.DimensionCollection,
         "metrics" : squid_api.model.MetricCollection
-    };
-
-    // implement a beforeFetch event for collections
-    var fetch = Backbone.Collection.prototype.fetch;
-    Backbone.Collection.prototype.fetch = function() {
-        this.trigger('beforeFetch');
-        return fetch.apply(this, arguments);
     };
 
     return squid_api;
