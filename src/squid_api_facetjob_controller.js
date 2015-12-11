@@ -20,7 +20,8 @@
         domains: null,
         timeoutMillis: function () {
             return squid_api.timeoutMillis;
-        }
+        },
+        relations : {}
     });
 
     /**
@@ -262,12 +263,31 @@
             if (jobModel.get("engineVersion")) {
                 projectFacetJob.set("engineVersion", jobModel.get("engineVersion"));
             }
+            
+            var domains = jobModel.get("domains");
+            if (!domains) {
+                // take first dimension's
+                if (selectionOpt) {
+                    var facets = selectionOpt.facets;
+                    if (facets) {
+                        domains = [];
+                        for (var i=0; i<facets.length; i++) {
+                            var facet = facets[i];
+                            domains.push({
+                                "projectId" : facet.dimension.id.projectId,
+                                "domainId" : facet.dimension.id.domainId
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
 
             projectFacetJob.set({
                 "id": {
                     projectId: projectId
                 },
-                "domains": jobModel.get("domains"),
+                "domains": domains,
                 "selection": selection
             });
 
