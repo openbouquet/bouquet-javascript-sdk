@@ -394,29 +394,38 @@
          * Returns a Promise
          */
         getSelectedDomain : function() {
-            var deferred = $.Deferred();
-            var domain;
-            this.getSelectedProject().always( function(project) {
-                var domains = project.get("domains");
-                var domainId = squid_api.model.config.get("domain");
-                domain = domains.findWhere({"oid" : domainId});
-                if (domain) {
-                    deferred.resolve(domain);
-                } else {
-                    // fetch the domain
-                    domain = new squid_api.model.DomainModel({
-                        "id" : {
-                            "projectId" : project.get("oid"),
-                            "domainId" : domainId
-                        }
-                    });
-                    domains.add(domain);
-                    domain.fetch().always( function() {
-                        domains.add(domain);
+            var deferred;
+            // check if not already executing
+            if (this.deferredGetSelectedDomain && (this.deferredGetSelectedDomain.state() === "pending")) {
+                // return existing pending deferredGetSelectedDomain
+                deferred = this.deferredGetSelectedDomain;
+            } else {
+                // create a new deferredGetSelectedDomain
+                this.deferredGetSelectedDomain = $.Deferred();
+                deferred = this.deferredGetSelectedDomain;
+                var domain;
+                this.getSelectedProject().always( function(project) {
+                    var domains = project.get("domains");
+                    var domainId = squid_api.model.config.get("domain");
+                    domain = domains.findWhere({"oid" : domainId});
+                    if (domain) {
                         deferred.resolve(domain);
-                    });
-                }
-            });
+                    } else {
+                        // fetch the domain
+                        domain = new squid_api.model.DomainModel({
+                            "id" : {
+                                "projectId" : project.get("oid"),
+                                "domainId" : domainId
+                            }
+                        });
+                        domains.add(domain);
+                        domain.fetch().always( function() {
+                            domains.add(domain);
+                            deferred.resolve(domain);
+                        });
+                    }
+                });
+            }
             return deferred;
         },
 
