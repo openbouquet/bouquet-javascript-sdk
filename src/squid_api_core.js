@@ -274,8 +274,8 @@
                         deferred.reject();
                     });
                 });
-                return deferred;
             }
+            return deferred;
         },
 
         getLogin : function() {
@@ -307,8 +307,10 @@
                     deferred.reject();
                 }).done(function (data) {
                     var token = data.oid;
-                    me.getLoginFromToken(token).always( function(login) {
+                    me.getLoginFromToken(token).done( function(login) {
                         deferred.resolve(login);
+                    }).fail( function() {
+                        deferred.reject();
                     });
                 });
             } else {
@@ -339,7 +341,7 @@
                     deferred.resolve(customer);
                 } else {
                     // fetch the customer after making sure user is logged
-                    this.getLogin().always( function() {
+                    this.getLogin().done( function() {
                         var customer2 = new squid_api.model.CustomerInfoModel();
                         customer2.fetch().done( function() {
                             squid_api.model.customer = customer2;
@@ -348,6 +350,8 @@
                             console.error("unable to fetch customer");
                             deferred.reject(customer2);
                         });
+                    }).fail( function() {
+                        deferred.reject();
                     });
                 }
             }
@@ -360,31 +364,37 @@
          */
         getSelectedProject : function() {
             var deferred;
-            // check if not already executing
-            if (this.deferredGetSelectedProject && (this.deferredGetSelectedProject.state() === "pending")) {
-                // return existing pending deferredGetSelectedProject
-                deferred = this.deferredGetSelectedProject;
-            } else {
-                // create a new deferredGetSelectedProject
-                this.deferredGetSelectedProject = $.Deferred();
-                deferred = this.deferredGetSelectedProject;
-                var project = null;
-                this.getCustomer().always( function(customer) {
-                    var projects = customer.get("projects");
-                    project = projects.findWhere({"oid" : squid_api.model.config.get("project")});
-                    if (project) {
-                        deferred.resolve(project);
-                    } else {
-                        // fetch the project
-                        project = new squid_api.model.ProjectModel({"id" : { "projectId" : squid_api.model.config.get("project")}});
-                        project.fetch().always( function() {
-                            projects.add(project);
-                            // support for backward compatibility
-                            squid_api.model.project.set(project.attributes);
+            var projectId = squid_api.model.config.get("project");
+            if (projectId) {
+                // check if not already executing
+                if (this.deferredGetSelectedProject && (this.deferredGetSelectedProject.state() === "pending")) {
+                    // return existing pending deferredGetSelectedProject
+                    deferred = this.deferredGetSelectedProject;
+                } else {
+                    // create a new deferredGetSelectedProject
+                    this.deferredGetSelectedProject = $.Deferred();
+                    deferred = this.deferredGetSelectedProject;
+                    var project = null;
+                    this.getCustomer().always( function(customer) {
+                        var projects = customer.get("projects");
+                        project = projects.findWhere({"oid" : squid_api.model.config.get("project")});
+                        if (project) {
                             deferred.resolve(project);
-                        });
-                    }
-                });
+                        } else {
+                            // fetch the project
+                            project = new squid_api.model.ProjectModel({"id" : { "projectId" : squid_api.model.config.get("project")}});
+                            project.fetch().always( function() {
+                                projects.add(project);
+                                // support for backward compatibility
+                                squid_api.model.project.set(project.attributes);
+                                deferred.resolve(project);
+                            });
+                        }
+                    });
+                }
+            } else {
+                deferred = $.Deferred();
+                deferred.reject();
             }
             return deferred;
         },
@@ -851,34 +861,33 @@
             }
 
             // check for login performed
-            squid_api.model.login.on('change', function() {
-                if (squid_api.model.login.get("login")) {
-                    // login ok
-                    // perform config init chain
-                    var state = squid_api.utils.getParamValue("state", null);
-                    var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
-                    var bookmark = squid_api.utils.getParamValue("bookmark", null);
-                    var status = squid_api.model.status;
-                    if (state) {
-                        var dfd = me.setStateId(null, state, me.defaultConfig);
-                        dfd.fail(function () {
-                            status.set("message", "State not found");
-                            if (shortcut) {
-                                me.setShortcutId(shortcut, me.defaultConfig);
-                            } else if (bookmark) {
-                                me.setBookmarkId(bookmark, me.defaultConfig);
-                            }
-                        });
-                    } else {
+            squid_api.getCustomer().done(function(customer) {
+                // perform config init chain
+                var state = squid_api.utils.getParamValue("state", null);
+                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
+                var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                var status = squid_api.model.status;
+                if (state) {
+                    var dfd = me.setStateId(null, state, me.defaultConfig);
+                    dfd.fail(function () {
+                        status.set("message", "State not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
                             me.setBookmarkId(bookmark, me.defaultConfig);
-                        } else {
-                            me.model.config.set(me.defaultConfig);
                         }
+                    });
+                } else {
+                    if (shortcut) {
+                        me.setShortcutId(shortcut, me.defaultConfig);
+                    } else if (bookmark) {
+                        me.setBookmarkId(bookmark, me.defaultConfig);
+                    } else {
+                        me.model.config.set(me.defaultConfig);
                     }
                 }
+            }).fail(function() {
+                squid_api.model.login.set("login", null);
             });
         },
 
