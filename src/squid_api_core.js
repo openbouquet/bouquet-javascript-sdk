@@ -398,6 +398,37 @@
             }
             return deferred;
         },
+        
+        /**
+         * Get a collection of the current Project Model.
+         * Returns a Promise
+         */
+        getSelectedProjectCollection : function(collectionName) {
+            var deferred;
+            // check if not already executing
+            var deferredName = "deferredGetSelectedProjectCollection"+collectionName;
+            if (this[deferredName] && (this[deferredName].state() === "pending")) {
+                // return existing pending deferred
+                deferred = this[deferredName];
+            } else {
+                // create a new deferred
+                this[deferredName] = $.Deferred();
+                deferred = this[deferredName];
+                var collection;
+                this.getSelectedProject().always( function(project) {
+                    collection = project.get(collectionName);
+                    // TODO set a way of checking if already fetched
+                    if (collection.size() === 0) {
+                        collection.fetch().always( function() {
+                            deferred.resolve(collection);
+                        });
+                    } else {
+                        deferred.resolve(collection);
+                    }
+                });
+            }
+            return deferred;
+        },
 
         /**
          * Get the current Domain Model.
@@ -440,7 +471,7 @@
         },
 
         /**
-         * Get the current Domain Model.
+         * Get a collection of the current Domain Model.
          * Returns a Promise
          */
         getSelectedDomainCollection : function(collectionName) {
