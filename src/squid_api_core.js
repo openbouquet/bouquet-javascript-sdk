@@ -363,37 +363,15 @@
          * Returns a Promise
          */
         getSelectedProject : function() {
-            var deferred;
+            var deferred = $.Deferred();
             var projectId = squid_api.model.config.get("project");
             if (projectId) {
-                // check if not already executing
-                if (this.deferredGetSelectedProject && (this.deferredGetSelectedProject.state() === "pending")) {
-                    // return existing pending deferredGetSelectedProject
-                    deferred = this.deferredGetSelectedProject;
-                } else {
-                    // create a new deferredGetSelectedProject
-                    this.deferredGetSelectedProject = $.Deferred();
-                    deferred = this.deferredGetSelectedProject;
-                    var project = null;
-                    this.getCustomer().always( function(customer) {
-                        var projects = customer.get("projects");
-                        project = projects.findWhere({"oid" : squid_api.model.config.get("project")});
-                        if (project) {
-                            deferred.resolve(project);
-                        } else {
-                            // fetch the project
-                            project = new squid_api.model.ProjectModel({"id" : { "projectId" : squid_api.model.config.get("project")}});
-                            project.fetch().always( function() {
-                                projects.add(project);
-                                // support for backward compatibility
-                                squid_api.model.project.set(project.attributes);
-                                deferred.resolve(project);
-                            });
-                        }
+                this.getCustomer().done(function(customer) {
+                    customer.get("projects").load(projectId).done(function(project) {
+                        deferred.resolve(project);
                     });
-                }
+                });
             } else {
-                deferred = $.Deferred();
                 deferred.reject();
             }
             return deferred;
@@ -404,28 +382,18 @@
          * Returns a Promise
          */
         getSelectedProjectCollection : function(collectionName) {
-            var deferred;
-            // check if not already executing
-            var deferredName = "deferredGetSelectedProjectCollection"+collectionName;
-            if (this[deferredName] && (this[deferredName].state() === "pending")) {
-                // return existing pending deferred
-                deferred = this[deferredName];
-            } else {
-                // create a new deferred
-                this[deferredName] = $.Deferred();
-                deferred = this[deferredName];
-                var collection;
-                this.getSelectedProject().always( function(project) {
-                    collection = project.get(collectionName);
-                    // TODO set a way of checking if already fetched
-                    if (collection.size() === 0) {
-                        collection.fetch().always( function() {
-                            deferred.resolve(collection);
+            var deferred = $.Deferred();
+            var projectId = squid_api.model.config.get("project");
+            if (projectId) {
+                this.getCustomer().done(function(customer) {
+                    customer.get("projects").load(projectId).done(function(project) {
+                        project.get(collectionName).load().done(function(coll) {
+                            deferred.resolve(coll);
                         });
-                    } else {
-                        deferred.resolve(collection);
-                    }
+                    });
                 });
+            } else {
+                deferred.reject();
             }
             return deferred;
         },
@@ -1207,6 +1175,48 @@
                 url += delim + name + "=" + value;
             }
             return url;
+        },
+        
+        deferredMap : {},
+        
+        load : function(oid) {
+            var deferredKey = oid || "_all";
+            var deferred = this.deferredMap[deferredKey];
+            // check if not already executing
+            if (deferred && (deferred.state() === "pending")) {
+                // return existing pending deferred
+            } else {
+                // create a new deferred
+                deferred = $.Deferred();
+                this.deferredMap[deferredKey] = deferred;
+                var me = this;
+                if (oid) {
+                    var model = this.findWhere({"oid" : oid});
+                    if (model) {
+                        deferred.resolve(model);
+                    } else {
+                        model = new this.model({"oid" : oid});
+                        model.fetch().done( function() {
+                            deferred.resolve(model);
+                        }).fail(function() {
+                            deferred.reject();
+                        });
+                    }
+                } else {
+                    if (this.fetched) {
+                        deferred.resolve(this);
+                    } else {
+                        // fetch
+                        this.fetch().done( function() {
+                            this.fetched = true;
+                            deferred.resolve(me);
+                        }).fail(function() {
+                            deferred.reject();
+                        });
+                    }
+                }
+            }
+            return deferred;
         }
     });
 
@@ -1362,7 +1372,8 @@
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
+            var oid = this.get("oid") || this.get("id").projectId;
+            return this.baseRoot() + "/projects/" + oid;
         }
     });
 
