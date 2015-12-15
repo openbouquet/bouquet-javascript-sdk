@@ -1146,7 +1146,8 @@
          */
         load : function(oid) {
             var deferredKey = oid || "_all";
-            deferredKey = this.parent.cid+"_"+deferredKey;
+            var deferredKeyPrefix = this.parent.urlRoot();
+            deferredKey = deferredKeyPrefix+"_"+deferredKey;
             var deferred = this.deferredMap[deferredKey];
             // check if not already executing
             if (deferred && (deferred.state() === "pending")) {
@@ -1162,6 +1163,7 @@
                         deferred.resolve(model);
                     } else {
                         model = new this.model({"id" : this.parent.get("id"), "oid" : oid});
+                        console.log("fetching "+deferredKey);
                         model.fetch().done( function() {
                             deferred.resolve(model);
                         }).fail(function() {
@@ -1174,6 +1176,7 @@
                         deferred.resolve(this);
                     } else {
                         // fetch
+                        console.log("fetching "+deferredKey);
                         this.fetch().done( function() {
                             this.fetched = true;
                             deferred.resolve(me);
