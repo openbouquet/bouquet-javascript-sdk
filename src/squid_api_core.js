@@ -985,17 +985,15 @@
 
         idAttribute: "oid",
         
-        getOid : function() {
-            var oid = this.get(this.idAttribute);
+        getOid : function(idName) {
+            var oid;
+            if (this.get("id")) {
+                oid = this.get("id")[idName];
+            } else {
+                oid = this.get("oid");
+            }
             if (!oid) {
-                if (this.get("id")) {
-                    oid = this.get("id")[this.idName];
-                    if (!oid) {
-                        oid = "";
-                    }
-                } else {
-                    oid = "";
-                }
+                oid = "";
             }
             return oid;
         },
@@ -1347,23 +1345,20 @@
     });
 
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
-        idName: "clientId",
         urlRoot: function () {
-            return this.baseRoot() + "/clients/" + this.getOid();
+            return this.baseRoot() + "/clients/" + this.getOid("clientId");
         }
     });
 
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
-        idName: "stateId",
         urlRoot: function () {
-            return this.baseRoot() + "/states/" + this.getOid();
+            return this.baseRoot() + "/states/" + this.getOid("stateId");
         }
     });
 
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
-        idName: "shortcutId",
         urlRoot: function () {
-            return this.baseRoot() + "/shortcuts/" + this.getOid();
+            return this.baseRoot() + "/shortcuts/" + this.getOid("shortcutId");
         }
     });
 
@@ -1389,9 +1384,8 @@
     });
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
-        idName: "projectId",
         urlRoot: function () {
-            return this.baseRoot() + "/projects/" + this.getOid();
+            return this.baseRoot() + "/projects/" + this.getOid("projectId");
         }
     });
 
@@ -1403,9 +1397,8 @@
     });
 
     squid_api.model.UserModel = squid_api.model.BaseModel.extend({
-        idName: "userId",
         urlRoot: function () {
-            return this.baseRoot() + "/users/" + this.getOid();
+            return this.baseRoot() + "/users/" + this.getOid("userId");
         }
     });
 
@@ -1423,93 +1416,67 @@
     });
 
     squid_api.model.DomainModel = squid_api.model.BaseModel.extend({
-        idName: "domainId",
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.getOid();
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.getOid("domainId");
         }
     });
 
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DomainModel,
         urlRoot: function () {
-            var parentId;
-            if (this.parentId) {
-                parentId = this.parentId.projectId;
-            } else {
-                // use the parent from nested model
-                parentId = this.parent.get("id").projectId;
-            }
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/domains";
+            return this.parent.urlRoot() + "/domains";
         }
     });
 
     squid_api.model.RelationModel = squid_api.model.BaseModel.extend({
-        idName: "relationId",
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.getOid();
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.getOid("relationId");
         }
     });
 
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.RelationModel,
         urlRoot: function () {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.projectId + "/relations";
+            return this.parent.urlRoot() + "/relations";
         }
     });
 
     squid_api.model.DimensionModel = squid_api.model.BaseModel.extend({
-        idName: "dimensionId",
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.getOid();
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.getOid("dimensionId");
         }
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DimensionModel,
         urlRoot: function () {
-            var parentId;
-            if (this.parentId) {
-                parentId = this.parent.get("id").domainId;
-            } else {
-                // use the parent from nested model
-                parentId = this.parent.id;
-            }
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/dimensions";
+            return this.parent.urlRoot() + "/dimensions";
         }
     });
 
     squid_api.model.MetricModel = squid_api.model.BaseModel.extend({
-        idName: "metricId",
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.getOid();
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.getOid("metricId");
         }
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.MetricModel,
         urlRoot: function () {
-            var parentId;
-            if (this.parentId) {
-                parentId = this.parentId.domainId;
-            } else {
-                // use the parent from nested model
-                parentId = this.parent.get("id").domainId;
-            }
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + parentId + "/metrics";
+            return this.parent.urlRoot() + "/metrics";
         }
     });
 
     squid_api.model.BookmarkModel = squid_api.model.BaseModel.extend({
-        idName: "bookmarkId",
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + this.getOid();
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + this.getOid("bookmarkId");
         }
     });
 
     squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.BookmarkModel,
         urlRoot: function() {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/bookmarks";
+            return this.parent.urlRoot() + "/bookmarks";
         }
     });
 
