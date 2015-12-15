@@ -1443,7 +1443,7 @@
         }
     });
 
-    squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.RelationModel = squid_api.model.BaseModel.extend({
         idName: "relationId",
         urlRoot: function () {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.getOid();
@@ -1457,7 +1457,7 @@
         }
     });
 
-    squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
+    squid_api.model.DimensionModel = squid_api.model.BaseModel.extend({
         idName: "dimensionId",
         urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.getOid();
@@ -1478,7 +1478,7 @@
         }
     });
 
-    squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
+    squid_api.model.MetricModel = squid_api.model.BaseModel.extend({
         idName: "metricId",
         urlRoot: function () {
             return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.getOid();
@@ -1499,7 +1499,7 @@
         }
     });
 
-    squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.BookmarkModel = squid_api.model.BaseModel.extend({
         idName: "bookmarkId",
         urlRoot: function() {
             return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + this.getOid();
