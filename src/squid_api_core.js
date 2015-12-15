@@ -984,6 +984,21 @@
         },
 
         idAttribute: "oid",
+        
+        getOid : function() {
+            var oid = this.get(this.idAttribute);
+            if (!oid) {
+                if (this.get("id")) {
+                    oid = this.get("id")[this.idName];
+                    if (!oid) {
+                        oid = "";
+                    }
+                } else {
+                    oid = "";
+                }
+            }
+            return oid;
+        },
 
         baseRoot: function () {
             return squid_api.apiURL;
@@ -1332,20 +1347,23 @@
     });
 
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
+        idName: "clientId",
         urlRoot: function () {
-            return this.baseRoot() + "/clients/" + this.get("id").clientId;
+            return this.baseRoot() + "/clients/" + this.getOid();
         }
     });
 
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
+        idName: "stateId",
         urlRoot: function () {
-            return this.baseRoot() + "/states/" + (this.get("id").stateId || "");
+            return this.baseRoot() + "/states/" + this.getOid();
         }
     });
 
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
+        idName: "shortcutId",
         urlRoot: function () {
-            return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
+            return this.baseRoot() + "/shortcuts/" + this.getOid();
         }
     });
 
@@ -1371,9 +1389,9 @@
     });
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
+        idName: "projectId",
         urlRoot: function () {
-            var oid = this.get("oid") || this.get("id").projectId;
-            return this.baseRoot() + "/projects/" + oid;
+            return this.baseRoot() + "/projects/" + this.getOid();
         }
     });
 
@@ -1385,8 +1403,9 @@
     });
 
     squid_api.model.UserModel = squid_api.model.BaseModel.extend({
+        idName: "userId",
         urlRoot: function () {
-            return this.baseRoot() + "/users/" + this.get("id").userId;
+            return this.baseRoot() + "/users/" + this.getOid();
         }
     });
 
@@ -1403,9 +1422,10 @@
         }
     });
 
-    squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.DomainModel = squid_api.model.BaseModel.extend({
+        idName: "domainId",
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.getOid();
         }
     });
 
@@ -1424,8 +1444,9 @@
     });
 
     squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
+        idName: "relationId",
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.getOid();
         }
     });
 
@@ -1437,8 +1458,9 @@
     });
 
     squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
+        idName: "dimensionId",
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.getOid();
         }
     });
 
@@ -1457,8 +1479,9 @@
     });
 
     squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
+        idName: "metricId",
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.getOid();
         }
     });
 
@@ -1477,8 +1500,9 @@
     });
 
     squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+        idName: "bookmarkId",
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + this.getOid();
         }
     });
 
