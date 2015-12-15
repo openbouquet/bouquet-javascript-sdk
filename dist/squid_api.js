@@ -355,7 +355,7 @@
                     });
                 }
             }
-            return deferred;
+            return deferred.promise();
         },
 
         /**
@@ -363,18 +363,10 @@
          * Returns a Promise
          */
         getSelectedProject : function() {
-            var deferred = $.Deferred();
             var projectId = squid_api.model.config.get("project");
-            if (projectId) {
-                this.getCustomer().done(function(customer) {
-                    customer.get("projects").load(projectId).done(function(project) {
-                        deferred.resolve(project);
-                    });
-                });
-            } else {
-                deferred.reject();
-            }
-            return deferred;
+            return this.getCustomer().then(function(customer) {
+            	return customer.get("projects").load(projectId);
+            });
         },
         
         /**
@@ -382,20 +374,12 @@
          * Returns a Promise
          */
         getSelectedProjectCollection : function(collectionName) {
-            var deferred = $.Deferred();
             var projectId = squid_api.model.config.get("project");
-            if (projectId) {
-                this.getCustomer().done(function(customer) {
-                    customer.get("projects").load(projectId).done(function(project) {
-                        project.get(collectionName).load().done(function(coll) {
-                            deferred.resolve(coll);
-                        });
-                    });
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get(collectionName).load();
                 });
-            } else {
-                deferred.reject();
-            }
-            return deferred;
+            });
         },
 
         /**
@@ -403,39 +387,13 @@
          * Returns a Promise
          */
         getSelectedDomain : function() {
-            var deferred;
-            // check if not already executing
-            if (this.deferredGetSelectedDomain && (this.deferredGetSelectedDomain.state() === "pending")) {
-                // return existing pending deferredGetSelectedDomain
-                deferred = this.deferredGetSelectedDomain;
-            } else {
-                // create a new deferredGetSelectedDomain
-                this.deferredGetSelectedDomain = $.Deferred();
-                deferred = this.deferredGetSelectedDomain;
-                var domain;
-                this.getSelectedProject().always( function(project) {
-                    var domains = project.get("domains");
-                    var domainId = squid_api.model.config.get("domain");
-                    domain = domains.findWhere({"oid" : domainId});
-                    if (domain) {
-                        deferred.resolve(domain);
-                    } else {
-                        // fetch the domain
-                        domain = new squid_api.model.DomainModel({
-                            "id" : {
-                                "projectId" : project.get("oid"),
-                                "domainId" : domainId
-                            }
-                        });
-                        domains.add(domain);
-                        domain.fetch().always( function() {
-                            domains.add(domain);
-                            deferred.resolve(domain);
-                        });
-                    }
+            var projectId = squid_api.model.config.get("project");
+            var domainId = squid_api.model.config.get("domain");
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get("domains").load(domainId);
                 });
-            }
-            return deferred;
+            });
         },
 
         /**
@@ -443,30 +401,15 @@
          * Returns a Promise
          */
         getSelectedDomainCollection : function(collectionName) {
-            var deferred;
-            // check if not already executing
-            var deferredName = "deferredGetSelectedDomainCollection"+collectionName;
-            if (this[deferredName] && (this[deferredName].state() === "pending")) {
-                // return existing pending deferredGetSelectedDomainCollection
-                deferred = this[deferredName];
-            } else {
-                // create a new deferredGetSelectedDomainCollection
-                this[deferredName] = $.Deferred();
-                deferred = this[deferredName];
-                var collection;
-                this.getSelectedDomain().always( function(domain) {
-                    collection = domain.get(collectionName);
-                    // TODO set a way of checking if already fetched
-                    if (collection.size() === 0) {
-                        collection.fetch().always( function() {
-                            deferred.resolve(collection);
-                        });
-                    } else {
-                        deferred.resolve(collection);
-                    }
+            var projectId = squid_api.model.config.get("project");
+            var domainId = squid_api.model.config.get("domain");
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get("domains").load(domainId).then(function(domain) {
+                        return domain.get(collectionName).load();
+                    });
                 });
-            }
-            return deferred;
+            });
         },
 
         /**
@@ -989,6 +932,9 @@
             var oid;
             if (this.get("id")) {
                 oid = this.get("id")[idName];
+                if (!oid) {
+                    oid = this.get("oid");
+                }
             } else {
                 oid = this.get("oid");
             }
@@ -1192,6 +1138,12 @@
         
         deferredMap : {},
         
+        /**
+         * Getter for a Model or a Collection of Models.
+         * This method will perform a fetch only if the requested object is not in the object cache.
+         * @param oid if set, will return a Model with the corresponding oid.
+         * @return a Promise
+         */
         load : function(oid) {
             var deferredKey = oid || "_all";
             var deferred = this.deferredMap[deferredKey];
@@ -1208,10 +1160,11 @@
                     if (model) {
                         deferred.resolve(model);
                     } else {
-                        model = new this.model({"oid" : oid});
+                        model = new this.model({"id" : this.parent.get("id"), "oid" : oid});
                         model.fetch().done( function() {
                             deferred.resolve(model);
                         }).fail(function() {
+                            console.error("fetch failed");
                             deferred.reject();
                         });
                     }
@@ -1229,7 +1182,7 @@
                     }
                 }
             }
-            return deferred;
+            return deferred.promise();
         }
     });
 
