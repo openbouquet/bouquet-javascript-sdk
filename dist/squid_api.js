@@ -1146,6 +1146,7 @@
          */
         load : function(oid) {
             var deferredKey = oid || "_all";
+            deferredKey = this.parent.cid+"_"+deferredKey;
             var deferred = this.deferredMap[deferredKey];
             // check if not already executing
             if (deferred && (deferred.state() === "pending")) {
