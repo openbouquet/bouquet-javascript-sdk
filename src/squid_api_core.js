@@ -1146,7 +1146,7 @@
          */
         load : function(oid) {
             var deferredKey = oid || "_all";
-            var deferredKeyPrefix = this.parent.urlRoot();
+            var deferredKeyPrefix = this.urlRoot();
             deferredKey = deferredKeyPrefix+"_"+deferredKey;
             var deferred = this.deferredMap[deferredKey];
             // check if not already executing
