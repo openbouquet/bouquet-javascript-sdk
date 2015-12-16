@@ -1082,8 +1082,10 @@
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
         parentId: null,
-
+        fetched : false,
+        error: null,
         parameters: [],
+        deferredMap : {},
 
         addParameter: function (name, value) {
             this.parameters.push({"name": name, "value": value});
@@ -1121,8 +1123,6 @@
             }
             return url;
         },
-
-        error: null,
         addParam: function (url, name, value) {
             if (value) {
                 var delim;
@@ -1136,8 +1136,6 @@
             return url;
         },
         
-        deferredMap : {},
-        
         /**
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
@@ -1145,6 +1143,7 @@
          * @return a Promise
          */
         load : function(oid) {
+            // the deferred key must be unique for the object we're fetching
             var deferredKey = oid || "_all";
             var deferredKeyPrefix = this.urlRoot();
             deferredKey = deferredKeyPrefix+"_"+deferredKey;
@@ -1178,7 +1177,7 @@
                         // fetch
                         console.log("fetching "+deferredKey);
                         this.fetch().done( function() {
-                            this.fetched = true;
+                            me.fetched = true;
                             deferred.resolve(me);
                         }).fail(function() {
                             deferred.reject();
@@ -1441,7 +1440,9 @@
 
     squid_api.model.CustomerInfoModel.prototype.relations = {
         "projects" : squid_api.model.ProjectCollection,
-        "users" : squid_api.model.UserCollection
+        "users" : squid_api.model.UserCollection,
+        "usergroups" : squid_api.model.GroupCollection,
+        "shortcuts" : squid_api.model.ShortcutCollection
     };
 
     squid_api.model.ProjectModel.prototype.relations = {
