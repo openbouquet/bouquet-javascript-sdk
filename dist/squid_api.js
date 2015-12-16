@@ -1165,9 +1165,9 @@
                         console.log("fetching "+deferredKey);
                         model.fetch().done( function() {
                             deferred.resolve(model);
-                        }).fail(function() {
-                            console.error("fetch failed");
-                            deferred.reject();
+                        }).fail(function(error) {
+                            squid_api.model.status.set("error", error);
+                            deferred.reject(error);
                         });
                     }
                 } else {
@@ -1179,8 +1179,9 @@
                         this.fetch().done( function() {
                             me.fetched = true;
                             deferred.resolve(me);
-                        }).fail(function() {
-                            deferred.reject();
+                        }).fail(function(error) {
+                            squid_api.model.status.set("error", error);
+                            deferred.reject(error);
                         });
                     }
                 }
