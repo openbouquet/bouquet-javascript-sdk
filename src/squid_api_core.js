@@ -368,7 +368,7 @@
             	return customer.get("projects").load(projectId);
             });
         },
-        
+
         /**
          * Get a collection of the current Project Model.
          * Returns a Promise
@@ -537,6 +537,35 @@
                 }
             });
             return dfd.promise();
+        },
+
+        refreshObjectType: function (model) {
+            var objectType = model.get("objectType");
+            var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;
+
+            if (objectType == "Project") {
+                url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
+            } else if (objectType == "Domain") {
+                url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
+            }
+
+            if (model) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: 'json',
+                    contentType: 'application/json'
+                });
+
+                request.done(function () {
+                    squid_api.model.status.set("message", objectType + " successfully refreshed");
+                });
+
+                request.fail(function () {
+                    squid_api.model.status.set("message", objectType + " refresh failed");
+                    squid_api.model.status.set("error", "error");
+                });
+            }
         },
 
         setShortcutId: function (shortcutId, baseConfig, forcedConfig) {
@@ -927,7 +956,7 @@
         },
 
         idAttribute: "oid",
-        
+
         getOid : function(idName) {
             var oid;
             if (this.get("id")) {
@@ -1135,7 +1164,7 @@
             }
             return url;
         },
-        
+
         /**
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
