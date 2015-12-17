@@ -1,9 +1,9 @@
 jssdk2
 ======
 
-The JSSDK core library (Version 2)
+The JSSDK core library (Version 3)
 
-Provides the base services to build an app using the Squid Analyitcs API. 
+Provides the base services to build an app using the Bouquet API. 
 Exposes the API Data Model as Backbone Models to easely build MVC apps.
 
 Also provides the following core services :
@@ -37,8 +37,6 @@ The arguments are :
 * `customerId` : an optional Customer Id
 * `projectId` : an optional Project Id,
 * `domainId` : an optional Domain Id,
-* `selection` : an optional filter selection,
-* `filtersDefaultEvents` : if true or non specified, the default filters controller will be used.
 * `defaultShortcut` : an optional Shortcut id to retrieve app State from.
 * `config`: an optional default configuration (state)
 
@@ -59,15 +57,41 @@ The init method will check for the user login by fetching the Access Token assoc
 If user login is granted, the `squid_api.model.login` Model object will be set accordingly. 
 It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
 
+## Application Models
+The JSSDK provides various Backbone Models under the `squid_api.model` namespace.  
 
-## Authentication management
-TBD
+### squid_api.model.config 
+Represents the application state (current filters selection, selected dimensions...).  
+Config is a schema-free object nevetheless some attributes are commonly used :  
+* selection : the current filters selection  
+* project : the current project ID (oid)  
+* domain : the current domain ID (oid)  
 
-## Application state management
-The api object holds various Models :  
+Example : ```squid_api.model.config.get("selection")``` returns the current filters selection as a JSON object.  
 
-### FiltersModel
-`squid_api.model.filters` : the default FiltersModel object (the one used by the FiltersWidget by default).  
+Behaviors :  
+* set at api.init() if a state or a shortcut or a bookmark parameter is set  
+* will be persisted to an API State object upon any change  
+* will trigger a FacetJob computation if its "selection" is changed
+* if its "project" attribute is changed then the "domain" attribute is reset to null
+* if its "domain" attribute is changed then the "selection" is reset
+
+### squid_api.model.login
+The current logged-in user (also contains the auth token).  
+Behaviors :  
+* Initial value will be fetched at api.init()  
+
+### squid_api.model.customer
+Holds the nested backbone model for the current Customer.  
+It will be lazily updated with nested models as they are be fetched by views such as CollectionManagementWidget.
+For instance, when selecting a project from the ProjectManagementWidget, the  ```squid_api.model.customer.get("projects")``` Collection will be updated with the corresponding fetched project Model.  
+Behaviors :  
+* Initial value will be fetched at api.init()  
+* If changed, then fetch the projects collection  
+
+### squid_api.model.filters
+This model holds the results of a FacetJob computation (triggered by a config.selection change).  
+Example : ```squid_api.model.filters.get("selection").facets[0].items``` returns the actual values (facetItems) of the first facet.  
 Here is a sample FiltersModel :
 ```json
 {
@@ -100,33 +124,9 @@ Here is a sample FiltersModel :
 	}
 }	
 ```
-## Default Filter controller
-If not disabled the following event listeners will be set on api setup :  
 
-```javascript
-// check for new filter selection
-filters.on('change:userSelection', function() {
-    squid_api.controller.facetjob.compute(filters, filters.get("userSelection"));
-});
-
-// check for domain change performed
-squid_api.model.status.on('change:domain', function(model) {
-    var domain = model.get("domain");
-    if (domain) {
-        me.domain = domain.domainId;
-        // launch the filters computation
-        filters.set("id", {
-            "projectId": model.get("domain").projectId
-        });
-        filters.setDomainIds([me.domain]);
-        squid_api.controller.facetjob.compute(filters);
-    } else {
-        // reset the domains
-        me.domain = null;
-        filters.setDomainIds(null);
-    }
-});
-```
+## Authentication management
+TODO
 
 ## Utility methods
-TBD
+TODO

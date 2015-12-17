@@ -19,7 +19,7 @@
     // Squid API definition
     var squid_api = {
         debug: null,
-        version: "2.1.0",
+        version: "3.0.0",
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiURL: null,
         loginURL: null,
@@ -86,92 +86,6 @@
                     }
                 }
                 return obj;
-            },
-
-            getProjectDomains: function () {
-                var dfd = new $.Deferred();
-                var domains = new squid_api.model.DomainCollection();
-                domains.parentId = {"projectId": squid_api.model.config.get("project")};
-                domains.fetch({
-                    success: function (domains) {
-                        dfd.resolve(domains);
-                    },
-                    error: function () {
-                        dfd.reject();
-                    }
-                });
-                return dfd.promise();
-            },
-
-            /*
-             * Returns an array of domain relations based on left/right id
-             */
-            getDomainRelations: function (relations, oid) {
-                var models = [];
-                if (relations && oid) {
-                    for (i = 0; i < relations.length; i++) {
-                        if (relations[i].get("leftId") && relations[i].get("rightId")) {
-                            if (relations[i].get("leftId").domainId == oid || relations[i].get("rightId").domainId == oid) {
-                                models.push(relations[i]);
-                            }
-                        }
-                    }
-                }
-                return models;
-            },
-
-            fetchModel: function (modelName) {
-                var dfd = new $.Deferred();
-                var name = modelName.toLowerCase();
-                var model = new squid_api.model[name.charAt(0).toUpperCase() + name.slice(1) + "Model"]();
-                model.set("id", {
-                    projectId: squid_api.model.config.get("project"),
-                    domainId: squid_api.model.config.get("domain")
-                });
-                model.fetch({
-                    success: function (data) {
-                        dfd.resolve(data);
-                    },
-                    error: function () {
-                        dfd.reject();
-                    }
-                });
-                return dfd.promise();
-            },
-
-            getDomainMetrics: function () {
-                var dfd = new $.Deferred();
-                var domain = new squid_api.model.DomainModel();
-                var metrics = new squid_api.model.MetricCollection();
-                var currentProject = squid_api.model.config.get("project");
-                var currentDomain = squid_api.model.config.get("domain");
-                /*
-                 if the Domain is still dynamic, display all metrics
-                 if the Domain is not dynamic, only display concrete metrics
-                 */
-                if (currentDomain) {
-                    domain.set("id", {"projectId": currentProject, domainId: currentDomain});
-                    metrics.parentId = {projectId: currentProject, domainId: currentDomain};
-                    domain.fetch({
-                        success: function (domain) {
-                            metrics.fetch({
-                                success: function (metrics) {
-                                    if (domain.get("dynamic") === false) {
-                                        metrics.set(metrics.where({dynamic: false}));
-                                    }
-                                    dfd.resolve(metrics);
-                                },
-                                error: function () {
-                                    dfd.reject();
-                                }
-                            });
-                        },
-                        error: function () {
-                            dfd.reject();
-                        }
-                    });
-                }
-                return dfd.promise();
             },
 
             /*
@@ -300,31 +214,202 @@
             },
         },
 
-        setProjectId: function (oid) {
-            if (oid) {
-                var me = this;
-                var dfd = new $.Deferred();
-                this.projectId = oid;
-                this.model.project.set({"id": {"customerId": this.customerId, "projectId": oid}}, {"silent": true});
-                this.model.project.addParameter("deepread", "1");
-                this.model.project.fetch({
-                    success: function (model, response, options) {
-                        console.log("project fetched : " + model.get("name"));
-                        dfd.resolve();
-                    },
-                    error: function (model, response, options) {
-                        console.error("project fetch failed");
-                        dfd.reject();
-                    }
-                });
-                return dfd.promise();
+        getLoginFromToken: function (token, cookieExpiration) {
+            var deferred = $.Deferred();
+            var cookiePrefix = "sq-token", cookie, me = this;
+            if (!cookieExpiration) {
+                cookieExpiration = 120; // 2 hours
+            }
+            if (squid_api.customerId) {
+                cookie = cookiePrefix + "_" + squid_api.customerId;
             } else {
-                // reset
-                var atts = this.model.project.attributes;
-                for (var att in atts) {
-                    this.model.project.set(att, null);
+                cookie = cookiePrefix;
+            }
+            if (!token) {
+                // search in a cookie
+                token = squid_api.utils.readCookie(cookie);
+            }
+
+            if (!token) {
+                deferred.reject();
+            } else {
+                // TODO should update this after we fetch the token
+                squid_api.model.login.set("accessToken", token);
+
+                // fetch the token info from server
+                var tokenModel = new squid_api.model.TokenModel();
+                tokenModel.fetch().fail(function (model, response, options) {
+                    if (model.status === 401) {
+                        squid_api.model.login.set("login", null);
+                    } else {
+                        squid_api.model.login.set("error", response);
+                        squid_api.model.login.set("login", "error");
+                        var mes = "Cannot connect to Bouquet (error " + model.status + ")";
+                        if (model.status === 404) {
+                            mes += "\nCheck that the apiUrl parameter is correct";
+                        }
+                        squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
+                        squid_api.model.status.set("error", true);
+                    }
+                }).done(function (model, response, options) {
+                    // set the customerId
+                    squid_api.customerId = model.customerId;
+
+                    // verify the clientId
+                    if (model.clientId != this.clientId) {
+                        console.log("WARN : the Token used doesn't match you application's ClientId");
+                    }
+
+                    if ((token) && (typeof token != "undefined")) {
+                        // write in a customer cookie
+                        squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
+                        // write in a global cookie
+                        squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
+                    }
+
+                    // update login model from server
+                    squid_api.model.login.fetch().done( function() {
+                        deferred.resolve(squid_api.model.login);
+                    }).fail( function() {
+                        deferred.reject();
+                    });
+                });
+            }
+            return deferred;
+        },
+
+        getLogin : function() {
+            var deferred = $.Deferred();
+            var me = this;
+
+            // set the access_token (to start the login model update)
+            var code = squid_api.utils.getParamValue("code", null);
+            if (code) {
+                // remove code parameter from browser history
+                if (window.history) {
+                    var uri = new URI(window.location.href);
+                    uri.removeQuery("code");
+                    window.history.pushState(code, "", uri);
+                }
+
+                // fetch the access token
+                $.ajax({
+                    type: "POST",
+                    url: squid_api.apiURL + "/token",
+                    dataType: 'json',
+                    data: {
+                        "grant_type": "authorization_code",
+                        "code": code,
+                        "client_id": squid_api.clientId,
+                        "redirect_uri": null
+                    }
+                }).fail(function (jqXHR) {
+                    deferred.reject();
+                }).done(function (data) {
+                    var token = data.oid;
+                    me.getLoginFromToken(token).done( function(login) {
+                        deferred.resolve(login);
+                    }).fail( function() {
+                        deferred.reject();
+                    });
+                });
+            } else {
+                var token = squid_api.utils.getParamValue("access_token", null);
+                me.getLoginFromToken(token).always( function(login) {
+                    deferred.resolve(login);
+                });
+            }
+            return deferred;
+        },
+
+        /**
+         * Get the current Customer Model.
+         * Returns a Promise
+         */
+        getCustomer : function() {
+            var deferred;
+            // check if not already executing
+            if (this.deferredGetCustomer && (this.deferredGetCustomer.state() === "pending")) {
+                // return existing pending deferredGetCustomer
+                deferred = this.deferredGetCustomer;
+            } else {
+                // create a new deferredGetCustomer
+                this.deferredGetCustomer = $.Deferred();
+                deferred = this.deferredGetCustomer;
+                var customer = squid_api.model.customer;
+                if (customer) {
+                    deferred.resolve(customer);
+                } else {
+                    // fetch the customer after making sure user is logged
+                    this.getLogin().done( function() {
+                        var customer2 = new squid_api.model.CustomerInfoModel();
+                        customer2.fetch().done( function() {
+                            squid_api.model.customer = customer2;
+                            deferred.resolve(customer2);
+                        }).fail( function() {
+                            console.error("unable to fetch customer");
+                            deferred.reject(customer2);
+                        });
+                    }).fail( function() {
+                        deferred.reject();
+                    });
                 }
             }
+            return deferred.promise();
+        },
+
+        /**
+         * Get the current Project Model.
+         * Returns a Promise
+         */
+        getSelectedProject : function() {
+            var projectId = squid_api.model.config.get("project");
+            return this.getCustomer().then(function(customer) {
+            	return customer.get("projects").load(projectId);
+            });
+        },
+
+        /**
+         * Get a collection of the current Project Model.
+         * Returns a Promise
+         */
+        getSelectedProjectCollection : function(collectionName) {
+            var projectId = squid_api.model.config.get("project");
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get(collectionName).load();
+                });
+            });
+        },
+
+        /**
+         * Get the current Domain Model.
+         * Returns a Promise
+         */
+        getSelectedDomain : function() {
+            var projectId = squid_api.model.config.get("project");
+            var domainId = squid_api.model.config.get("domain");
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get("domains").load(domainId);
+                });
+            });
+        },
+
+        /**
+         * Get a collection of the current Domain Model.
+         * Returns a Promise
+         */
+        getSelectedDomainCollection : function(collectionName) {
+            var projectId = squid_api.model.config.get("project");
+            var domainId = squid_api.model.config.get("domain");
+            return this.getCustomer().then(function(customer) {
+                return customer.get("projects").load(projectId).then(function(project) {
+                    return project.get("domains").load(domainId).then(function(domain) {
+                        return domain.get(collectionName).load();
+                    });
+                });
+            });
         },
 
         /**
@@ -375,35 +460,6 @@
                     error: function (model, response, options) {
                         console.error("state save failed");
                     }
-                });
-            }
-        },
-
-        refreshObjectType: function (model) {
-            var objectType = model.get("objectType");
-            var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;
-
-            if (objectType == "Project") {
-                url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
-            } else if (objectType == "Domain") {
-                url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
-            }
-
-            if (model) {
-                var request = $.ajax({
-                    type: "GET",
-                    url: url,
-                    dataType: 'json',
-                    contentType: 'application/json'
-                });
-
-                request.done(function () {
-                    squid_api.model.status.set("message", objectType + " successfully refreshed");
-                });
-
-                request.fail(function () {
-                    squid_api.model.status.set("message", objectType + " refresh failed");
-                    squid_api.model.status.set("error", "error");
                 });
             }
         },
@@ -480,6 +536,35 @@
                 }
             });
             return dfd.promise();
+        },
+
+        refreshObjectType: function (model) {
+            var objectType = model.get("objectType");
+            var url = squid_api.apiURL + "/projects/" + model.get("id").projectId;
+
+            if (objectType == "Project") {
+                url = url + "/refreshDatabase" + "?access_token=" + squid_api.model.login.get("accessToken");
+            } else if (objectType == "Domain") {
+                url = url + "/domains/" + model.get("id").domainId + "/cache/refresh" + "?access_token=" + squid_api.model.login.get("accessToken");
+            }
+
+            if (model) {
+                var request = $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: 'json',
+                    contentType: 'application/json'
+                });
+
+                request.done(function () {
+                    squid_api.model.status.set("message", objectType + " successfully refreshed");
+                });
+
+                request.fail(function () {
+                    squid_api.model.status.set("message", objectType + " refresh failed");
+                    squid_api.model.status.set("error", "error");
+                });
+            }
         },
 
         setShortcutId: function (shortcutId, baseConfig, forcedConfig) {
@@ -588,7 +673,6 @@
                 this.defaultConfig.domain = domainId;
             }
             this.domainId = domainId;
-            this.model.domain = new squid_api.model.DomainModel();
 
             var projectId = squid_api.utils.getParamValue("projectId", null);
             if (!projectId) {
@@ -597,49 +681,50 @@
                 this.defaultConfig.project = projectId;
             }
             this.projectId = projectId;
-            this.model.project = new squid_api.model.ProjectModel();
 
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
 
-            // config handling
+            this.defaultConfig.selection = {
+                    "facets" : []
+            };
 
-            var configModel = new Backbone.Model();
-            this.model.config = configModel;
+            // Application Models
 
-            configModel.on("change:project", function (model) {
-                me.setProjectId(model.get("project"));
+            // support for backward compatibility
+            squid_api.model.project = new squid_api.model.ProjectModel();
+
+            // config
+            this.model.config = new Backbone.Model();
+
+            // listen for project/domain change
+            this.model.config.on("change", function (config) {
+                var project;
+                if (config.hasChanged("project")) {
+                    squid_api.getSelectedProject().always( function(project) {
+                        if (config.hasChanged("domain")) {
+                            // deal with domain
+                            squid_api.getSelectedDomain();
+                        } else {
+                            // reset the domain
+                            config.set("domain", null);
+                        }
+                    });
+                } else if (config.hasChanged("domain")) {
+                    // deal with domain
+                    squid_api.getSelectedDomain();
+
+                    // reset the selection
+                    config.set("selection",{
+                        "domain" : config.get("domain"),
+                        "facets": []
+                    });
+                }
             });
 
-            // selection
-
-            var defaultSelection = null;
-            if (args.selection) {
-                if (args.selection.date) {
-                    // setup default filters
-                    defaultSelection = {
-                        "facets": [{
-                            "dimension": {
-                                "id": {
-                                    "projectId": this.projectId,
-                                    "domainId": this.domainId,
-                                    "dimensionId": args.selection.date.dimensionId
-                                }
-                            },
-                            "selectedItems": [{
-                                "type": "i",
-                                "lowerBound": (args.selection.date.lowerBound + "T00:00:00.000Z"),
-                                "upperBound": (args.selection.date.upperBound + "T00:00:00.000Z")
-                            }]
-                        }]
-                    };
-                }
-            }
-
-            var filters = new squid_api.controller.facetjob.FiltersModel();
-            filters.set("selection", defaultSelection);
-            squid_api.model.filters = filters;
+            // filters
+            this.model.filters = new squid_api.controller.facetjob.FiltersModel();
 
             // init the api server URL
             api = squid_api.utils.getParamValue("api", "release");
@@ -746,44 +831,35 @@
             }
 
             // check for login performed
-            loginModel.on('change:login', function (model) {
-                if (model.get("login")) {
-                    // login ok
-                    // perform init chain
-                    var state = squid_api.utils.getParamValue("state", null);
-                    var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
-                    var bookmark = squid_api.utils.getParamValue("bookmark", null);
-                    var status = squid_api.model.status;
-                    if (state) {
-                        var dfd = me.setStateId(null, state, me.defaultConfig);
-                        dfd.fail(function () {
-                            status.set("message", "State not found");
-                            if (shortcut) {
-                                me.setShortcutId(shortcut, me.defaultConfig);
-                            } else if (bookmark) {
-                                me.setBookmarkId(bookmark, me.defaultConfig);
-                            }
-                        });
-                    } else {
+            squid_api.getCustomer().done(function(customer) {
+                // perform config init chain
+                var state = squid_api.utils.getParamValue("state", null);
+                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
+                var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                var status = squid_api.model.status;
+                if (state) {
+                    var dfd = me.setStateId(null, state, me.defaultConfig);
+                    dfd.fail(function () {
+                        status.set("message", "State not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
                             me.setBookmarkId(bookmark, me.defaultConfig);
                         }
+                    });
+                } else {
+                    if (shortcut) {
+                        me.setShortcutId(shortcut, me.defaultConfig);
+                    } else if (bookmark) {
+                        me.setBookmarkId(bookmark, me.defaultConfig);
+                    } else {
+                        me.model.config.set(me.defaultConfig);
                     }
                 }
+            }).fail(function() {
+                squid_api.model.login.set("login", null);
             });
-
-            // set the access_token (to start the login model update)
-            var code = squid_api.utils.getParamValue("code", null);
-            if (code) {
-                loginModel.setAccessCode(code);
-            } else {
-                var token = squid_api.utils.getParamValue("access_token", null);
-                loginModel.setAccessToken(token);
-            }
         },
-
 
         /**
          * Get the API's (Swagger) Schema.
@@ -879,6 +955,22 @@
         },
 
         idAttribute: "oid",
+
+        getOid : function(idName) {
+            var oid;
+            if (this.get("id")) {
+                oid = this.get("id")[idName];
+                if (!oid) {
+                    oid = this.get("oid");
+                }
+            } else {
+                oid = this.get("oid");
+            }
+            if (!oid) {
+                oid = "";
+            }
+            return oid;
+        },
 
         baseRoot: function () {
             return squid_api.apiURL;
@@ -1018,8 +1110,10 @@
 
     squid_api.model.BaseCollection = Backbone.Collection.extend({
         parentId: null,
-
+        fetched : false,
+        error: null,
         parameters: [],
+        deferredMap : {},
 
         addParameter: function (name, value) {
             this.parameters.push({"name": name, "value": value});
@@ -1057,8 +1151,6 @@
             }
             return url;
         },
-
-        error: null,
         addParam: function (url, name, value) {
             if (value) {
                 var delim;
@@ -1070,6 +1162,59 @@
                 url += delim + name + "=" + value;
             }
             return url;
+        },
+
+        /**
+         * Getter for a Model or a Collection of Models.
+         * This method will perform a fetch only if the requested object is not in the object cache.
+         * @param oid if set, will return a Model with the corresponding oid.
+         * @return a Promise
+         */
+        load : function(oid) {
+            // the deferred key must be unique for the object we're fetching
+            var deferredKey = oid || "_all";
+            var deferredKeyPrefix = this.urlRoot();
+            deferredKey = deferredKeyPrefix+"_"+deferredKey;
+            var deferred = this.deferredMap[deferredKey];
+            // check if not already executing
+            if (deferred && (deferred.state() === "pending")) {
+                // return existing pending deferred
+            } else {
+                // create a new deferred
+                deferred = $.Deferred();
+                this.deferredMap[deferredKey] = deferred;
+                var me = this;
+                if (oid) {
+                    var model = this.findWhere({"oid" : oid});
+                    if (model) {
+                        deferred.resolve(model);
+                    } else {
+                        model = new this.model({"id" : this.parent.get("id"), "oid" : oid});
+                        console.log("fetching "+deferredKey);
+                        model.fetch().done( function() {
+                            deferred.resolve(model);
+                        }).fail(function(error) {
+                            squid_api.model.status.set("error", error);
+                            deferred.reject(error);
+                        });
+                    }
+                } else {
+                    if (this.fetched) {
+                        deferred.resolve(this);
+                    } else {
+                        // fetch
+                        console.log("fetching "+deferredKey);
+                        this.fetch().done( function() {
+                            me.fetched = true;
+                            deferred.resolve(me);
+                        }).fail(function(error) {
+                            squid_api.model.status.set("error", error);
+                            deferred.reject(error);
+                        });
+                    }
+                }
+            }
+            return deferred.promise();
         }
     });
 
@@ -1089,124 +1234,6 @@
 
         urlRoot: function () {
             return this.baseRoot() + "/user";
-        },
-
-        /**
-         * Login the user using an access_token
-         */
-        setAccessCode: function (code, cookieExpiration) {
-            var me = this;
-
-            // remove from browser history
-            if (window.history) {
-                var uri = new URI(window.location.href);
-                uri.removeQuery("code");
-                window.history.pushState(code, "", uri);
-            }
-
-            // set the access token and refresh data
-            var request = $.ajax({
-                type: "POST",
-                url: squid_api.apiURL + "/token",
-                dataType: 'json',
-                data: {
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "client_id": squid_api.clientId,
-                    "redirect_uri": null
-                }
-            });
-
-            request.fail(function (jqXHR) {
-                me.setAccessToken(null, cookieExpiration);
-            });
-
-            request.done(function (data) {
-                var token = data.oid;
-                me.setAccessToken(token, cookieExpiration);
-            });
-
-        },
-
-        /**
-         * Login the user using an access_token
-         */
-        setAccessToken: function (token, cookieExpiration) {
-            var cookiePrefix = "sq-token", cookie, me = this;
-
-            if (!cookieExpiration) {
-                cookieExpiration = 120; // 2 hours
-            }
-
-            if (squid_api.customerId) {
-                cookie = cookiePrefix + "_" + squid_api.customerId;
-            }
-            else {
-                cookie = cookiePrefix;
-            }
-            if (!token) {
-                // search in a cookie
-                token = squid_api.utils.readCookie(cookie);
-            }
-
-            if (!token) {
-                squid_api.model.login.set("login", null);
-            } else {
-                this.set("accessToken", token);
-
-                // fetch the token info from server
-                var tokenModel = new squid_api.model.TokenModel({
-                    "token": token
-                });
-
-                tokenModel.on("change:customerId", function (model) {
-                    // set the customerId
-                    squid_api.customerId = model.get("customerId");
-
-                    // verify the clientId
-                    if (model.get("clientId") != this.clientId) {
-                        console.log("WARN : the Token used doesn't match you application's ClientId");
-                    }
-
-                    if ((token) && (typeof token != "undefined")) {
-                        // write in a customer cookie
-                        squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
-                        // write in a global cookie
-                        squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
-                    }
-
-                    // update login model from server
-                    squid_api.model.login.fetch().then(function () {
-                        // fetch the customer
-                        squid_api.model.customer.fetch()
-                            .done(function (customer) {
-                                console.log("customer fetched : " + customer.name);
-                            })
-                            .fail(function () {
-                                console.log("customer fetched failed");
-                            });
-                    });
-                });
-
-                tokenModel.fetch({
-                    error: function (model, response, options) {
-                        if (model.status === 401) {
-                            squid_api.model.login.set("login", null);
-                        } else {
-                            squid_api.model.login.set("error", response);
-                            squid_api.model.login.set("login", "error");
-                            var mes = "Cannot connect to Bouquet (error " + model.status + ")";
-                            if (model.status === 404) {
-                                mes += "\nCheck that the apiUrl parameter is correct";
-                            }
-                            squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
-                            squid_api.model.status.set("error", true);
-                        }
-                    }
-                });
-            }
-
-
         },
 
         /**
@@ -1296,31 +1323,27 @@
      * --- API Meta-Model objects Mapping to Backbone Models---
      */
 
-
-
     squid_api.model.CustomerInfoModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/";
         }
     });
 
-    squid_api.model.customer = new squid_api.model.CustomerInfoModel();
-
     squid_api.model.ClientModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/clients/" + this.get("id").clientId;
+            return this.baseRoot() + "/clients/" + this.getOid("clientId");
         }
     });
 
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/states/" + (this.get("id").stateId || "");
+            return this.baseRoot() + "/states/" + this.getOid("stateId");
         }
     });
 
     squid_api.model.ShortcutModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/shortcuts/" + (this.get("id").shortcutId || "");
+            return this.baseRoot() + "/shortcuts/" + this.getOid("shortcutId");
         }
     });
 
@@ -1347,7 +1370,7 @@
 
     squid_api.model.ProjectModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/projects/" + (this.get("id").projectId || "");
+            return this.baseRoot() + "/projects/" + this.getOid("projectId");
         }
     });
 
@@ -1360,7 +1383,7 @@
 
     squid_api.model.UserModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return this.baseRoot() + "/users/" + this.get("id").userId;
+            return this.baseRoot() + "/users/" + this.getOid("userId");
         }
     });
 
@@ -1377,76 +1400,89 @@
         }
     });
 
-    squid_api.model.DomainModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.DomainModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + (this.get("id").domainId || "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/domains/" + this.getOid("domainId");
         }
     });
 
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DomainModel,
         urlRoot: function () {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.projectId + "/domains";
+            return this.parent.urlRoot() + "/domains";
         }
     });
 
-    squid_api.model.RelationModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.RelationModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.get("id").relationId;
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/relations/" + this.getOid("relationId");
         }
     });
 
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.RelationModel,
         urlRoot: function () {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.projectId + "/relations";
+            return this.parent.urlRoot() + "/relations";
         }
     });
 
-    squid_api.model.DimensionModel = squid_api.model.DomainModel.extend({
+    squid_api.model.DimensionModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + (this.get("id").dimensionId || "");
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/dimensions/" + this.getOid("dimensionId");
         }
     });
 
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DimensionModel,
         urlRoot: function () {
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/dimensions";
+            return this.parent.urlRoot() + "/dimensions";
         }
     });
 
-    squid_api.model.MetricModel = squid_api.model.DomainModel.extend({
+    squid_api.model.MetricModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
-            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + (this.get("id").metricId || "");
+            return squid_api.model.DomainModel.prototype.urlRoot.apply(this, arguments) + "/metrics/" + this.getOid("metricId");
         }
     });
 
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.MetricModel,
         urlRoot: function () {
-            return squid_api.model.DomainCollection.prototype.urlRoot.apply(this, arguments) + "/" + this.parentId.domainId + "/metrics";
+            return this.parent.urlRoot() + "/metrics";
         }
     });
 
-    squid_api.model.BookmarkModel = squid_api.model.ProjectModel.extend({
+    squid_api.model.BookmarkModel = squid_api.model.BaseModel.extend({
         urlRoot: function() {
-            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + (this.get("id").bookmarkId || "");
+            return squid_api.model.ProjectModel.prototype.urlRoot.apply(this, arguments) + "/bookmarks/" + this.getOid("bookmarkId");
         }
     });
 
     squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.BookmarkModel,
         urlRoot: function() {
-            return squid_api.model.ProjectCollection.prototype.urlRoot.apply(this, arguments) +"/"+ this.parentId.projectId + "/bookmarks";
+            return this.parent.urlRoot() + "/bookmarks";
         }
     });
 
-    // implement a beforeFetch event for collections
-    var fetch = Backbone.Collection.prototype.fetch;
-    Backbone.Collection.prototype.fetch = function() {
-        this.trigger('beforeFetch');
-        return fetch.apply(this, arguments);
+    // declare nested models after Model and Collections as there are cyclic dependencies
+
+    squid_api.model.CustomerInfoModel.prototype.relations = {
+        "projects" : squid_api.model.ProjectCollection,
+        "users" : squid_api.model.UserCollection,
+        "usergroups" : squid_api.model.GroupCollection,
+        "shortcuts" : squid_api.model.ShortcutCollection
+    };
+
+    squid_api.model.ProjectModel.prototype.relations = {
+        "domains" : squid_api.model.DomainCollection,
+        "relations" : squid_api.model.RelationCollection,
+        "bookmarks" : squid_api.model.BookmarkCollection
+    };
+
+    squid_api.model.DomainModel.prototype.relations = {
+        "dimensions" : squid_api.model.DimensionCollection,
+        "metrics" : squid_api.model.MetricCollection
     };
 
     return squid_api;
@@ -2040,7 +2076,8 @@
         domains: null,
         timeoutMillis: function () {
             return squid_api.timeoutMillis;
-        }
+        },
+        relations : {}
     });
 
     /**
@@ -2282,12 +2319,34 @@
             if (jobModel.get("engineVersion")) {
                 projectFacetJob.set("engineVersion", jobModel.get("engineVersion"));
             }
+            
+            var domains = jobModel.get("domains");
+            if ((!domains) || (!projectId)) {
+                // take first dimension's
+                if (selectionOpt) {
+                    var facets = selectionOpt.facets;
+                    if (facets) {
+                        domains = [];
+                        for (var i=0; i<facets.length; i++) {
+                            var facet = facets[i];
+                            domains.push({
+                                "projectId" : facet.dimension.id.projectId,
+                                "domainId" : facet.dimension.id.domainId
+                            });
+                            if (!projectId) {
+                                projectId = facet.dimension.id.projectId;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             projectFacetJob.set({
                 "id": {
                     projectId: projectId
                 },
-                "domains": jobModel.get("domains"),
+                "domains": domains,
                 "selection": selection
             });
 
