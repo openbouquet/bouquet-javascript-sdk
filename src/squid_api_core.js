@@ -30,6 +30,7 @@
         clientId: null,
         fakeServer: null,
         defaultShortcut: null,
+        defaultBookmark: null,
         defaultConfig: null,
         swaggerURL: null,
         apiSchema: null,
@@ -648,6 +649,7 @@
             args.relationId = args.relationId || null;
             args.selection = args.selection || null;
             this.defaultShortcut = args.defaultShortcut || null;
+            this.defaultBookmark = args.defaultBookmark || null;
             this.defaultConfig = args.config || {};
             apiUrl = args.apiUrl || null;
 
@@ -835,7 +837,7 @@
                 // perform config init chain
                 var state = squid_api.utils.getParamValue("state", null);
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
-                var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                var bookmark = squid_api.utils.getParamValue("bookmark", me.defaultBookmark);
                 var status = squid_api.model.status;
                 if (state) {
                     var dfd = me.setStateId(null, state, me.defaultConfig);
@@ -848,10 +850,10 @@
                         }
                     });
                 } else {
-                    if (shortcut) {
-                        me.setShortcutId(shortcut, me.defaultConfig);
-                    } else if (bookmark) {
+                    if (bookmark) {
                         me.setBookmarkId(bookmark, me.defaultConfig);
+                    } else if (shortcut) {
+                        me.setShortcutId(shortcut, me.defaultConfig);
                     } else {
                         me.model.config.set(me.defaultConfig);
                     }
