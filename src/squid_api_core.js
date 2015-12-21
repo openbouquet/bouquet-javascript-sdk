@@ -834,6 +834,7 @@
             // check for login performed
             squid_api.getCustomer().done(function(customer) {
                 // perform config init chain
+                me.defaultConfig.customer = customer.get("id");
                 var state = squid_api.utils.getParamValue("state", null);
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
                 var bookmark = squid_api.utils.getParamValue("bookmark", null);
