@@ -401,14 +401,8 @@
          * Returns a Promise
          */
         getSelectedDomainCollection : function(collectionName) {
-            var projectId = squid_api.model.config.get("project");
-            var domainId = squid_api.model.config.get("domain");
-            return this.getCustomer().then(function(customer) {
-                return customer.get("projects").load(projectId).then(function(project) {
-                    return project.get("domains").load(domainId).then(function(domain) {
-                        return domain.get(collectionName).load();
-                    });
-                });
+            return this.getSelectedDomain().then(function(domain) {
+                return domain.get(collectionName).load();
             });
         },
 
@@ -1091,9 +1085,14 @@
 
     });
 
+    /**
+     * Perform a save() on all models of a collection.
+     * This method will trigger a "sync" event on the collection when all done.
+     * @return a Promise which is resolved once all save operations are done.
+     */
     Backbone.Collection.prototype.saveAll = function (models) {
         var dfd = new $.Deferred();
-
+        var me = this;
         // create array of deferreds to save
         var deferreds = [];
         for (var i = 0; i < models.length; i++) {
@@ -1104,6 +1103,7 @@
 
         // resolve promise once all models have been saved
         $.when.apply($, deferreds).done(function () {
+            me.trigger("sync");
             dfd.resolve();
         });
 
