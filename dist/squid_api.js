@@ -278,6 +278,10 @@
             return deferred;
         },
 
+        /**
+         * Proceed with the login process by dealing with access token or code.
+         * @return a LoginModel within a Promise
+         */
         getLogin : function() {
             var deferred = $.Deferred();
             var me = this;
