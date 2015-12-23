@@ -25,6 +25,8 @@ module.exports = function(grunt) {
             },
             all : {
                 src : [ 'src/squid_api_core.js',
+                        'src/squid_api_models.js',
+                        'src/squid_api_utils.js',
                         'src/squid_api_analysisjob_controller.js',
                         'src/squid_api_facetjob_controller.js' ],
                 dest : 'dist/squid_api.js',
