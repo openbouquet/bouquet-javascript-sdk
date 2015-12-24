@@ -13,6 +13,8 @@ Also provides the following core services :
 * Default Filter controller
 * Utility methods
 
+Version 3 introduces the "Nested Model".
+
 ## API Configuration
 
 ### Setup
@@ -48,21 +50,22 @@ In addition to this, some extra parameter are supported :
 * `debug` : set the api to debug (e.g. do not redirect on login failure)
 
 ### Initialization
-After setting-up the API, the init process must take place. 
+After setting-up the API, the init process can take place. 
 This process is triggered by calling the API init method :
 ```
 api.init();
 ```
 The init method will check for the user login by fetching the Access Token associated to the Access Code passed as a "code" parameter of the url. 
 If user login is granted, the `squid_api.model.login` Model object will be set accordingly. 
-It will also fetch for the Customer model object associated to the verified user and set to `squid_api.model.customer`.
+It will also fetch the Customer model (root object) associated to the current user.
+The customer will be set to `squid_api.model.customer`.
 
 ## Application Models
 The JSSDK provides various Backbone Models under the `squid_api.model` namespace.  
 
 ### squid_api.model.config 
 Represents the application state (current filters selection, selected dimensions...).  
-Config is a schema-free object nevetheless some attributes are commonly used :  
+Config is a schema-free object nevertheless some attributes are commonly used :  
 * selection : the current filters selection  
 * project : the current project ID (oid)  
 * domain : the current domain ID (oid)  
@@ -75,22 +78,57 @@ Behaviors :
 * will trigger a FacetJob computation if its "selection" is changed
 * if its "project" attribute is changed then the "domain" attribute is reset to null
 * if its "domain" attribute is changed then the "selection" is reset
+* if its "selection" attribute is changed then a FacetJob will be created and the computation results will
+update the squid_api.model.filters.
 
 ### squid_api.model.login
 The current logged-in user (also contains the auth token).  
 Behaviors :  
 * Initial value will be fetched at api.init()  
 
-### squid_api.model.customer
+### squid_api.model.customer (the "Nested Model")
 Holds the nested backbone model for the current Customer.  
 It will be lazily updated with nested models as they are be fetched by views such as CollectionManagementWidget.
-For instance, when selecting a project from the ProjectManagementWidget, the  ```squid_api.model.customer.get("projects")``` Collection will be updated with the corresponding fetched project Model.  
+For instance, when selecting a project from the ProjectManagementWidget, the  `squid_api.model.customer.get("projects")` Collection 
+will be updated with the corresponding fetched project Model.  
+
+The nested model is a very convenient way of accessing the api model data.  
+The root object is customer which you can get by calling the squid_api.getCustomer() method.  
+This method returns a Promise so to get the customer object :  
+```
+squid_api.getCustomer().done( function(customerModel){
+	// ...
+});
+```
+Nested model objects have a specific `load` method which when called on a Model or a Collection will fetch it in a thread-safe manner 
+(all callers will receive the same Promise). When called on a Collection, load can take an ID argument to fetch only the corresponding child model.  
+Note that the nested model also works as a cache : when called again, the same load() method will not issue an http request as the model/collection 
+is already present in the nested model.  
+  
+Examples :
+```
+// fetch all projects
+squid_api.getCustomer().done( function(customerModel){
+	customerModel.get("projects").load().done( function(projectsCollection){
+		// ...
+	});
+});
+```
+```
+// fetch the project with id "1"
+squid_api.getCustomer().done( function(customerModel){
+	customerModel.get("projects").load("1").done( function(projectModel){
+		// ...
+	});
+});
+```
+
+
 Behaviors :  
-* Initial value will be fetched at api.init()  
-* If changed, then fetch the projects collection  
+* Will be automatically fetched at api.init()  
 
 ### squid_api.model.filters
-This model holds the results of a FacetJob computation (triggered by a config.selection change).  
+This model holds the results of a FacetJob computation (triggered by a squid_api.model.config.selection change event).  
 Example : ```squid_api.model.filters.get("selection").facets[0].items``` returns the actual values (facetItems) of the first facet.  
 Here is a sample FiltersModel :
 ```json
