@@ -1270,16 +1270,22 @@
                 var project;
                 if (config.hasChanged("project")) {
                     squid_api.getSelectedProject().always( function(project) {
-                        if (config.hasChanged("domain")) {
-                            // deal with domain
+                        if (config.hasChanged("domain") && config.get("domain")) {
+                            // load the domain
                             squid_api.getSelectedDomain();
                         } else {
-                            // reset the domain
-                            config.set("domain", null);
+                            // reset the domain & the selection
+                            config.set({ 
+                                "domain" : null,
+                                "selection" : {
+                                    "domain" : null,
+                                    "facets": []
+                                }
+                            });
                         }
                     });
                 } else if (config.hasChanged("domain")) {
-                    // deal with domain
+                    // load the domain
                     squid_api.getSelectedDomain();
 
                     // reset the selection
