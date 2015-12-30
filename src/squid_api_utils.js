@@ -521,8 +521,10 @@
                             // load the domain
                             squid_api.getSelectedDomain();
                         } else {
-                            // reset the domain & the selection
-                            config.set({ 
+                            // project only changed
+                            // reset domain, selection, bookmark
+                            config.set({
+                                "bookmark" : null,
                                 "domain" : null,
                                 "selection" : {
                                     "domain" : null,
