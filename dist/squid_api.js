@@ -2343,14 +2343,14 @@
 
             });
 
-            return dfd.promise();
+            return dfd;
         },
 
         jobCreationCallback: function (projectFacetJob, jobModel, dfd) {
             dfd = dfd || new $.Deferred();
             jobModel.set("id", projectFacetJob.get("id"));
             jobModel.set("oid", projectFacetJob.get("oid"));
-            if (projectFacetJob.get("status") == "DONE") {
+            if (projectFacetJob.get("status") === "DONE") {
                 var t = projectFacetJob.get("statistics");
                 if (t) {
                     console.log("FacetJob computation time : " + (t.endTime - t.startTime) + " ms");
@@ -2371,9 +2371,8 @@
                 dfd.resolve();
             } else {
                 // try to get the results
-                controller.getJobResults(jobModel, dfd);
+                return controller.getJobResults(jobModel, dfd);
             }
-            return dfd.promise();
         },
 
         /**
@@ -2383,8 +2382,7 @@
          */
         compute: function (jobModel, selection, dfd) {
             dfd = dfd || new $.Deferred();
-            this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
-            return dfd.promise();
+            return this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
         },
 
         /**
@@ -2484,7 +2482,7 @@
                 success: function (model, response) {
                     if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
-                        controller.getJobResults(jobModel);
+                        controller.getJobResults(jobModel, dfd);
                     } else {
                         var t = model.get("statistics");
                         if (t) {
@@ -2502,7 +2500,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
-            return dfd.promise();
+            return dfd;
         },
 
         /**
