@@ -20,7 +20,8 @@
         domains: null,
         timeoutMillis: function () {
             return squid_api.timeoutMillis;
-        }
+        },
+        relations : {}
     });
 
     /**
@@ -262,12 +263,34 @@
             if (jobModel.get("engineVersion")) {
                 projectFacetJob.set("engineVersion", jobModel.get("engineVersion"));
             }
+            
+            var domains = jobModel.get("domains");
+            if ((!domains) || (!projectId)) {
+                // take first dimension's
+                if (selectionOpt) {
+                    var facets = selectionOpt.facets;
+                    if (facets) {
+                        domains = [];
+                        for (var i=0; i<facets.length; i++) {
+                            var facet = facets[i];
+                            domains.push({
+                                "projectId" : facet.dimension.id.projectId,
+                                "domainId" : facet.dimension.id.domainId
+                            });
+                            if (!projectId) {
+                                projectId = facet.dimension.id.projectId;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             projectFacetJob.set({
                 "id": {
                     projectId: projectId
                 },
-                "domains": jobModel.get("domains"),
+                "domains": domains,
                 "selection": selection
             });
 
@@ -293,14 +316,14 @@
 
             });
 
-            return dfd.promise();
+            return dfd;
         },
 
         jobCreationCallback: function (projectFacetJob, jobModel, dfd) {
             dfd = dfd || new $.Deferred();
             jobModel.set("id", projectFacetJob.get("id"));
             jobModel.set("oid", projectFacetJob.get("oid"));
-            if (projectFacetJob.get("status") == "DONE") {
+            if (projectFacetJob.get("status") === "DONE") {
                 var t = projectFacetJob.get("statistics");
                 if (t) {
                     console.log("FacetJob computation time : " + (t.endTime - t.startTime) + " ms");
@@ -321,9 +344,8 @@
                 dfd.resolve();
             } else {
                 // try to get the results
-                controller.getJobResults(jobModel, dfd);
+                return controller.getJobResults(jobModel, dfd);
             }
-            return dfd.promise();
         },
 
         /**
@@ -333,8 +355,7 @@
          */
         compute: function (jobModel, selection, dfd) {
             dfd = dfd || new $.Deferred();
-            this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
-            return dfd.promise();
+            return this.createJob(jobModel, selection, this.jobCreationCallback, dfd);
         },
 
         /**
@@ -434,7 +455,7 @@
                 success: function (model, response) {
                     if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
-                        controller.getJobResults(jobModel);
+                        controller.getJobResults(jobModel, dfd);
                     } else {
                         var t = model.get("statistics");
                         if (t) {
@@ -452,7 +473,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
-            return dfd.promise();
+            return dfd;
         },
 
         /**
