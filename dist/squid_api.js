@@ -854,7 +854,7 @@
             var deferred = $.Deferred();
             var cookiePrefix = "sq-token", cookie, me = this;
             if (!cookieExpiration) {
-                cookieExpiration = 120; // 2 hours
+                cookieExpiration = 60*24*365; // 1 year
             }
             if (squid_api.customerId) {
                 cookie = cookiePrefix + "_" + squid_api.customerId;
