@@ -663,11 +663,13 @@
                 if (state) {
                     var dfd = me.setStateId(null, state, me.defaultConfig);
                     dfd.fail(function () {
-                        status.set("message", "State not found");
+                        status.set("message", "Warning : specified application state not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
                             me.setBookmarkId(bookmark, me.defaultConfig);
+                        } else {
+                            me.model.config.set(me.defaultConfig);
                         }
                     });
                 } else {
