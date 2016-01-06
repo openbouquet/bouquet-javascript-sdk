@@ -761,7 +761,7 @@
 }(this, function (Backbone, _, squid_api) {
 
     // Enhance Squid API utils
-    
+
     squid_api.utils = _.extend(squid_api.utils, {
 
         /*
@@ -831,7 +831,7 @@
         },
 
     });
-    
+
     squid_api = _.extend(squid_api, {
         /**
          * Compute an AnalysisJob or a FacetJob.
@@ -1266,11 +1266,11 @@
             this.model.config = new Backbone.Model();
 
             // listen for project/domain change
-            this.model.config.on("change", function (config) {
+            this.model.config.on("change", function (config, value) {
                 var project;
-                if (config.hasChanged("project")) {
+                if (config.hasChanged("project") || value === true) {
                     squid_api.getSelectedProject().always( function(project) {
-                        if (config.hasChanged("domain") && config.get("domain")) {
+                        if ((config.hasChanged("domain") && config.get("domain")) || value === true) {
                             // load the domain
                             squid_api.getSelectedDomain();
                         } else {
