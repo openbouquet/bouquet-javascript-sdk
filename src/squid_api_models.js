@@ -270,9 +270,10 @@
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
+         * @param forceRefresh if set and true : object in cache will be fetched
          * @return a Promise
          */
-        load : function(oid) {
+        load : function(oid, forceRefresh) {
             // the deferred key must be unique for the object we're fetching
             var deferredKey = oid || "_all";
             var deferredKeyPrefix = this.urlRoot();
@@ -287,14 +288,20 @@
                 this.deferredMap[deferredKey] = deferred;
                 var me = this;
                 if (oid) {
+                    // check if already existing
                     var model = this.findWhere({"oid" : oid});
-                    if (model) {
+                    if (model && (forceRefresh !== true)) {
+                        // return existing
                         deferred.resolve(model);
                     } else {
-                        model = new this.model({"id" : this.parent.get("id"), "oid" : oid});
-                        console.log("fetching "+deferredKey);
-                        model.fetch().done( function() {
-                            deferred.resolve(model);
+                        // fetch collection to get the model
+                        this.load().done( function(collection) {
+                            model = collection.findWhere({"oid" : oid});
+                            if (model) {
+                                deferred.resolve(model);
+                            } else {
+                                deferred.reject("object not found");
+                            }
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
                             deferred.reject(error);
@@ -304,7 +311,7 @@
                     if (this.fetched) {
                         deferred.resolve(this);
                     } else {
-                        // fetch
+                        // fetch collection
                         console.log("fetching "+deferredKey);
                         this.fetch().done( function() {
                             me.fetched = true;

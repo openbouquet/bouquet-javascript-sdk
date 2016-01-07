@@ -8,7 +8,7 @@
 }(this, function (Backbone, _, squid_api) {
 
     // Enhance Squid API utils
-    
+
     squid_api.utils = _.extend(squid_api.utils, {
 
         /*
@@ -78,7 +78,7 @@
         },
 
     });
-    
+
     squid_api = _.extend(squid_api, {
         /**
          * Compute an AnalysisJob or a FacetJob.
@@ -249,10 +249,10 @@
          * Get the current Project Model.
          * Returns a Promise
          */
-        getSelectedProject : function() {
+        getSelectedProject : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             return this.getCustomer().then(function(customer) {
-            	return customer.get("projects").load(projectId);
+            	return customer.get("projects").load(projectId, forceRefresh);
             });
         },
 
@@ -273,12 +273,12 @@
          * Get the current Domain Model.
          * Returns a Promise
          */
-        getSelectedDomain : function() {
+        getSelectedDomain : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             var domainId = squid_api.model.config.get("domain");
             return this.getCustomer().then(function(customer) {
                 return customer.get("projects").load(projectId).then(function(project) {
-                    return project.get("domains").load(domainId);
+                    return project.get("domains").load(domainId, forceRefresh);
                 });
             });
         },
@@ -513,19 +513,23 @@
             this.model.config = new Backbone.Model();
 
             // listen for project/domain change
-            this.model.config.on("change", function (config) {
+            this.model.config.on("change", function (config, value) {
                 var project;
-                if (config.hasChanged("project")) {
-                    squid_api.getSelectedProject().always( function(project) {
-                        if (config.hasChanged("domain") && config.get("domain")) {
+                var forceRefresh = (value === true);
+                if (config.hasChanged("project") || forceRefresh) {
+                    squid_api.getSelectedProject(forceRefresh).always( function(project) {
+                        if ((config.hasChanged("domain") && config.get("domain")) || forceRefresh) {
                             // load the domain
-                            squid_api.getSelectedDomain();
+                            squid_api.getSelectedDomain(forceRefresh);
                         } else {
                             // project only changed
-                            // reset domain, selection, bookmark
+                            // reset the config
                             config.set({
                                 "bookmark" : null,
                                 "domain" : null,
+                                "period" : null,
+                                "chosenDimensions" : null,
+                                "chosenMetrics" : null,
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
@@ -533,14 +537,19 @@
                             });
                         }
                     });
-                } else if (config.hasChanged("domain")) {
+                } else if (config.hasChanged("domain") || forceRefresh) {
                     // load the domain
-                    squid_api.getSelectedDomain();
-
-                    // reset the selection
-                    config.set("selection",{
-                        "domain" : config.get("domain"),
-                        "facets": []
+                    squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
+                        // reset the config
+                        config.set({
+                            "period" : null,
+                            "chosenDimensions" : null,
+                            "chosenMetrics" : null,
+                            "selection":{
+                                "domain" : domain.get("oid"),
+                                "facets": []
+                            }
+                        });
                     });
                 }
             });
