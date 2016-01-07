@@ -249,10 +249,10 @@
          * Get the current Project Model.
          * Returns a Promise
          */
-        getSelectedProject : function() {
+        getSelectedProject : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             return this.getCustomer().then(function(customer) {
-            	return customer.get("projects").load(projectId);
+            	return customer.get("projects").load(projectId, forceRefresh);
             });
         },
 
@@ -273,12 +273,12 @@
          * Get the current Domain Model.
          * Returns a Promise
          */
-        getSelectedDomain : function() {
+        getSelectedDomain : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             var domainId = squid_api.model.config.get("domain");
             return this.getCustomer().then(function(customer) {
                 return customer.get("projects").load(projectId).then(function(project) {
-                    return project.get("domains").load(domainId);
+                    return project.get("domains").load(domainId, forceRefresh);
                 });
             });
         },
@@ -515,11 +515,12 @@
             // listen for project/domain change
             this.model.config.on("change", function (config, value) {
                 var project;
-                if (config.hasChanged("project") || value === true) {
-                    squid_api.getSelectedProject().always( function(project) {
-                        if ((config.hasChanged("domain") && config.get("domain")) || value === true) {
+                var forceRefresh = (value === true);
+                if (config.hasChanged("project") || forceRefresh) {
+                    squid_api.getSelectedProject(forceRefresh).always( function(project) {
+                        if ((config.hasChanged("domain") && config.get("domain")) || forceRefresh) {
                             // load the domain
-                            squid_api.getSelectedDomain();
+                            squid_api.getSelectedDomain(forceRefresh);
                         } else {
                             // project only changed
                             // reset domain, selection, bookmark
@@ -533,14 +534,14 @@
                             });
                         }
                     });
-                } else if (config.hasChanged("domain")) {
+                } else if (config.hasChanged("domain") || forceRefresh) {
                     // load the domain
-                    squid_api.getSelectedDomain();
-
-                    // reset the selection
-                    config.set("selection",{
-                        "domain" : config.get("domain"),
-                        "facets": []
+                    squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
+                        // reset the selection
+                        config.set("selection",{
+                            "domain" : domain.get("oid"),
+                            "facets": []
+                        });
                     });
                 }
             });
