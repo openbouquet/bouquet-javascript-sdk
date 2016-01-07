@@ -523,10 +523,12 @@
                             squid_api.getSelectedDomain(forceRefresh);
                         } else {
                             // project only changed
-                            // reset domain, selection, bookmark
+                            // reset the config
                             config.set({
                                 "bookmark" : null,
                                 "domain" : null,
+                                "chosenDimensions" : null,
+                                "chosenMetrics" : null,
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
@@ -537,10 +539,14 @@
                 } else if (config.hasChanged("domain") || forceRefresh) {
                     // load the domain
                     squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
-                        // reset the selection
-                        config.set("selection",{
-                            "domain" : domain.get("oid"),
-                            "facets": []
+                        // reset the config
+                        config.set({
+                            "chosenDimensions" : null,
+                            "chosenMetrics" : null,
+                            "selection":{
+                                "domain" : domain.get("oid"),
+                                "facets": []
+                            }
                         });
                     });
                 }
