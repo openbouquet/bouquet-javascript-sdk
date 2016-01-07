@@ -527,6 +527,7 @@
                             config.set({
                                 "bookmark" : null,
                                 "domain" : null,
+                                "period" : null,
                                 "chosenDimensions" : null,
                                 "chosenMetrics" : null,
                                 "selection" : {
@@ -541,6 +542,7 @@
                     squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
                         // reset the config
                         config.set({
+                            "period" : null,
                             "chosenDimensions" : null,
                             "chosenMetrics" : null,
                             "selection":{
