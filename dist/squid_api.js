@@ -406,9 +406,10 @@
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
+         * @param forceRefresh if set and true : object in cache will be fetched
          * @return a Promise
          */
-        load : function(oid) {
+        load : function(oid, forceRefresh) {
             // the deferred key must be unique for the object we're fetching
             var deferredKey = oid || "_all";
             var deferredKeyPrefix = this.urlRoot();
@@ -423,14 +424,20 @@
                 this.deferredMap[deferredKey] = deferred;
                 var me = this;
                 if (oid) {
+                    // check if already existing
                     var model = this.findWhere({"oid" : oid});
-                    if (model) {
+                    if (model && (forceRefresh !== true)) {
+                        // return existing
                         deferred.resolve(model);
                     } else {
-                        model = new this.model({"id" : this.parent.get("id"), "oid" : oid});
-                        console.log("fetching "+deferredKey);
-                        model.fetch().done( function() {
-                            deferred.resolve(model);
+                        // fetch collection to get the model
+                        this.load().done( function(collection) {
+                            model = collection.findWhere({"oid" : oid});
+                            if (model) {
+                                deferred.resolve(model);
+                            } else {
+                                deferred.reject("object not found");
+                            }
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
                             deferred.reject(error);
@@ -440,7 +447,7 @@
                     if (this.fetched) {
                         deferred.resolve(this);
                     } else {
-                        // fetch
+                        // fetch collection
                         console.log("fetching "+deferredKey);
                         this.fetch().done( function() {
                             me.fetched = true;
@@ -761,7 +768,7 @@
 }(this, function (Backbone, _, squid_api) {
 
     // Enhance Squid API utils
-    
+
     squid_api.utils = _.extend(squid_api.utils, {
 
         /*
@@ -831,7 +838,7 @@
         },
 
     });
-    
+
     squid_api = _.extend(squid_api, {
         /**
          * Compute an AnalysisJob or a FacetJob.
@@ -854,7 +861,7 @@
             var deferred = $.Deferred();
             var cookiePrefix = "sq-token", cookie, me = this;
             if (!cookieExpiration) {
-                cookieExpiration = 120; // 2 hours
+                cookieExpiration = 60*24*365; // 1 year
             }
             if (squid_api.customerId) {
                 cookie = cookiePrefix + "_" + squid_api.customerId;
@@ -1002,10 +1009,10 @@
          * Get the current Project Model.
          * Returns a Promise
          */
-        getSelectedProject : function() {
+        getSelectedProject : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             return this.getCustomer().then(function(customer) {
-            	return customer.get("projects").load(projectId);
+            	return customer.get("projects").load(projectId, forceRefresh);
             });
         },
 
@@ -1026,12 +1033,12 @@
          * Get the current Domain Model.
          * Returns a Promise
          */
-        getSelectedDomain : function() {
+        getSelectedDomain : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             var domainId = squid_api.model.config.get("domain");
             return this.getCustomer().then(function(customer) {
                 return customer.get("projects").load(projectId).then(function(project) {
-                    return project.get("domains").load(domainId);
+                    return project.get("domains").load(domainId, forceRefresh);
                 });
             });
         },
@@ -1266,19 +1273,23 @@
             this.model.config = new Backbone.Model();
 
             // listen for project/domain change
-            this.model.config.on("change", function (config) {
+            this.model.config.on("change", function (config, value) {
                 var project;
-                if (config.hasChanged("project")) {
-                    squid_api.getSelectedProject().always( function(project) {
-                        if (config.hasChanged("domain") && config.get("domain")) {
+                var forceRefresh = (value === true);
+                if (config.hasChanged("project") || forceRefresh) {
+                    squid_api.getSelectedProject(forceRefresh).always( function(project) {
+                        if ((config.hasChanged("domain") && config.get("domain")) || forceRefresh) {
                             // load the domain
-                            squid_api.getSelectedDomain();
+                            squid_api.getSelectedDomain(forceRefresh);
                         } else {
                             // project only changed
-                            // reset domain, selection, bookmark
+                            // reset the config
                             config.set({
                                 "bookmark" : null,
                                 "domain" : null,
+                                "period" : null,
+                                "chosenDimensions" : null,
+                                "chosenMetrics" : null,
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
@@ -1286,14 +1297,19 @@
                             });
                         }
                     });
-                } else if (config.hasChanged("domain")) {
+                } else if (config.hasChanged("domain") || forceRefresh) {
                     // load the domain
-                    squid_api.getSelectedDomain();
-
-                    // reset the selection
-                    config.set("selection",{
-                        "domain" : config.get("domain"),
-                        "facets": []
+                    squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
+                        // reset the config
+                        config.set({
+                            "period" : null,
+                            "chosenDimensions" : null,
+                            "chosenMetrics" : null,
+                            "selection":{
+                                "domain" : domain.get("oid"),
+                                "facets": []
+                            }
+                        });
                     });
                 }
             });
@@ -1416,11 +1432,13 @@
                 if (state) {
                     var dfd = me.setStateId(null, state, me.defaultConfig);
                     dfd.fail(function () {
-                        status.set("message", "State not found");
+                        status.set("message", "Warning : specified application state not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
                             me.setBookmarkId(bookmark, me.defaultConfig);
+                        } else {
+                            me.model.config.set(me.defaultConfig);
                         }
                     });
                 } else {
