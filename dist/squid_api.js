@@ -1298,10 +1298,12 @@
             // listen for project/domain change
             this.model.config.on("change", function (config, value) {
                 var project;
+                var hasChangedProject = config.hasChanged("project");
+                var hasChangedDomain = config.hasChanged("domain");
                 var forceRefresh = (value === true);
-                if (config.hasChanged("project") || forceRefresh) {
+                if (hasChangedProject || forceRefresh) {
                     squid_api.getSelectedProject(forceRefresh).always( function(project) {
-                        if ((config.hasChanged("domain") && config.get("domain")) || forceRefresh) {
+                        if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
                             // load the domain
                             squid_api.getSelectedDomain(forceRefresh);
                         } else {
@@ -1320,7 +1322,7 @@
                             });
                         }
                     });
-                } else if (config.hasChanged("domain") || forceRefresh) {
+                } else if (hasChangedDomain || forceRefresh) {
                     // load the domain
                     squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
                         // reset the config
