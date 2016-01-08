@@ -315,33 +315,42 @@
 
             // check if save is required
             if ((!me.model.state) || (!_.isEqual(me.model.state, attributes.config))) {
-                var stateModel = new me.model.StateModel();
-                stateModel.set({
-                    "id": {
-                        "customerId": this.customerId,
-                        "stateId": null
-                    }
-                });
-
-                // save
-                stateModel.save(attributes, {
-                    success: function (model, response, options) {
-                        var oid = model.get("oid");
-                        console.log("state saved : " + oid);
-                        // keep for comparison when saved again
-                        me.model.state = model.get("config");
-
-                        // save in browser history
-                        if (window.history) {
-                            var uri = new URI(window.location.href);
-                            uri.setQuery("state", oid);
-                            window.history.pushState(model.toJSON(), "", uri);
+                // check for same pending operation
+                if (!squid_api.pendingStateSave) {
+                    squid_api.pendingStateSave = {};
+                }
+                var hashCode = squid_api.utils.hashCode(JSON.stringify(attributes.config));
+                if (!squid_api.pendingStateSave[hashCode]) {
+                    squid_api.pendingStateSave[hashCode] = true;
+                    var stateModel = new me.model.StateModel();
+                    stateModel.set({
+                        "id": {
+                            "customerId": this.customerId,
+                            "stateId": null
                         }
-                    },
-                    error: function (model, response, options) {
-                        console.error("state save failed");
-                    }
-                });
+                    });
+                    // save
+                    stateModel.save(attributes, {
+                        success: function (model, response, options) {
+                            var oid = model.get("oid");
+                            console.log("state saved : " + oid);
+                            // keep for comparison when saved again
+                            me.model.state = model.get("config");
+    
+                            // save in browser history
+                            if (window.history) {
+                                var uri = new URI(window.location.href);
+                                uri.setQuery("state", oid);
+                                window.history.pushState(model.toJSON(), "", uri);
+                            }
+                            delete squid_api.pendingStateSave[hashCode];
+                        },
+                        error: function (model, response, options) {
+                            console.error("state save failed");
+                            delete squid_api.pendingStateSave[hashCode];
+                        }
+                    });
+                }
             }
         },
 
