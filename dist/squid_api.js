@@ -1313,8 +1313,8 @@
                                 "bookmark" : null,
                                 "domain" : null,
                                 "period" : null,
-                                "chosenDimensions" : null,
-                                "chosenMetrics" : null,
+                                "chosenDimensions" : [],
+                                "chosenMetrics" : [],
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
@@ -1328,8 +1328,8 @@
                         // reset the config
                         config.set({
                             "period" : null,
-                            "chosenDimensions" : null,
-                            "chosenMetrics" : null,
+                            "chosenDimensions" : [],
+                            "chosenMetrics" : [],
                             "selection":{
                                 "domain" : domain.get("oid"),
                                 "facets": []
