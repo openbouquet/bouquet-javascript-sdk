@@ -128,6 +128,20 @@
                     }
                 }
                 return selection;
+            },
+            
+            /**
+             * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+             */
+            hashCode : function(s) {
+                var hash = 0;
+                if (s.length === 0) return hash;
+                for (i = 0; i < s.length; i++) {
+                    char = s.charCodeAt(i);
+                    hash = ((hash<<5)-hash)+char;
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return hash;
             }
         }
     };
@@ -1075,33 +1089,42 @@
 
             // check if save is required
             if ((!me.model.state) || (!_.isEqual(me.model.state, attributes.config))) {
-                var stateModel = new me.model.StateModel();
-                stateModel.set({
-                    "id": {
-                        "customerId": this.customerId,
-                        "stateId": null
-                    }
-                });
-
-                // save
-                stateModel.save(attributes, {
-                    success: function (model, response, options) {
-                        var oid = model.get("oid");
-                        console.log("state saved : " + oid);
-                        // keep for comparison when saved again
-                        me.model.state = model.get("config");
-
-                        // save in browser history
-                        if (window.history) {
-                            var uri = new URI(window.location.href);
-                            uri.setQuery("state", oid);
-                            window.history.pushState(model.toJSON(), "", uri);
+                // check for same pending operation
+                if (!squid_api.pendingStateSave) {
+                    squid_api.pendingStateSave = {};
+                }
+                var hashCode = squid_api.utils.hashCode(JSON.stringify(attributes.config));
+                if (!squid_api.pendingStateSave[hashCode]) {
+                    squid_api.pendingStateSave[hashCode] = true;
+                    var stateModel = new me.model.StateModel();
+                    stateModel.set({
+                        "id": {
+                            "customerId": this.customerId,
+                            "stateId": null
                         }
-                    },
-                    error: function (model, response, options) {
-                        console.error("state save failed");
-                    }
-                });
+                    });
+                    // save
+                    stateModel.save(attributes, {
+                        success: function (model, response, options) {
+                            var oid = model.get("oid");
+                            console.log("state saved : " + oid);
+                            // keep for comparison when saved again
+                            me.model.state = model.get("config");
+    
+                            // save in browser history
+                            if (window.history) {
+                                var uri = new URI(window.location.href);
+                                uri.setQuery("state", oid);
+                                window.history.pushState(model.toJSON(), "", uri);
+                            }
+                            delete squid_api.pendingStateSave[hashCode];
+                        },
+                        error: function (model, response, options) {
+                            console.error("state save failed");
+                            delete squid_api.pendingStateSave[hashCode];
+                        }
+                    });
+                }
             }
         },
 
@@ -1275,10 +1298,12 @@
             // listen for project/domain change
             this.model.config.on("change", function (config, value) {
                 var project;
+                var hasChangedProject = config.hasChanged("project");
+                var hasChangedDomain = config.hasChanged("domain");
                 var forceRefresh = (value === true);
-                if (config.hasChanged("project") || forceRefresh) {
+                if (hasChangedProject || forceRefresh) {
                     squid_api.getSelectedProject(forceRefresh).always( function(project) {
-                        if ((config.hasChanged("domain") && config.get("domain")) || forceRefresh) {
+                        if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
                             // load the domain
                             squid_api.getSelectedDomain(forceRefresh);
                         } else {
@@ -1288,8 +1313,8 @@
                                 "bookmark" : null,
                                 "domain" : null,
                                 "period" : null,
-                                "chosenDimensions" : null,
-                                "chosenMetrics" : null,
+                                "chosenDimensions" : [],
+                                "chosenMetrics" : [],
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
@@ -1297,14 +1322,14 @@
                             });
                         }
                     });
-                } else if (config.hasChanged("domain") || forceRefresh) {
+                } else if (hasChangedDomain || forceRefresh) {
                     // load the domain
                     squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
                         // reset the config
                         config.set({
                             "period" : null,
-                            "chosenDimensions" : null,
-                            "chosenMetrics" : null,
+                            "chosenDimensions" : [],
+                            "chosenMetrics" : [],
                             "selection":{
                                 "domain" : domain.get("oid"),
                                 "facets": []
