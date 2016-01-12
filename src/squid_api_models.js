@@ -611,9 +611,9 @@
         }
 
         // resolve promise once all models have been saved
-        $.when.apply($, deferreds).done(function () {
+        $.when.apply($, deferreds).done(function (models) {
             me.trigger("sync");
-            dfd.resolve();
+            dfd.resolve(models);
         });
 
         return dfd.promise();
