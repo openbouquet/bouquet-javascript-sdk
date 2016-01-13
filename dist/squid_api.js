@@ -1470,7 +1470,7 @@
                 if (state) {
                     var dfd = me.setStateId(null, state, me.defaultConfig);
                     dfd.fail(function () {
-                        status.set("message", "Warning : specified application state not found");
+                        console.log("Warning : specified application state not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
