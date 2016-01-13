@@ -30,14 +30,6 @@
             uri.removeQuery(name);
         },
 
-        defaultComparator: function(a, b) {
-            var r = this.dynamicComparator(a,b);
-            if (r === 0) {
-                r = this.alphaNameComparator(a,b);
-            }
-            return r;
-        },
-
         dynamicComparator : function(a,b) {
             var da = a.dynamic;
             var db = b.dynamic;
@@ -61,6 +53,14 @@
                 return 1;
             }
             return 0;
+        },
+
+        defaultComparator: function(a, b) {
+            var r = squid_api.utils.dynamicComparator(a,b);
+            if (r === 0) {
+                r = squid_api.utils.alphaNameComparator(a,b);
+            }
+            return r;
         },
 
         /**
