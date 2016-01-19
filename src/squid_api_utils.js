@@ -30,6 +30,39 @@
             uri.removeQuery(name);
         },
 
+        dynamicComparator : function(a,b) {
+            var da = a.dynamic;
+            var db = b.dynamic;
+            return (da === db) ? 0 : da ? 1 : -1;
+        },
+
+        alphaNameComparator : function(a,b) {
+            var va;
+            var vb;
+            if (a.name && b.name) {
+                va = a.name.toLowerCase();
+                vb = b.name.toLowerCase();
+            } else if (a.label && b.label) {
+                va = a.label.toLowerCase();
+                vb = b.label.toLowerCase();
+            }
+            if (va < vb) {
+                return -1;
+            }
+            if (va > vb) {
+                return 1;
+            }
+            return 0;
+        },
+
+        defaultComparator: function(a, b) {
+            var r = squid_api.utils.dynamicComparator(a,b);
+            if (r === 0) {
+                r = squid_api.utils.alphaNameComparator(a,b);
+            }
+            return r;
+        },
+
         /**
          * Write a cookie.
          * @param name cookie name
