@@ -29,6 +29,12 @@
             var uri = new URI(window.location.href);
             uri.removeQuery(name);
         },
+        
+        selectedComparator : function(a,b) {
+            var da = a.selected;
+            var db = b.selected;
+            return (da === db) ? 0 : da ? -1 : 1;
+        },
 
         dynamicComparator : function(a,b) {
             var da = a.dynamic;
@@ -55,10 +61,17 @@
             return 0;
         },
 
+        /**
+         * default model comparator : selected first, then dynamic, then alpha-name
+         */
         defaultComparator: function(a, b) {
-            var r = squid_api.utils.dynamicComparator(a,b);
+            var r;
+            r = squid_api.utils.selectedComparator(a,b);
             if (r === 0) {
-                r = squid_api.utils.alphaNameComparator(a,b);
+                r = squid_api.utils.dynamicComparator(a,b);
+                if (r === 0) {
+                    r = squid_api.utils.alphaNameComparator(a,b);
+                }
             }
             return r;
         },
