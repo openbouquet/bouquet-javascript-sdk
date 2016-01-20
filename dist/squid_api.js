@@ -803,6 +803,52 @@
             var uri = new URI(window.location.href);
             uri.removeQuery(name);
         },
+        
+        selectedComparator : function(a,b) {
+            var da = a.selected;
+            var db = b.selected;
+            return (da === db) ? 0 : da ? -1 : 1;
+        },
+
+        dynamicComparator : function(a,b) {
+            var da = a.dynamic;
+            var db = b.dynamic;
+            return (da === db) ? 0 : da ? 1 : -1;
+        },
+
+        alphaNameComparator : function(a,b) {
+            var va;
+            var vb;
+            if (a.name && b.name) {
+                va = a.name.toLowerCase();
+                vb = b.name.toLowerCase();
+            } else if (a.label && b.label) {
+                va = a.label.toLowerCase();
+                vb = b.label.toLowerCase();
+            }
+            if (va < vb) {
+                return -1;
+            }
+            if (va > vb) {
+                return 1;
+            }
+            return 0;
+        },
+
+        /**
+         * default model comparator : selected first, then dynamic, then alpha-name
+         */
+        defaultComparator: function(a, b) {
+            var r;
+            r = squid_api.utils.selectedComparator(a,b);
+            if (r === 0) {
+                r = squid_api.utils.dynamicComparator(a,b);
+                if (r === 0) {
+                    r = squid_api.utils.alphaNameComparator(a,b);
+                }
+            }
+            return r;
+        },
 
         /**
          * Write a cookie.
@@ -1197,6 +1243,9 @@
             var me = this;
             var dfd = new $.Deferred();
             var projectId = me.model.config.get("project");
+            if (!projectId) {
+                projectId = me.defaultConfig.project;
+            }
             if (projectId && bookmarkId) {
                 // fetch the Bookmark
                 var bookmarkModel = new squid_api.model.BookmarkModel();
@@ -1236,56 +1285,24 @@
          */
         setup: function (args) {
             var me = this, api, apiUrl, loginUrl, timeoutMillis;
-
             args = args || {};
-            args.customerId = args.customerId || null;
-            args.clientId = args.clientId || null;
-            args.projectId = args.projectId || null;
-            args.domainId = args.domainId || null;
-            args.relationId = args.relationId || null;
-            args.selection = args.selection || null;
+
+            this.debug = squid_api.utils.getParamValue("debug", args.debug);
+
             this.defaultShortcut = args.defaultShortcut || null;
+            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId);
+            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId);
+            
             this.defaultConfig = args.config || {};
-            apiUrl = args.apiUrl || null;
-
-            this.debug = squid_api.utils.getParamValue("debug", null);
-            if (!this.debug) {
-                this.debug = args.debug;
-            }
-
-            this.customerId = squid_api.utils.getParamValue("customerId", null);
-            if (!this.customerId) {
-                this.customerId = args.customerId;
-            }
-
-            this.clientId = squid_api.utils.getParamValue("clientId", null);
-            if (!this.clientId) {
-                this.clientId = args.clientId;
-            }
-
-            var domainId = squid_api.utils.getParamValue("domainId", null);
-            if (!domainId) {
-                domainId = args.domainId;
-            } else {
-                this.defaultConfig.domain = domainId;
-            }
-            this.domainId = domainId;
-
-            var projectId = squid_api.utils.getParamValue("projectId", null);
-            if (!projectId) {
-                projectId = args.projectId;
-            } else {
-                this.defaultConfig.project = projectId;
-            }
-            this.projectId = projectId;
-
+            this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark);
+            this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project);
+            this.defaultConfig.selection = this.defaultConfig.selection || {
+                    "facets" : []
+            };
+            
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
-
-            this.defaultConfig.selection = {
-                    "facets" : []
-            };
 
             // Application Models
 
@@ -1359,7 +1376,7 @@
             api = squid_api.utils.getParamValue("api", "release");
             version = squid_api.utils.getParamValue("version", "v4.2");
 
-            apiUrl = squid_api.utils.getParamValue("apiUrl", apiUrl);
+            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl);
             if (!apiUrl) {
                 console.error("Please provide an API endpoint URL");
             } else {
@@ -1465,12 +1482,12 @@
                 me.defaultConfig.customer = customer.get("id");
                 var state = squid_api.utils.getParamValue("state", null);
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
-                var bookmark = squid_api.utils.getParamValue("bookmark", null);
+                var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
                     var dfd = me.setStateId(null, state, me.defaultConfig);
                     dfd.fail(function () {
-                        status.set("message", "Warning : specified application state not found");
+                        console.log("Warning : specified application state not found");
                         if (shortcut) {
                             me.setShortcutId(shortcut, me.defaultConfig);
                         } else if (bookmark) {
