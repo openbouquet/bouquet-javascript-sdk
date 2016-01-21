@@ -562,6 +562,7 @@
                                 "period" : null,
                                 "chosenDimensions" : [],
                                 "chosenMetrics" : [],
+                                "orderBy" : null,
                                 "selection" : {
                                     "domain" : null,
                                     "facets": []
