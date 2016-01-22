@@ -480,9 +480,9 @@
          * Unselect recursively all children
          */
         unSelectChildren: function (facets, facet, includeSelf) {
-            var childDimension;
             var i = 0;
-            if (includeSelf) {
+            var selectedItems = facet.selectedItems? facet.selectedItems.length: 0;
+            if (includeSelf && selectedItems>0) {
                 facet.selectedItems = [];
             }
             // treat children dimensions
@@ -491,17 +491,16 @@
             for (i = 0; i < facets.length; i++) {
                 facetMap[facets[i].dimension.oid] = facets[i];
             }
-            // look for a child dimension
-            for (i = 0; ((i < facets.length) && !childDimension); i++) {
-                var facet1 = facets[i];
-                if (facet1.dimension.parentId) {
-                    if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
-                        childDimension = facet1;
-                    }
-                }
-            }
-            if (childDimension) {
-                this.unSelectChildren(facets, childDimension, true);
+            // look for all dimensions in case a parent has multiple children & a valid selection
+            if (!includeSelf || selectedItems>0) {
+	            for (i = 0; ((i < facets.length)); i++) {
+	                var facet1 = facets[i];
+	                if (facet1.dimension.parentId) {
+	                    if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+	                    	this.unSelectChildren(facets, facet1, true);
+	                    }
+	                }
+	            }
             }
         },
 
