@@ -6,19 +6,6 @@ module.exports = function(grunt) {
         jshint : {
             all : [ 'src/*.js' ]
         },
-        bower_concat : {
-            all : {
-                dest : 'build/_bower.js',
-                exclude : [],
-                dependencies : {
-                    'underscore' : 'jquery',
-                    'backbone' : 'underscore'
-                },
-                bowerOptions : {
-                    relative : false
-                }
-            }
-        },
         concat : {
             options : {
                 stripBanners : true,
@@ -45,5 +32,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-bower-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
 
+    grunt.registerTask('dev', [ 'jshint' ]);
     grunt.registerTask('default', [ 'jshint', 'clean', 'concat' ]);
 };
