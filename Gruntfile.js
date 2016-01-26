@@ -22,7 +22,7 @@ module.exports = function(grunt) {
         watch : {
             js : {
                 files : [ 'src/**/*.*' ],
-                tasks : [ 'dev' ]
+                tasks : [ 'default' ]
             }
         }
     });
@@ -32,6 +32,5 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-bower-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
 
-    grunt.registerTask('dev', [ 'jshint' ]);
     grunt.registerTask('default', [ 'jshint', 'clean', 'concat' ]);
 };
