@@ -6,7 +6,7 @@
     "obalbous <oba@squid>"
   ],
   "main": "dist/squid_api.js",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "private": true,
   "ignore": [
     "**/.*",
