@@ -2468,79 +2468,65 @@
         },
 
         /**
-         * Retrieve facet members and retry until it is fully loaded.
+         * Retrieve facet members
          */
-        getFacetMembers: function (jobModel, facetId, startIndex, maxResults, delay, dfd) {
+        getFacetMembers: function (jobModel, facetId, startIndex, maxResults, dfd) {
             dfd = dfd || new $.Deferred();
             startIndex = startIndex || 0;
             maxResults = maxResults || 100;
-            if (delay) {
-                // retry with a delay
-                setTimeout(function () {
-                    controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, null, dfd);
-                }, delay);
-            } else {
-                console.log("getting Facet : " + facetId);
-                var facetJob = new squid_api.model.ProjectFacetJobFacet();
-                facetJob.statusModel = squid_api.model.status;
-                facetJob.set("id", jobModel.get("id"));
-                facetJob.set("oid", facetId);
-                if (startIndex) {
-                    facetJob.addParameter("startIndex", startIndex);
-                }
-                if (maxResults) {
-                    facetJob.addParameter("maxResults", maxResults);
-                }
-                facetJob.addParameter("waitComplete", true);
 
-                // get the results from API
-                facetJob.fetch({
-                    error: function (model, response) {
-                        jobModel.set("error", {message: response.statusText});
-                        jobModel.set("status", "DONE");
-                        dfd.reject();
-                    },
-                    success: function (model, response) {
-                        if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
-                            // retry
-                            controller.getFacetMembers(jobModel, facetId, startIndex, maxResults, 1000, dfd);
-                        } else {
-                            // update the Model
-                            var facet;
-                            var selection = jobModel.get("selection");
-                            if (selection) {
-                                var facets = selection.facets;
-                                for (fIdx = 0; fIdx < facets.length; fIdx++) {
-                                    if (facets[fIdx].id == facetId) {
-                                        facet = facets[fIdx];
-                                        break;
-                                    }
-                                }
-                            } else {
-                                selection = [];
-                            }
-                            if (!facet) {
-                                // add a new facet to the selection
-                                selection.push(model);
-                                jobModel.set("selection", selection);
-                                dfd.resolve();
-                            } else {
-                                // update the existing facet's items
-                                facet.items = model.get("items");
-                                if (model.get("done") === false) {
-                                    // re-poll facet content
-                                    controller.getFacetMembers(jobModel, facet.id, startIndex, maxResults, 1000, dfd);
-                                } else {
-                                    dfd.resolve();
-                                }
+            console.log("getting Facet : " + facetId);
+            var facetJob = new squid_api.model.ProjectFacetJobFacet();
+            facetJob.statusModel = squid_api.model.status;
+            facetJob.set("id", jobModel.get("id"));
+            facetJob.set("oid", facetId);
+            if (startIndex) {
+                facetJob.addParameter("startIndex", startIndex);
+            }
+            if (maxResults) {
+                facetJob.addParameter("maxResults", maxResults);
+            }
+            // do not timeout
+            facetJob.setParameter("timeout", null);
+            facetJob.addParameter("waitComplete", true); // deprecated
+
+            // get the results from API
+            facetJob.fetch({
+                error: function (model, response) {
+                    jobModel.set("error", {message: response.statusText});
+                    jobModel.set("status", "DONE");
+                    dfd.reject();
+                },
+                success: function (model, response) {
+                    // update the Model
+                    var facet;
+                    var selection = jobModel.get("selection");
+                    if (selection) {
+                        var facets = selection.facets;
+                        for (fIdx = 0; fIdx < facets.length; fIdx++) {
+                            if (facets[fIdx].id == facetId) {
+                                facet = facets[fIdx];
+                                break;
                             }
                         }
+                    } else {
+                        selection = [];
                     }
-                });
-                if (this.fakeServer) {
-                    this.fakeServer.respond();
+                    if (!facet) {
+                        // add a new facet to the selection
+                        selection.push(model);
+                        jobModel.set("selection", selection);
+                    } else {
+                        // update the existing facet's items
+                        facet.items = model.get("items");
+                    }
+                    dfd.resolve(jobModel);
                 }
+            });
+            if (this.fakeServer) {
+                this.fakeServer.respond();
             }
+            
             return dfd.promise();
         },
 
