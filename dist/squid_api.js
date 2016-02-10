@@ -170,6 +170,14 @@
             }
         },
 
+        removeParameter: function (name) {
+            if (this.parameters) {
+                this.parameters = this.parameters.filter(function( obj ) {
+                    return obj.name !== name;
+                });
+            }
+        },
+
         getParameter: function (name) {
             var i = 0, param;
             if (this.parameters) {
