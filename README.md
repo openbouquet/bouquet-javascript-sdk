@@ -162,9 +162,3 @@ Here is a sample FiltersModel :
 	}
 }	
 ```
-
-## Authentication management
-TODO
-
-## Utility methods
-TODO

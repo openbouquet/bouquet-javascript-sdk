@@ -117,10 +117,7 @@
             var cookiePrefix = "sq-token";
             squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", -100000, null);
             squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
-            squid_api.model.login.set({
-                accessToken: null,
-                login: null
-            });
+            squid_api.getLoginFromToken(null);
         },
 
     });
@@ -159,51 +156,51 @@
                 token = squid_api.utils.readCookie(cookie);
             }
 
-            if (!token) {
+            // TODO should update this after we fetch the token
+            squid_api.model.login.set("accessToken", token);
+
+            // fetch the token info from server
+            var tokenModel = new squid_api.model.TokenModel();
+            tokenModel.fetch().fail(function (model, response, options) {
+                if (model.status === 401) {
+                    // init the Login URL
+                    squid_api.loginURL = model.responseJSON.loginURL;
+                    squid_api.model.login.set({"login": null});
+                } else {
+                    squid_api.model.login.set("error", response);
+                    squid_api.model.login.set("login", "error");
+                    var mes = "Cannot connect to Bouquet (error " + model.status + ")";
+                    if (model.status === 404) {
+                        mes += "\nCheck that the apiUrl parameter is correct";
+                    }
+                    squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
+                    squid_api.model.status.set("error", true);
+                }
                 deferred.reject();
-            } else {
-                // TODO should update this after we fetch the token
-                squid_api.model.login.set("accessToken", token);
+            }).done(function (model, response, options) {
+                // set the customerId
+                squid_api.customerId = model.customerId;
 
-                // fetch the token info from server
-                var tokenModel = new squid_api.model.TokenModel();
-                tokenModel.fetch().fail(function (model, response, options) {
-                    if (model.status === 401) {
-                        squid_api.model.login.set("login", null);
-                    } else {
-                        squid_api.model.login.set("error", response);
-                        squid_api.model.login.set("login", "error");
-                        var mes = "Cannot connect to Bouquet (error " + model.status + ")";
-                        if (model.status === 404) {
-                            mes += "\nCheck that the apiUrl parameter is correct";
-                        }
-                        squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
-                        squid_api.model.status.set("error", true);
-                    }
-                }).done(function (model, response, options) {
-                    // set the customerId
-                    squid_api.customerId = model.customerId;
+                // verify the clientId
+                if (model.clientId != this.clientId) {
+                    console.log("WARN : the Token used doesn't match you application's ClientId");
+                }
 
-                    // verify the clientId
-                    if (model.clientId != this.clientId) {
-                        console.log("WARN : the Token used doesn't match you application's ClientId");
-                    }
+                if ((token) && (typeof token != "undefined")) {
+                    // write in a customer cookie
+                    squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
+                    // write in a global cookie
+                    squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
+                }
 
-                    if ((token) && (typeof token != "undefined")) {
-                        // write in a customer cookie
-                        squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", cookieExpiration, token);
-                        // write in a global cookie
-                        squid_api.utils.writeCookie(cookiePrefix, "", cookieExpiration, token);
-                    }
-
-                    // update login model from server
-                    squid_api.model.login.fetch().done( function() {
-                        deferred.resolve(squid_api.model.login);
-                    }).fail( function() {
-                        deferred.reject();
-                    });
+                // update login model from server
+                squid_api.model.login.fetch().done( function() {
+                    deferred.resolve(squid_api.model.login);
+                }).fail( function() {
+                    deferred.reject();
                 });
-            }
+            });
+            
             return deferred;
         },
 
@@ -510,7 +507,7 @@
          * @param a config json object
          */
         setup: function (args) {
-            var me = this, api, apiUrl, loginUrl, timeoutMillis;
+            var me = this, api, apiUrl, timeoutMillis;
             args = args || {};
 
             this.debug = squid_api.utils.getParamValue("debug", args.debug);
@@ -612,20 +609,7 @@
                 }
                 this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
                 this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
-
-                // init the Login URL
-                loginUrl = squid_api.utils.getParamValue("loginUrl", apiUrl);
-                loginUrl += "/" + api + "/auth/oauth?response_type=code";
-                if (this.clientId) {
-                    loginUrl += "&client_id=" + this.clientId;
-                }
-                if (this.customerId) {
-                    loginUrl += "&customerId=" + this.customerId;
-                }
-                this.loginURL = loginUrl;
-                console.log("loginURL : " + this.loginURL);
             }
-
 
             // init the timout
             timeoutMillis = args.timeoutMillis;
