@@ -410,6 +410,7 @@
                     } else {
                         // update the existing facet's items
                         facet.items = model.get("items");
+                        facet.done = model.get("done");
                     }
                     dfd.resolve(jobModel);
                 }
