@@ -21,6 +21,8 @@
         debug: null,
         version: "3.0.0",
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
+        apiHost: null,
+        apiEnv: null,
         apiURL: null,
         loginURL: null,
         timeoutMillis: null,
