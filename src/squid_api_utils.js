@@ -163,8 +163,10 @@
             var tokenModel = new squid_api.model.TokenModel();
             tokenModel.fetch().fail(function (model, response, options) {
                 if (model.status === 401) {
-                    // init the Login URL
-                    squid_api.loginURL = model.responseJSON.loginURL;
+                    // init the Login URL if provided by server
+                    if (model.responseJSON.loginURL) {
+                        squid_api.loginURL = model.responseJSON.loginURL;
+                    }
                     squid_api.model.login.set({"login": null});
                 } else {
                     squid_api.model.login.set("error", response);
@@ -610,6 +612,8 @@
                 this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
                 this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
             }
+            // building default loginURL from apiURL
+            squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
 
             // init the timout
             timeoutMillis = args.timeoutMillis;
