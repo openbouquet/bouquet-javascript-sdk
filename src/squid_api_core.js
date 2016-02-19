@@ -35,6 +35,7 @@
         defaultConfig: null,
         swaggerURL: null,
         apiSchema: null,
+        apiVersion: null,
 
         // declare some namespaces
         model: {},

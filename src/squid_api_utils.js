@@ -10,6 +10,49 @@
     // Enhance Squid API utils
 
     squid_api.utils = _.extend(squid_api.utils, {
+        
+        /**
+         * Check the API matches a given version string.
+         * @param semver range to match
+         * @return a Promise
+         */
+        checkAPIVersion : function(range) {
+            var dfd = $.Deferred();
+            if (!squid_api.apiVersion) {
+                // not in cache, execute the query
+                $.ajax({
+                    url: squid_api.apiURL+"/status"
+                }).done(null, function (xhr) {
+                    // put in cache
+                    squid_api.apiVersion = xhr;
+                    // version check
+                    if (xhr["bouquet-server"]) {
+                        var version = xhr["bouquet-server"].version;
+                        version = version.replace("-SNAPSHOT","");
+                        if (semver.satisfies(version, range)) {
+                            dfd.resolve(version);
+                        } else {
+                            dfd.reject(version);
+                        }
+                    } else {
+                        dfd.reject();
+                    }
+                }).fail(null, function (xhr) {
+                    dfd.reject();
+                });
+                return dfd;
+            } else {
+                // already in cache
+                // just check and return a promise
+                var version = squid_api.apiVersion["bouquet-server"].version;
+                version = version.replace("-SNAPSHOT","");
+                if (semver.satisfies(version, range)) {
+                    return dfd.resolve(version);
+                } else {
+                    return dfd.reject(version);
+                }
+            }
+        },
 
         /*
          * Get a parameter value from the current location url
@@ -621,6 +664,13 @@
                 timeoutMillis = 10 * 1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
+            
+            // log API version
+            squid_api.utils.checkAPIVersion("*").done(function(v){
+                    console.log("Bouquet Server version : "+v);
+                }).fail(function(){
+                    console.error("WARN unable to get Bouquet Server version");
+                });
 
             return this;
         },

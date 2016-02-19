@@ -23,6 +23,7 @@
     "underscore": ">=1.7.0",
     "backbone": "~1.1.2",
     "urijs": "1.17",
-    "backbone-nested-models" : "https://github.com/blittle/backbone-nested-models.git#2.0.2"
+    "backbone-nested-models": "https://github.com/blittle/backbone-nested-models.git#2.0.2",
+    "semver": "~4.3.4"
   }
 }
