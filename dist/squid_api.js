@@ -829,12 +829,14 @@
             } else {
                 // already in cache
                 // just check and return a promise
-                var version = squid_api.apiVersion["bouquet-server"].version;
-                version = version.replace("-SNAPSHOT","");
-                if (semver.satisfies(version, range)) {
-                    return dfd.resolve(version);
-                } else {
-                    return dfd.reject(version);
+                if (squid_api.apiVersion["bouquet-server"]) {
+                    var version = squid_api.apiVersion["bouquet-server"].version;
+                    version = version.replace("-SNAPSHOT","");
+                    if (semver.satisfies(version, range)) {
+                        return dfd.resolve(version);
+                    } else {
+                        return dfd.reject(version);
+                    }
                 }
             }
         },
