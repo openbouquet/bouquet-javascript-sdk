@@ -837,6 +837,8 @@
                     } else {
                         return dfd.reject(version);
                     }
+                } else {
+                    return dfd.reject();
                 }
             }
         },
