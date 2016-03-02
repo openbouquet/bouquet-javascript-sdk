@@ -951,6 +951,30 @@
             squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
             squid_api.getLoginFromToken(null);
         },
+        
+        getLoginUrl : function(redirectURI) {
+            if (!this.redirectUri) {
+                // use the current location stripping token or code parameters
+                var rurl = new URI(window.location.href);
+                rurl.removeQuery("code");
+                rurl.removeQuery("access_token");
+                redirectUri = encodeURIComponent(rurl);
+            }
+            // redirection mode
+            var url = squid_api.loginURL;
+            if (url.indexOf("?") > 0) {
+                url += "&";
+            }
+            else {
+                url += "?";
+            }
+            url += "response_type=code";
+            if (squid_api.clientId) {
+                url += "&client_id=" + squid_api.clientId;
+            }
+            url = url + "&redirect_uri=" + redirectUri;
+            return url;
+        }
 
     });
 
@@ -1129,7 +1153,7 @@
         getSelectedProject : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             return this.getCustomer().then(function(customer) {
-            	return customer.get("projects").load(projectId, forceRefresh);
+                return customer.get("projects").load(projectId, forceRefresh);
             });
         },
 
