@@ -1417,6 +1417,7 @@
                                 "period" : null,
                                 "chosenDimensions" : [],
                                 "chosenMetrics" : [],
+                                "rollups" : [],
                                 "orderBy" : null,
                                 "selection" : {
                                     "domain" : null,
