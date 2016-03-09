@@ -316,7 +316,7 @@
                         });
                     }
                 } else {
-                    if (this.fetched) {
+                    if (this.fetched && ! forceRefresh) {
                         deferred.resolve(this);
                     } else {
                         // fetch collection

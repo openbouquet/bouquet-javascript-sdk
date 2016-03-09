@@ -57,6 +57,18 @@
             return this;
         },
 
+        reloadCurrentproject: function() {
+            squid_api.getSelectedProject().then(function(project) {
+                var domains = project.get("domains");
+                if (domains) {
+                    // reset active domain
+                    squid_api.model.config.set("domain", null);
+                    // fetch domains
+                    domains.load(null, true);
+                }
+            });
+        },
+
         utils: {
 
             mergeAttributes: function (obj1, obj2) {
@@ -469,7 +481,7 @@
                         });
                     }
                 } else {
-                    if (this.fetched) {
+                    if (this.fetched && ! forceRefresh) {
                         deferred.resolve(this);
                     } else {
                         // fetch collection
