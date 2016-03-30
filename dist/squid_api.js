@@ -1867,8 +1867,8 @@
                         }
                     }
                 }
-                this.set({"metricList": metrics}, {"silent": silent});
             }
+            this.set({"metricList": metrics}, {"silent": silent});
             return this;
         },
 
