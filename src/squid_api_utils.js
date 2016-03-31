@@ -13,7 +13,7 @@
         
         /**
          * Check the API matches a given version string.
-         * @param semver range to match
+         * @param semver range to match (e.g. ">=4.2.4")
          * @return a Promise
          */
         checkAPIVersion : function(range) {
