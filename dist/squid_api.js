@@ -958,24 +958,23 @@
         getLoginUrl : function(redirectURI) {
             if (!this.redirectUri) {
                 // use the current location stripping token or code parameters
-                var rurl = new URI(window.location.href);
-                rurl.removeQuery("code");
-                rurl.removeQuery("access_token");
-                redirectUri = encodeURIComponent(rurl);
+                redirectUri = window.location.href;
             }
+            // build redirect URI with appropriate token or code parameters
+            var rurl = new URI(redirectUri);
+            rurl.removeQuery("access_token");
+            rurl.setQuery("code","auth_code");
+            var rurlString = rurl.toString();
+            // ugly trick to bypass urlencoding of auth_code parameter value
+            rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
+            
             // redirection mode
-            var url = squid_api.loginURL;
-            if (url.indexOf("?") > 0) {
-                url += "&";
-            }
-            else {
-                url += "?";
-            }
-            url += "response_type=code";
+            var url = new URI(squid_api.loginURL);
+            url.setQuery("response_type","code");
             if (squid_api.clientId) {
-                url += "&client_id=" + squid_api.clientId;
+                url.setQuery("client_id", squid_api.clientId);
             }
-            url = url + "&redirect_uri=" + redirectUri;
+            url.setQuery("redirect_uri",rurlString);
             return url;
         }
 
