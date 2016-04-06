@@ -61,8 +61,8 @@
         /*
          * Get a parameter value from the current location url
          */
-        getParamValue: function (name, defaultValue) {
-            var uri = new URI(window.location.href);
+        getParamValue: function (name, defaultValue, uri) {
+            var uri = uri || new URI(window.location.href);
             var value;
             if (uri.hasQuery(name) === true) {
                 value = uri.search(true)[name];
@@ -583,15 +583,17 @@
             var me = this, api, apiUrl, timeoutMillis;
             args = args || {};
 
-            this.debug = squid_api.utils.getParamValue("debug", args.debug);
+            var uri = args.uri || new URI(window.location.href);
+            
+            this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
-            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId);
-            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId);
+            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId, uri);
+            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId, uri);
             
             this.defaultConfig = args.config || {};
-            this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark);
-            this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project);
+            this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark, uri);
+            this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project, uri);
             this.defaultConfig.selection = this.defaultConfig.selection || {
                     "facets" : []
             };
@@ -672,9 +674,9 @@
 
             // init the api server URL
             api = squid_api.utils.getParamValue("api", "release");
-            version = squid_api.utils.getParamValue("version", "v4.2");
+            version = squid_api.utils.getParamValue("version", "v4.2", uri);
 
-            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl);
+            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
             if (!apiUrl) {
                 console.error("Please provide an API endpoint URL");
             } else {
