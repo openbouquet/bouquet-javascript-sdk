@@ -129,6 +129,8 @@
                             }
                         }
                     }
+                    // compare
+                    selection.compareTo = selectionOpt.compareTo;
                 }
                 return selection;
             },
