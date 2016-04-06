@@ -62,7 +62,7 @@
          * Get a parameter value from the current location url
          */
         getParamValue: function (name, defaultValue, uri) {
-            var uri = uri || new URI(window.location.href);
+            uri = uri || new URI(window.location.href);
             var value;
             if (uri.hasQuery(name) === true) {
                 value = uri.search(true)[name];
