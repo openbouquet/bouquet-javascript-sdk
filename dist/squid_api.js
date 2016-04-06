@@ -36,6 +36,7 @@
         swaggerURL: null,
         apiSchema: null,
         apiVersion: null,
+        uri : null,
 
         // declare some namespaces
         model: {},
@@ -1073,7 +1074,7 @@
             var me = this;
 
             // set the access_token (to start the login model update)
-            var code = squid_api.utils.getParamValue("code", null);
+            var code = squid_api.utils.getParamValue("code", null, me.uri);
             if (code) {
                 // remove code parameter from browser history
                 if (window.history) {
@@ -1104,7 +1105,7 @@
                     });
                 });
             } else {
-                var token = squid_api.utils.getParamValue("access_token", null);
+                var token = squid_api.utils.getParamValue("access_token", null, me.uri);
                 me.getLoginFromToken(token).always( function(login) {
                     deferred.resolve(login);
                 });
@@ -1376,6 +1377,7 @@
             } else {
                 uri = new URI(window.location.href);
             }
+            this.uri = uri;
             
             this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
 
@@ -1465,7 +1467,7 @@
             this.model.filters = new squid_api.controller.facetjob.FiltersModel();
 
             // init the api server URL
-            api = squid_api.utils.getParamValue("api", "release");
+            api = squid_api.utils.getParamValue("api", "release", uri);
             version = squid_api.utils.getParamValue("version", "v4.2", uri);
 
             apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
@@ -1568,8 +1570,8 @@
             squid_api.getCustomer().done(function(customer) {
                 // perform config init chain
                 me.defaultConfig.customer = customer.get("id");
-                var state = squid_api.utils.getParamValue("state", null);
-                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
+                var state = squid_api.utils.getParamValue("state", null, me.uri);
+                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut, me.uri);
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
