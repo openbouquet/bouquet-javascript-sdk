@@ -582,8 +582,13 @@
         setup: function (args) {
             var me = this, api, apiUrl, timeoutMillis;
             args = args || {};
-
-            var uri = args.uri || new URI(window.location.href);
+            
+            var uri;
+            if (args.uri) {
+                uri = new URI(args.uri);
+            } else {
+                uri = new URI(window.location.href);
+            }
             
             this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
 
