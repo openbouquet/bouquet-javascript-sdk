@@ -338,7 +338,10 @@
                 }
                 if (projectFacetJob.get("results")) {
                     var facets = projectFacetJob.get("results").facets;
-                    jobModel.set("selection", {"facets": facets});
+                    jobModel.set("selection", {
+                        "facets": facets,
+                        "compareTo" : projectFacetJob.get("selection").compareTo
+                    });
                 }
                 jobModel.set("status", "DONE");
                 dfd.resolve();
