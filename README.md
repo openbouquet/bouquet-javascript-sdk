@@ -1,4 +1,4 @@
-jssdk2
+Open Bouquet Javascript SDK
 ======
 
 The JSSDK core library (Version 3)
