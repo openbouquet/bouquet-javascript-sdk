@@ -60,6 +60,9 @@
 
         utils: {
 
+            /**
+             * Union of attributes of 2 objects.
+             */
             mergeAttributes: function (obj1, obj2) {
                 var obj = {};
                 if (obj1) {
@@ -1257,19 +1260,19 @@
             }
         },
 
-        setConfig : function(config, baseConfig, forcedConfig) {
+        setConfig : function(config, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
-            config = squid_api.utils.mergeAttributes(baseConfig, config);
+            var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
             if (_.isFunction(forcedConfig)) {
-                config = forcedConfig(config);
+                newConfig = forcedConfig(newConfig);
             } else {
-                config = squid_api.utils.mergeAttributes(config, forcedConfig);
+                newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
-            squid_api.model.config.set(config);
+            squid_api.model.config.set(newConfig);
         },
 
-        setStateId: function (dfd, stateId, baseConfig, forcedConfig) {
+        setStateId: function (dfd, stateId, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
             // fetch the State
@@ -1283,7 +1286,7 @@
             stateModel.fetch({
                 success: function (model, response, options) {
                     // set the config
-                    me.setConfig(model.get("config"),baseConfig, forcedConfig);
+                    me.setConfig(model.get("config"), forcedConfig);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -1293,7 +1296,7 @@
             return dfd.promise();
         },
 
-        setShortcutId: function (shortcutId, baseConfig, forcedConfig) {
+        setShortcutId: function (shortcutId, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             if (shortcutId) {
@@ -1309,7 +1312,7 @@
                         console.log("shortcut fetched : " + model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
-                        me.setStateId(dfd, model.get("stateId"), baseConfig, forcedConfig);
+                        me.setStateId(dfd, model.get("stateId"), forcedConfig);
                     },
                     error: function (model, response, options) {
                         console.error("shortcut fetch failed : " + shortcutId);
@@ -1317,12 +1320,12 @@
                     }
                 });
             } else {
-                me.model.config.set(baseConfig);
+                me.model.config.set(squid_api.defaultConfig);
             }
             return dfd.promise();
         },
 
-        setBookmarkId: function (bookmarkId, baseConfig, forcedConfig) {
+        setBookmarkId: function (bookmarkId, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             var projectId = me.model.config.get("project");
@@ -1349,7 +1352,7 @@
                         }
                         forcedConfig.bookmark = bookmarkId;
                         // set the config
-                        me.setConfig(model.get("config"), baseConfig, forcedConfig);
+                        me.setConfig(model.get("config"), forcedConfig);
                     },
                     error: function (model, response, options) {
                         console.error("bookmark fetch failed : " + bookmarkId);
@@ -1357,7 +1360,7 @@
                     }
                 });
             } else {
-                me.model.config.set(baseConfig);
+                me.model.config.set(squid_api.defaultConfig);
             }
             return dfd.promise();
         },
@@ -1390,6 +1393,7 @@
             this.defaultConfig.selection = this.defaultConfig.selection || {
                     "facets" : []
             };
+            this.defaultConfig.orderBy = null;
             
             if (args.browsers) {
                 this.browsers = args.browsers;
@@ -1574,22 +1578,22 @@
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
-                    var dfd = me.setStateId(null, state, me.defaultConfig);
+                    var dfd = me.setStateId(null, state);
                     dfd.fail(function () {
                         console.log("Warning : specified application state not found");
                         if (shortcut) {
-                            me.setShortcutId(shortcut, me.defaultConfig);
+                            me.setShortcutId(shortcut);
                         } else if (bookmark) {
-                            me.setBookmarkId(bookmark, me.defaultConfig);
+                            me.setBookmarkId(bookmark);
                         } else {
                             me.model.config.set(me.defaultConfig);
                         }
                     });
                 } else {
                     if (shortcut) {
-                        me.setShortcutId(shortcut, me.defaultConfig);
+                        me.setShortcutId(shortcut);
                     } else if (bookmark) {
-                        me.setBookmarkId(bookmark, me.defaultConfig);
+                        me.setBookmarkId(bookmark);
                     } else {
                         me.model.config.set(me.defaultConfig);
                     }
