@@ -36,6 +36,7 @@
         swaggerURL: null,
         apiSchema: null,
         apiVersion: null,
+        uri : null,
 
         // declare some namespaces
         model: {},
@@ -59,6 +60,9 @@
 
         utils: {
 
+            /**
+             * Union of attributes of 2 objects.
+             */
             mergeAttributes: function (obj1, obj2) {
                 var obj = {};
                 if (obj1) {
@@ -129,6 +133,8 @@
                             }
                         }
                     }
+                    // compare
+                    selection.compareTo = selectionOpt.compareTo;
                 }
                 return selection;
             },

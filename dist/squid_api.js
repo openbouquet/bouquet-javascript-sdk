@@ -36,6 +36,7 @@
         swaggerURL: null,
         apiSchema: null,
         apiVersion: null,
+        uri : null,
 
         // declare some namespaces
         model: {},
@@ -59,6 +60,9 @@
 
         utils: {
 
+            /**
+             * Union of attributes of 2 objects.
+             */
             mergeAttributes: function (obj1, obj2) {
                 var obj = {};
                 if (obj1) {
@@ -129,6 +133,8 @@
                             }
                         }
                     }
+                    // compare
+                    selection.compareTo = selectionOpt.compareTo;
                 }
                 return selection;
             },
@@ -798,7 +804,7 @@
         
         /**
          * Check the API matches a given version string.
-         * @param semver range to match
+         * @param semver range to match (e.g. ">=4.2.4")
          * @return a Promise
          */
         checkAPIVersion : function(range) {
@@ -846,8 +852,8 @@
         /*
          * Get a parameter value from the current location url
          */
-        getParamValue: function (name, defaultValue) {
-            var uri = new URI(window.location.href);
+        getParamValue: function (name, defaultValue, uri) {
+            uri = uri || new URI(window.location.href);
             var value;
             if (uri.hasQuery(name) === true) {
                 value = uri.search(true)[name];
@@ -951,6 +957,29 @@
             squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
             squid_api.getLoginFromToken(null);
         },
+        
+        getLoginUrl : function(redirectURI) {
+            if (!this.redirectUri) {
+                // use the current location stripping token or code parameters
+                redirectUri = window.location.href;
+            }
+            // build redirect URI with appropriate token or code parameters
+            var rurl = new URI(redirectUri);
+            rurl.removeQuery("access_token");
+            rurl.setQuery("code","auth_code");
+            var rurlString = rurl.toString();
+            // ugly trick to bypass urlencoding of auth_code parameter value
+            rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
+            
+            // redirection mode
+            var url = new URI(squid_api.loginURL);
+            url.setQuery("response_type","code");
+            if (squid_api.clientId) {
+                url.setQuery("client_id", squid_api.clientId);
+            }
+            url.setQuery("redirect_uri",rurlString);
+            return url;
+        }
 
     });
 
@@ -1047,7 +1076,7 @@
             var me = this;
 
             // set the access_token (to start the login model update)
-            var code = squid_api.utils.getParamValue("code", null);
+            var code = squid_api.utils.getParamValue("code", null, me.uri);
             if (code) {
                 // remove code parameter from browser history
                 if (window.history) {
@@ -1078,7 +1107,7 @@
                     });
                 });
             } else {
-                var token = squid_api.utils.getParamValue("access_token", null);
+                var token = squid_api.utils.getParamValue("access_token", null, me.uri);
                 me.getLoginFromToken(token).always( function(login) {
                     deferred.resolve(login);
                 });
@@ -1129,7 +1158,7 @@
         getSelectedProject : function(forceRefresh) {
             var projectId = squid_api.model.config.get("project");
             return this.getCustomer().then(function(customer) {
-            	return customer.get("projects").load(projectId, forceRefresh);
+                return customer.get("projects").load(projectId, forceRefresh);
             });
         },
 
@@ -1231,19 +1260,19 @@
             }
         },
 
-        setConfig : function(config, baseConfig, forcedConfig) {
+        setConfig : function(config, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
-            config = squid_api.utils.mergeAttributes(baseConfig, config);
+            var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
             if (_.isFunction(forcedConfig)) {
-                config = forcedConfig(config);
+                newConfig = forcedConfig(newConfig);
             } else {
-                config = squid_api.utils.mergeAttributes(config, forcedConfig);
+                newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
-            squid_api.model.config.set(config);
+            squid_api.model.config.set(newConfig);
         },
 
-        setStateId: function (dfd, stateId, baseConfig, forcedConfig) {
+        setStateId: function (dfd, stateId, forcedConfig) {
             var me = this;
             dfd = dfd || (new $.Deferred());
             // fetch the State
@@ -1257,7 +1286,7 @@
             stateModel.fetch({
                 success: function (model, response, options) {
                     // set the config
-                    me.setConfig(model.get("config"),baseConfig, forcedConfig);
+                    me.setConfig(model.get("config"), forcedConfig);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -1267,7 +1296,7 @@
             return dfd.promise();
         },
 
-        setShortcutId: function (shortcutId, baseConfig, forcedConfig) {
+        setShortcutId: function (shortcutId, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             if (shortcutId) {
@@ -1283,7 +1312,7 @@
                         console.log("shortcut fetched : " + model.get("name"));
                         me.model.status.set("shortcut", model);
                         // get the associated state
-                        me.setStateId(dfd, model.get("stateId"), baseConfig, forcedConfig);
+                        me.setStateId(dfd, model.get("stateId"), forcedConfig);
                     },
                     error: function (model, response, options) {
                         console.error("shortcut fetch failed : " + shortcutId);
@@ -1291,12 +1320,12 @@
                     }
                 });
             } else {
-                me.model.config.set(baseConfig);
+                me.model.config.set(squid_api.defaultConfig);
             }
             return dfd.promise();
         },
 
-        setBookmarkId: function (bookmarkId, baseConfig, forcedConfig) {
+        setBookmarkId: function (bookmarkId, forcedConfig) {
             var me = this;
             var dfd = new $.Deferred();
             var projectId = me.model.config.get("project");
@@ -1323,7 +1352,7 @@
                         }
                         forcedConfig.bookmark = bookmarkId;
                         // set the config
-                        me.setConfig(model.get("config"), baseConfig, forcedConfig);
+                        me.setConfig(model.get("config"), forcedConfig);
                     },
                     error: function (model, response, options) {
                         console.error("bookmark fetch failed : " + bookmarkId);
@@ -1331,7 +1360,7 @@
                     }
                 });
             } else {
-                me.model.config.set(baseConfig);
+                me.model.config.set(squid_api.defaultConfig);
             }
             return dfd.promise();
         },
@@ -1343,19 +1372,28 @@
         setup: function (args) {
             var me = this, api, apiUrl, timeoutMillis;
             args = args || {};
-
-            this.debug = squid_api.utils.getParamValue("debug", args.debug);
+            
+            var uri;
+            if (args.uri) {
+                uri = new URI(args.uri);
+            } else {
+                uri = new URI(window.location.href);
+            }
+            this.uri = uri;
+            
+            this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
-            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId);
-            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId);
+            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId, uri);
+            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId, uri);
             
             this.defaultConfig = args.config || {};
-            this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark);
-            this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project);
+            this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark, uri);
+            this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project, uri);
             this.defaultConfig.selection = this.defaultConfig.selection || {
                     "facets" : []
             };
+            this.defaultConfig.orderBy = null;
             
             if (args.browsers) {
                 this.browsers = args.browsers;
@@ -1393,6 +1431,7 @@
                                 "period" : null,
                                 "chosenDimensions" : [],
                                 "chosenMetrics" : [],
+                                "rollups" : [],
                                 "orderBy" : null,
                                 "selection" : {
                                     "domain" : null,
@@ -1431,10 +1470,10 @@
             this.model.filters = new squid_api.controller.facetjob.FiltersModel();
 
             // init the api server URL
-            api = squid_api.utils.getParamValue("api", "release");
-            version = squid_api.utils.getParamValue("version", "v4.2");
+            api = squid_api.utils.getParamValue("api", "release", uri);
+            version = squid_api.utils.getParamValue("version", "v4.2", uri);
 
-            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl);
+            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
             if (!apiUrl) {
                 console.error("Please provide an API endpoint URL");
             } else {
@@ -1534,27 +1573,27 @@
             squid_api.getCustomer().done(function(customer) {
                 // perform config init chain
                 me.defaultConfig.customer = customer.get("id");
-                var state = squid_api.utils.getParamValue("state", null);
-                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut);
+                var state = squid_api.utils.getParamValue("state", null, me.uri);
+                var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut, me.uri);
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
-                    var dfd = me.setStateId(null, state, me.defaultConfig);
+                    var dfd = me.setStateId(null, state);
                     dfd.fail(function () {
                         console.log("Warning : specified application state not found");
                         if (shortcut) {
-                            me.setShortcutId(shortcut, me.defaultConfig);
+                            me.setShortcutId(shortcut);
                         } else if (bookmark) {
-                            me.setBookmarkId(bookmark, me.defaultConfig);
+                            me.setBookmarkId(bookmark);
                         } else {
                             me.model.config.set(me.defaultConfig);
                         }
                     });
                 } else {
                     if (shortcut) {
-                        me.setShortcutId(shortcut, me.defaultConfig);
+                        me.setShortcutId(shortcut);
                     } else if (bookmark) {
-                        me.setBookmarkId(bookmark, me.defaultConfig);
+                        me.setBookmarkId(bookmark);
                     } else {
                         me.model.config.set(me.defaultConfig);
                     }
@@ -1842,8 +1881,8 @@
                         }
                     }
                 }
-                this.set({"metricList": metrics}, {"silent": silent});
             }
+            this.set({"metricList": metrics}, {"silent": silent});
             return this;
         },
 
@@ -2500,7 +2539,15 @@
                 }
                 if (projectFacetJob.get("results")) {
                     var facets = projectFacetJob.get("results").facets;
-                    jobModel.set("selection", {"facets": facets});
+                    jobModel.set({
+                        "results" : {
+                            "compareTo" : projectFacetJob.get("results").compareTo
+                        },
+                        "selection" : {
+                            "facets": facets,
+                            "compareTo" : projectFacetJob.get("selection").compareTo
+                        }
+                    });
                 }
                 jobModel.set("status", "DONE");
                 dfd.resolve();
