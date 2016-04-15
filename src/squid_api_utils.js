@@ -607,6 +607,8 @@
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
+            
+            this.apiVersionCheck = args.apiVersionCheck || "*";
 
             // Application Models
 
@@ -701,13 +703,6 @@
                 timeoutMillis = 10 * 1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
-            
-            // log API version
-            squid_api.utils.checkAPIVersion("*").done(function(v){
-                    console.log("Bouquet Server version : "+v);
-                }).fail(function(){
-                    console.error("WARN unable to get Bouquet Server version");
-                });
 
             return this;
         },
@@ -741,7 +736,7 @@
                             });
                 } else {
                     // continue init process
-                    this.initStep1(args);
+                    this.initStep0(args);
                 }
             } else {
                 console.error("Unsupported browser : " + navigator.userAgent);
@@ -753,6 +748,26 @@
                             "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
                         });
             }
+        },
+        
+        initStep0: function(args) {
+            // log API version
+            var me = this;
+            squid_api.utils.checkAPIVersion(this.apiVersionCheck).done(function(v){
+                console.log("Bouquet Server version : "+v);
+                me.initStep1(args);
+            }).fail(function(v){
+                var message;
+                if (!v) {
+                    message = "Unable to get Bouquet Server version";
+                } else {
+                    message = "Bouquet Server version does not match this App's api version requirements";
+                }
+                me.model.status.set("error",{
+                    "dismissible": false,
+                    "message": message
+                });
+            });
         },
 
         initStep1: function (args) {

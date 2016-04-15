@@ -29,6 +29,7 @@ api.setup({
     "selection" : selection,
     "filtersDefaultEvents" : true,
     "defaultShortcut" : "shortcut",
+    "apiVersionCheck" : ">=4.2.5",
     "config" : {}
 });
 ```
@@ -40,6 +41,7 @@ The arguments are :
 * `projectId` : an optional Project Id,
 * `domainId` : an optional Domain Id,
 * `defaultShortcut` : an optional Shortcut id to retrieve app State from.
+* "apiVersionCheck" : an SemVer string to enforce Server API version check
 * `config`: an optional default configuration (state)
 
 Some of these arguments may also be overridden by setting URL parameters such as :  
