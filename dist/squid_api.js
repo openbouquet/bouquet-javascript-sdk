@@ -2137,6 +2137,7 @@
 
             // validate job
             if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
+                console.error("Invalid analysis : Must at least define a metric or a dimension");
                 observer.reject({"err": "invalid_analysis", "message": "Must at least define a metric or a dimension"});
             } else {
                 this.createAnalysisJob(analysisJob, selection)
