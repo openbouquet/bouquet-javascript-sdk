@@ -478,7 +478,10 @@
             } else {
                 newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
+            squid_api.model.status.set("configReady", false);
+            // apply the config
             squid_api.model.config.set(newConfig);
+            squid_api.model.status.set("configReady", true);
         },
 
         setStateId: function (dfd, stateId, forcedConfig) {
