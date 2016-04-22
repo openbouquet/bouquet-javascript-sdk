@@ -1269,7 +1269,10 @@
             } else {
                 newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
+            squid_api.model.status.set("configReady", false);
+            // apply the config
             squid_api.model.config.set(newConfig);
+            squid_api.model.status.set("configReady", true);
         },
 
         setStateId: function (dfd, stateId, forcedConfig) {
@@ -1398,6 +1401,8 @@
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
+            
+            this.apiVersionCheck = args.apiVersionCheck || "*";
 
             // Application Models
 
@@ -1492,13 +1497,6 @@
                 timeoutMillis = 10 * 1000; // 10 Sec.
             }
             this.setTimeoutMillis(timeoutMillis);
-            
-            // log API version
-            squid_api.utils.checkAPIVersion("*").done(function(v){
-                    console.log("Bouquet Server version : "+v);
-                }).fail(function(){
-                    console.error("WARN unable to get Bouquet Server version");
-                });
 
             return this;
         },
@@ -1532,7 +1530,7 @@
                             });
                 } else {
                     // continue init process
-                    this.initStep1(args);
+                    this.initStep0(args);
                 }
             } else {
                 console.error("Unsupported browser : " + navigator.userAgent);
@@ -1544,6 +1542,26 @@
                             "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
                         });
             }
+        },
+        
+        initStep0: function(args) {
+            // log API version
+            var me = this;
+            squid_api.utils.checkAPIVersion(this.apiVersionCheck).done(function(v){
+                console.log("Bouquet Server version : "+v);
+                me.initStep1(args);
+            }).fail(function(v){
+                var message;
+                if (!v) {
+                    message = "Unable to get Bouquet Server version";
+                } else {
+                    message = "Bouquet Server version does not match this App's api version requirements";
+                }
+                me.model.status.set("error",{
+                    "dismissible": false,
+                    "message": message
+                });
+            });
         },
 
         initStep1: function (args) {
@@ -2122,6 +2140,7 @@
 
             // validate job
             if (((!analysisJob.get("metricList") || analysisJob.get("metricList").length === 0)) && (!analysisJob.get("dimensions") && (!analysisJob.get("facets") || analysisJob.get("facets").length === 0))) {
+                console.error("Invalid analysis : Must at least define a metric or a dimension");
                 observer.reject({"err": "invalid_analysis", "message": "Must at least define a metric or a dimension"});
             } else {
                 this.createAnalysisJob(analysisJob, selection)
