@@ -10,7 +10,7 @@
     // Enhance Squid API utils
 
     squid_api.utils = _.extend(squid_api.utils, {
-        
+
         /**
          * Check the API matches a given version string.
          * @param semver range to match (e.g. ">=4.2.4")
@@ -76,7 +76,7 @@
             var uri = new URI(window.location.href);
             uri.removeQuery(name);
         },
-        
+
         selectedComparator : function(a,b) {
             var da = a.selected;
             var db = b.selected;
@@ -166,7 +166,7 @@
             squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
             squid_api.getLoginFromToken(null);
         },
-        
+
         getLoginUrl : function(redirectURI) {
             if (!this.redirectUri) {
                 // use the current location stripping token or code parameters
@@ -179,7 +179,7 @@
             var rurlString = rurl.toString();
             // ugly trick to bypass urlencoding of auth_code parameter value
             rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
-            
+
             // redirection mode
             var url = new URI(squid_api.loginURL);
             url.setQuery("response_type","code");
@@ -272,7 +272,7 @@
                     deferred.reject();
                 });
             });
-            
+
             return deferred;
         },
 
@@ -451,7 +451,7 @@
                             console.log("state saved : " + oid);
                             // keep for comparison when saved again
                             me.model.state = model.get("config");
-    
+
                             // save in browser history
                             if (window.history) {
                                 var uri = new URI(window.location.href);
@@ -469,10 +469,19 @@
             }
         },
 
+        invalidConfigCheck: function(config) {
+            // fix invalid config attributes
+            if (config.chosenDimensions === null) {
+                config.chosenDimensions = [];
+            }
+            return config;
+        },
+
         setConfig : function(config, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
             var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
+            newConfig = this.invalidConfigCheck(newConfig);
             if (_.isFunction(forcedConfig)) {
                 newConfig = forcedConfig(newConfig);
             } else {
@@ -584,7 +593,7 @@
         setup: function (args) {
             var me = this, api, apiUrl, timeoutMillis;
             args = args || {};
-            
+
             var uri;
             if (args.uri) {
                 uri = new URI(args.uri);
@@ -592,13 +601,13 @@
                 uri = new URI(window.location.href);
             }
             this.uri = uri;
-            
+
             this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
             this.customerId = squid_api.utils.getParamValue("customerId", args.customerId, uri);
             this.clientId = squid_api.utils.getParamValue("clientId", args.clientId, uri);
-            
+
             this.defaultConfig = args.config || {};
             this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark, uri);
             this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project, uri);
@@ -606,11 +615,11 @@
                     "facets" : []
             };
             this.defaultConfig.orderBy = null;
-            
+
             if (args.browsers) {
                 this.browsers = args.browsers;
             }
-            
+
             this.apiVersionCheck = args.apiVersionCheck || "*";
 
             // Application Models
@@ -631,7 +640,7 @@
                 var hasChangedSelection = config.hasChanged("selection");
                 var hasChangedPeriod = config.hasChanged("period");
                 var forceRefresh = (value === true);
-                if (hasChangedProject || forceRefresh) {
+                if (config.get("project") && (hasChangedProject || forceRefresh)) {
                     squid_api.getSelectedProject(forceRefresh).always( function(project) {
                         if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
                             // load the domain
@@ -752,7 +761,7 @@
                         });
             }
         },
-        
+
         initStep0: function(args) {
             // log API version
             var me = this;
