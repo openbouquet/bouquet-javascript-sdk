@@ -1265,6 +1265,9 @@
             if (config.chosenDimensions === null) {
                 config.chosenDimensions = [];
             }
+            if (config.project === undefined) {
+                delete config.project;
+            }
             return config;
         },
 
@@ -1272,7 +1275,6 @@
             // keep for comparison when saved again
             squid_api.model.state = config;
             var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
-            // fix invalid config
             newConfig = this.invalidConfigCheck(newConfig);
             if (_.isFunction(forcedConfig)) {
                 newConfig = forcedConfig(newConfig);

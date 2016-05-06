@@ -474,6 +474,9 @@
             if (config.chosenDimensions === null) {
                 config.chosenDimensions = [];
             }
+            if (config.project === undefined) {
+                delete config.project;
+            }
             return config;
         },
 
