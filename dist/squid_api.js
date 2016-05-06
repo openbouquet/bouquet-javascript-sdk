@@ -1340,7 +1340,7 @@
             return dfd.promise();
         },
 
-        setBookmarkId: function (bookmarkId, forcedConfig) {
+        setBookmarkId: function (bookmarkId, forcedConfig, attributes) {
             var me = this;
             var dfd = new $.Deferred();
             var projectId = me.model.config.get("project");
@@ -1360,14 +1360,28 @@
                 bookmarkModel.fetch({
                     success: function (model, response, options) {
                         console.log("bookmark fetched : " + model.get("name"));
+                        var config = model.get("config");
                         me.model.status.set("bookmark", model);
+
                         // current bookmark id goes to the config (whereas shortcut)
                         if (!forcedConfig) {
                             forcedConfig = {};
                         }
                         forcedConfig.bookmark = bookmarkId;
+
+                        // if attributes array exists - only set these attributes
+                        if (attributes) {
+                            config = me.model.config.toJSON();
+                            for (i=0; i<attributes.length; i++) {
+                                var attr = attributes[i];
+                                if (config[attr] && model.get("config")[attr]) {
+                                    config[attr] = model.get("config")[attr];
+                                }
+                            }
+                        }
+                        
                         // set the config
-                        me.setConfig(model.get("config"), forcedConfig);
+                        me.setConfig(config, forcedConfig);
                     },
                     error: function (model, response, options) {
                         console.error("bookmark fetch failed : " + bookmarkId);
