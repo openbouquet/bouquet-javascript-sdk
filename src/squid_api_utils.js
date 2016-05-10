@@ -605,6 +605,7 @@
 
         /**
          * Setup the API default settings.
+         * Note this method is idempotent.
          * @param a config json object
          */
         setup: function (args) {
@@ -615,17 +616,15 @@
             if (args.uri) {
                 uri = new URI(args.uri);
             } else {
-                uri = new URI(window.location.href);
+                uri = this.uri || new URI(window.location.href);
             }
             this.uri = uri;
-
-            this.debug = squid_api.utils.getParamValue("debug", args.debug, uri);
+            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId || this.customerId, uri);
+            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId || this.clientId, uri);
+            this.debug = squid_api.utils.getParamValue("debug", args.debug || this.debug, uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
-            this.customerId = squid_api.utils.getParamValue("customerId", args.customerId, uri);
-            this.clientId = squid_api.utils.getParamValue("clientId", args.clientId, uri);
-
-            this.defaultConfig = args.config || {};
+            this.defaultConfig = this.utils.mergeAttributes(this.defaultConfig, args.config);
             this.defaultConfig.bookmark = squid_api.utils.getParamValue("bookmark", this.defaultConfig.bookmark, uri);
             this.defaultConfig.project = squid_api.utils.getParamValue("projectId", this.defaultConfig.project, uri);
             this.defaultConfig.selection = this.defaultConfig.selection || {
@@ -637,145 +636,168 @@
                 this.browsers = args.browsers;
             }
 
-            this.apiVersionCheck = args.apiVersionCheck || "*";
+            if (args.apiVersionCheck) {
+                this.apiVersionCheck = args.apiVersionCheck || "*";
+            } else {
+                this.apiVersionCheck = this.apiVersionCheck || "*";
+            }
 
             // Application Models
 
             // support for backward compatibility
-            squid_api.model.project = new squid_api.model.ProjectModel();
+            if (!squid_api.model.project) {
+                squid_api.model.project = new squid_api.model.ProjectModel();
+            }
 
             // config
-            this.model.config = new Backbone.Model();
-
-            // listen for project/domain change
-            this.model.config.on("change", function (config, value) {
-                var project;
-                var hasChangedProject = config.hasChanged("project");
-                var hasChangedDomain = config.hasChanged("domain");
-                var hasChangedDimensions = config.hasChanged("chosenDimensions");
-                var hasChangedMetrics = config.hasChanged("chosenMetrics");
-                var hasChangedSelection = config.hasChanged("selection");
-                var hasChangedPeriod = config.hasChanged("period");
-                var forceRefresh = (value === true);
-                if (config.get("project") && (hasChangedProject || forceRefresh)) {
-                    squid_api.getSelectedProject(forceRefresh).always( function(project) {
-                        if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
-                            // load the domain
-                            squid_api.getSelectedDomain(forceRefresh);
-                        } else {
-                            // project only changed
-                            // reset the config
-                            config.set({
-                                "bookmark" : null,
-                                "domain" : null,
-                                "period" : null,
-                                "chosenDimensions" : [],
-                                "chosenMetrics" : [],
-                                "rollups" : [],
-                                "orderBy" : null,
-                                "selection" : {
+            if (!this.model.config) {
+                this.model.config = new Backbone.Model();
+    
+                // listen for project/domain change
+                this.model.config.on("change", function (config, value) {
+                    var project;
+                    var hasChangedProject = config.hasChanged("project");
+                    var hasChangedDomain = config.hasChanged("domain");
+                    var hasChangedDimensions = config.hasChanged("chosenDimensions");
+                    var hasChangedMetrics = config.hasChanged("chosenMetrics");
+                    var hasChangedSelection = config.hasChanged("selection");
+                    var hasChangedPeriod = config.hasChanged("period");
+                    var forceRefresh = (value === true);
+                    if (config.get("project") && (hasChangedProject || forceRefresh)) {
+                        squid_api.getSelectedProject(forceRefresh).always( function(project) {
+                            if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
+                                // load the domain
+                                squid_api.getSelectedDomain(forceRefresh);
+                            } else {
+                                // project only changed
+                                // reset the config
+                                config.set({
+                                    "bookmark" : null,
                                     "domain" : null,
+                                    "period" : null,
+                                    "chosenDimensions" : [],
+                                    "chosenMetrics" : [],
+                                    "rollups" : [],
+                                    "orderBy" : null,
+                                    "selection" : {
+                                        "domain" : null,
+                                        "facets": []
+                                    }
+                                });
+                            }
+                        });
+                    } else if (hasChangedDomain || forceRefresh) {
+                        // load the domain
+                        squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
+                            // reset the config taking care of changing domain-dependant attributes
+                            // as they shouldn't be reset in case of a bookmark selection
+                            var newConfig = {};
+                            if (!hasChangedPeriod) {
+                                newConfig.period = null;
+                            }
+                            if (!hasChangedDimensions) {
+                                newConfig.chosenDimensions = [];
+                            }
+                            if (!hasChangedMetrics) {
+                                newConfig.chosenMetrics = [];
+                            }
+                            if (!hasChangedSelection) {
+                                newConfig.selection = {
+                                    "domain" : domain.get("oid"),
                                     "facets": []
-                                }
-                            });
-                        }
-                    });
-                } else if (hasChangedDomain || forceRefresh) {
-                    // load the domain
-                    squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
-                        // reset the config taking care of changing domain-dependant attributes
-                        // as they shouldn't be reset in case of a bookmark selection
-                        var newConfig = {};
-                        if (!hasChangedPeriod) {
-                            newConfig.period = null;
-                        }
-                        if (!hasChangedDimensions) {
-                            newConfig.chosenDimensions = [];
-                        }
-                        if (!hasChangedMetrics) {
-                            newConfig.chosenMetrics = [];
-                        }
-                        if (!hasChangedSelection) {
-                            newConfig.selection = {
-                                "domain" : domain.get("oid"),
-                                "facets": []
-                            };
-                        }
-                        config.set(newConfig);
-                    });
-                }
-            });
+                                };
+                            }
+                            config.set(newConfig);
+                        });
+                    }
+                });
+            }
 
             // filters
-            this.model.filters = new squid_api.controller.facetjob.FiltersModel();
+            if (!this.model.filters) {
+                this.model.filters = new squid_api.controller.facetjob.FiltersModel();
+            }
 
-            // init the api server URL
-            api = squid_api.utils.getParamValue("api", "release", uri);
-            version = squid_api.utils.getParamValue("version", "v4.2", uri);
-
-            apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
-            if (!apiUrl) {
-                console.error("Please provide an API endpoint URL");
-            } else {
-                if (apiUrl.indexOf("://") < 0) {
-                    apiUrl = "https://" + apiUrl;
+            if (!this.apiUrl) {
+                // init the api server URL
+                api = squid_api.utils.getParamValue("api", "release", uri);
+                version = squid_api.utils.getParamValue("version", "v4.2", uri);
+    
+                apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
+                if (!apiUrl) {
+                    console.error("Please provide an API endpoint URL");
+                } else {
+                    if (apiUrl.indexOf("://") < 0) {
+                        apiUrl = "https://" + apiUrl;
+                    }
+                    this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
+                    this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
                 }
-                this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
-                this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
+                // building default loginURL from apiURL
+                squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+    
+                // init the timout
+                timeoutMillis = args.timeoutMillis;
+                if (!timeoutMillis) {
+                    timeoutMillis = 10 * 1000; // 10 Sec.
+                }
+                this.setTimeoutMillis(timeoutMillis);
             }
-            // building default loginURL from apiURL
-            squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
-
-            // init the timout
-            timeoutMillis = args.timeoutMillis;
-            if (!timeoutMillis) {
-                timeoutMillis = 10 * 1000; // 10 Sec.
-            }
-            this.setTimeoutMillis(timeoutMillis);
 
             return this;
         },
 
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
+         * Note this method is idempotent.
          * @param a config json object (if present will call the setup method).
          */
         init: function (args) {
-            var browserOK = false;
-
-            if (this.browsers) {
-                // check browser compatibility
-                for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
-                    var browser = this.browsers[browserIdx];
-                    if (navigator.userAgent.indexOf(browser) > 0) {
-                        browserOK = true;
+            if (this.browserOK === null) {
+                this.browserOK = false;
+                if (this.browsers) {
+                    // check browser compatibility
+                    for (var browserIdx = 0; browserIdx < this.browsers.length; browserIdx++) {
+                        var browser = this.browsers[browserIdx];
+                        if (navigator.userAgent.indexOf(browser) > 0) {
+                            this.browserOK = true;
+                        }
                     }
+                } else {
+                    this.browserOK = true;
                 }
-            } else {
-                browserOK = true;
-            }
-            if (browserOK) {
-                if (!this.apiURL) {
+                if (this.browserOK) {
+                    if (!this.apiURL) {
+                        this.model.status
+                            .set(
+                                "error",
+                                {
+                                    "dismissible": false,
+                                    "message": "Please provide an API endpoint URL"
+                                });
+                    } else {
+                        // continue init process
+                        this.initStep0(args);
+                    }
+                } else {
+                    console.error("Unsupported browser : " + navigator.userAgent);
                     this.model.status
                         .set(
-                            "error",
+                            'error',
                             {
                                 "dismissible": false,
-                                "message": "Please provide an API endpoint URL"
+                                "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
                             });
-                } else {
-                    // continue init process
-                    this.initStep0(args);
                 }
             } else {
-                console.error("Unsupported browser : " + navigator.userAgent);
-                this.model.status
-                    .set(
-                        'error',
-                        {
-                            "dismissible": false,
-                            "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
-                        });
+                // API already initialized
+                if (args && args.config) {
+                    if (args.config.bookmark) {
+                        this.setBookmarkId(args.config.bookmark);
+                    } else if (args.config.project) {
+                        this.model.config.set("project", (args.config.project));
+                    }
+                }
             }
         },
 
@@ -800,11 +822,10 @@
         },
 
         initStep1: function (args) {
-            var me = this, loginModel;
+            var me = this;
 
             if (args) {
                 this.setup(args);
-                loginModel = args.loginModel;
             }
 
             // handle session expiration
@@ -817,11 +838,7 @@
                     }
                 }
             });
-
-            if (!loginModel) {
-                loginModel = this.model.login;
-            }
-
+            
             // check for login performed
             squid_api.getCustomer().done(function(customer) {
                 // perform config init chain

@@ -37,6 +37,7 @@
         apiSchema: null,
         apiVersion: null,
         uri : null,
+        browserOK : null,
 
         // declare some namespaces
         model: {},
