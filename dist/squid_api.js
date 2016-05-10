@@ -1368,6 +1368,7 @@
                         if (!forcedConfig) {
                             forcedConfig = {};
                         }
+                        forcedConfig.project = projectId;
                         forcedConfig.bookmark = bookmarkId;
 
                         // if attributes array exists - only set these attributes
