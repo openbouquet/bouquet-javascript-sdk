@@ -1164,19 +1164,6 @@
         },
 
         /**
-         * Get a collection of the current Project Model.
-         * Returns a Promise
-         */
-        getSelectedProjectCollection : function(collectionName) {
-            var projectId = squid_api.model.config.get("project");
-            return this.getCustomer().then(function(customer) {
-                return customer.get("projects").load(projectId).then(function(project) {
-                    return project.get(collectionName).load();
-                });
-            });
-        },
-
-        /**
          * Get the current Domain Model.
          * Returns a Promise
          */
@@ -1187,16 +1174,6 @@
                 return customer.get("projects").load(projectId).then(function(project) {
                     return project.get("domains").load(domainId, forceRefresh);
                 });
-            });
-        },
-
-        /**
-         * Get a collection of the current Domain Model.
-         * Returns a Promise
-         */
-        getSelectedDomainCollection : function(collectionName) {
-            return this.getSelectedDomain().then(function(domain) {
-                return domain.get(collectionName).load();
             });
         },
 
