@@ -1586,7 +1586,10 @@
                 // API already initialized
                 if (args && args.config) {
                     if (args.config.bookmark) {
-                        this.setBookmarkId(args.config.bookmark);
+                    	//If first time opening a bookmark or there is no user navigation
+                    	if (!this.model.config.get("bookmark") || !this.controller.UserNavigation) {
+                            this.setBookmarkId(args.config.bookmark);
+                    	}
                     } else if (args.config.project) {
                         this.model.config.set("project", (args.config.project));
                     }
