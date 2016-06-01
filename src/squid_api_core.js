@@ -152,6 +152,14 @@
                     hash = hash & hash; // Convert to 32bit integer
                 }
                 return hash;
+            },
+            
+            idToPath : function(id) {
+                var path = "";
+                for(var oid in id) {
+                    path += "/"+oid.substring(0,oid.length-2)+"s/"+id[oid];
+                }
+                return path;
             }
         }
     };

@@ -152,6 +152,14 @@
                     hash = hash & hash; // Convert to 32bit integer
                 }
                 return hash;
+            },
+            
+            idToPath : function(id) {
+                var path = "";
+                for(var oid in id) {
+                    path += "/"+oid.substring(0,oid.length-2)+"s/"+id[oid];
+                }
+                return path;
             }
         }
     };
@@ -611,6 +619,13 @@
             return this.baseRoot() + "/clients/" + this.getOid("clientId");
         }
     });
+    
+    squid_api.model.ClientCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.ClientModel,
+        urlRoot: function () {
+            return this.baseRoot() + "/clients";
+        }
+    });
 
     squid_api.model.StateModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
@@ -663,8 +678,15 @@
             return this.baseRoot() + "/users/" + this.getOid("userId");
         }
     });
+    
+    squid_api.model.GroupModel = squid_api.model.BaseModel.extend({
+        urlRoot: function () {
+            return this.baseRoot() + "/usergroups/" + this.getOid("groupId");
+        }
+    });
 
-    squid_api.model.GroupCollection = squid_api.model.BaseModel.extend({
+    squid_api.model.GroupCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.GroupModel,
         urlRoot: function () {
             return this.baseRoot() + "/usergroups";
         }
@@ -747,8 +769,9 @@
     squid_api.model.CustomerInfoModel.prototype.relations = {
         "projects" : squid_api.model.ProjectCollection,
         "users" : squid_api.model.UserCollection,
-        "usergroups" : squid_api.model.GroupCollection,
-        "shortcuts" : squid_api.model.ShortcutCollection
+        "userGroups" : squid_api.model.GroupCollection,
+        "shortcuts" : squid_api.model.ShortcutCollection,
+        "clients" : squid_api.model.ClientCollection
     };
 
     squid_api.model.ProjectModel.prototype.relations = {
