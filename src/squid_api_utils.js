@@ -446,29 +446,40 @@
             }
         },
 
-        invalidConfigCheck: function(config) {
-            // fix invalid config attributes
-            if (config.chosenDimensions === null) {
-                config.chosenDimensions = [];
-            }
-            if (config.project === undefined) {
-                delete config.project;
-            }
-            return config;
-        },
-
+        /**
+         * Apply a new config to squid_api.model.config
+         * @param config the new config to apply
+         * @param forcedConfig a function (or an object) used to post-process config values
+         */
         setConfig : function(config, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
             var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
-            newConfig = this.invalidConfigCheck(newConfig);
+            
+            // set to null attributes no longer in current config
+            for (var att in squid_api.model.config.attributes) {
+                if (!newConfig[att]) {
+                    newConfig[att] = null;
+                }
+            }
+            
+            // fix some invalid config attributes
+            if (newConfig.chosenDimensions === null) {
+                newConfig.chosenDimensions = [];
+            }
+            if (newConfig.project === undefined) {
+                delete newConfig.project;
+            }
+            
+            // apply forcedConfig
             if (_.isFunction(forcedConfig)) {
                 newConfig = forcedConfig(newConfig);
             } else {
                 newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
+            
+            // apply the new config to current config
             squid_api.model.status.set("configReady", false);
-            // apply the config
             squid_api.model.config.set(newConfig);
             squid_api.model.status.set("configReady", true);
         },
