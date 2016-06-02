@@ -263,7 +263,7 @@
             if (jobModel.get("engineVersion")) {
                 projectFacetJob.set("engineVersion", jobModel.get("engineVersion"));
             }
-            
+
             var domains = jobModel.get("domains");
             if ((!domains) || (!projectId)) {
                 // take first dimension's
@@ -338,7 +338,15 @@
                 }
                 if (projectFacetJob.get("results")) {
                     var facets = projectFacetJob.get("results").facets;
-                    jobModel.set("selection", {"facets": facets});
+                    jobModel.set({
+                        "results" : {
+                            "compareTo" : projectFacetJob.get("results").compareTo
+                        },
+                        "selection" : {
+                            "facets": facets,
+                            "compareTo" : projectFacetJob.get("selection").compareTo
+                        }
+                    });
                 }
                 jobModel.set("status", "DONE");
                 dfd.resolve();
@@ -418,7 +426,7 @@
             if (this.fakeServer) {
                 this.fakeServer.respond();
             }
-            
+
             return dfd.promise();
         },
 
@@ -480,14 +488,14 @@
             }
             // look for all dimensions in case a parent has multiple children & a valid selection
             if (!includeSelf || selectedItems>0) {
-	            for (i = 0; ((i < facets.length)); i++) {
-	                var facet1 = facets[i];
-	                if (facet1.dimension.parentId) {
-	                    if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
-	                    	this.unSelectChildren(facets, facet1, true);
-	                    }
-	                }
-	            }
+                for (i = 0; ((i < facets.length)); i++) {
+                    var facet1 = facets[i];
+                    if (facet1.dimension.parentId) {
+                        if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+                            this.unSelectChildren(facets, facet1, true);
+                        }
+                    }
+                }
             }
         },
 
@@ -513,7 +521,7 @@
             var selectedItems = facet.selectedItems;
             var facetIndex;
             for (var ix = 0; ((ix < selectedItems.length) && !facetIndex); ix++) {
-                if ((memberId === null) || (memberId === selectedItems[ix].id)) {
+                if ((memberId === null) || (memberId === selectedItems[ix].id) || (memberId === parseFloat(selectedItems[ix].id))) {
                     facetIndex = ix;
                     selectedItems.splice(facetIndex, 1);
                 }

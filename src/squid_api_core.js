@@ -36,6 +36,8 @@
         swaggerURL: null,
         apiSchema: null,
         apiVersion: null,
+        uri : null,
+        browserOK : null,
 
         // declare some namespaces
         model: {},
@@ -59,6 +61,9 @@
 
         utils: {
 
+            /**
+             * Union of attributes of 2 objects.
+             */
             mergeAttributes: function (obj1, obj2) {
                 var obj = {};
                 if (obj1) {
@@ -147,6 +152,14 @@
                     hash = hash & hash; // Convert to 32bit integer
                 }
                 return hash;
+            },
+            
+            idToPath : function(id) {
+                var path = "";
+                for(var oid in id) {
+                    path += "/"+oid.substring(0,oid.length-2)+"s/"+id[oid];
+                }
+                return path;
             }
         }
     };
