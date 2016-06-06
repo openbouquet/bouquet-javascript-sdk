@@ -530,6 +530,19 @@
             return this.baseRoot() + "/users";
         }
     });
+    
+    squid_api.model.BookmarkfolderModel = squid_api.model.BaseModel.extend({
+        urlRoot: function () {
+            return this.baseRoot() + "/bookmarkfolders/" + this.getOid("bookmarkfolderId");
+        }
+    });
+    
+    squid_api.model.BookmarkfolderCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.BookmarkfolderModel,
+        urlRoot: function () {
+            return this.baseRoot() + "/bookmarkfolders";
+        }
+    });
 
     squid_api.model.DomainModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
@@ -603,7 +616,8 @@
         "users" : squid_api.model.UserCollection,
         "userGroups" : squid_api.model.GroupCollection,
         "shortcuts" : squid_api.model.ShortcutCollection,
-        "clients" : squid_api.model.ClientCollection
+        "clients" : squid_api.model.ClientCollection,
+        "bookmarkfolders" : squid_api.model.BookmarkfolderCollection
     };
 
     squid_api.model.ProjectModel.prototype.relations = {
@@ -615,6 +629,10 @@
     squid_api.model.DomainModel.prototype.relations = {
         "dimensions" : squid_api.model.DimensionCollection,
         "metrics" : squid_api.model.MetricCollection
+    };
+    
+    squid_api.model.BookmarkfolderModel.prototype.relations = {
+        "folders" : squid_api.model.BookmarkfolderCollection
     };
 
     /**
