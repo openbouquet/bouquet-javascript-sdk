@@ -548,6 +548,29 @@
             }
             return dfd.promise();
         },
+        
+        setBookmarkAction: function (bookmark, forcedConfig, attributes) {
+            squid_api.setBookmark(bookmark, forcedConfig, attributes);
+        },
+        
+        setBookmark: function (bookmark, forcedConfig, attributes) {
+            var config = bookmark.get("config");
+            squid_api.model.status.set("bookmark", bookmark);
+
+            // if attributes array exists - only set these attributes
+            if (attributes) {
+                config = squid_api.model.config.toJSON();
+                for (i=0; i<attributes.length; i++) {
+                    var attr = attributes[i];
+                    if (config[attr] && bookmark.get("config")[attr]) {
+                        config[attr] = bookmark.get("config")[attr];
+                    }
+                }
+            }
+            
+            // set the config
+            squid_api.setConfig(config, forcedConfig);
+        },
 
         setBookmarkId: function (bookmarkId, forcedConfig, attributes) {
             var me = this;
@@ -567,31 +590,15 @@
                     }
                 });
                 bookmarkModel.fetch({
-                    success: function (model, response, options) {
-                        console.log("bookmark fetched : " + model.get("name"));
-                        var config = model.get("config");
-                        me.model.status.set("bookmark", model);
-
+                    success: function (bookmark, response, options) {
+                        console.log("bookmark fetched : " + bookmark.get("name"));
                         // current bookmark id goes to the config (whereas shortcut)
                         if (!forcedConfig) {
                             forcedConfig = {};
                         }
                         forcedConfig.project = projectId;
                         forcedConfig.bookmark = bookmarkId;
-
-                        // if attributes array exists - only set these attributes
-                        if (attributes) {
-                            config = me.model.config.toJSON();
-                            for (i=0; i<attributes.length; i++) {
-                                var attr = attributes[i];
-                                if (config[attr] && model.get("config")[attr]) {
-                                    config[attr] = model.get("config")[attr];
-                                }
-                            }
-                        }
-                        
-                        // set the config
-                        me.setConfig(config, forcedConfig);
+                        me.setBookmarkAction(bookmark, forcedConfig, attributes);
                     },
                     error: function (model, response, options) {
                         console.error("bookmark fetch failed : " + bookmarkId);
@@ -794,10 +801,7 @@
                 // API already initialized
                 if (args && args.config) {
                     if (args.config.bookmark) {
-                    	//If first time opening a bookmark or there is no user navigation
-                    	if (!this.model.config.get("bookmark") || !this.controller.UserNavigation) {
-                            this.setBookmarkId(args.config.bookmark);
-                    	}
+                    	this.setBookmarkId(args.config.bookmark);
                     } else if (args.config.project) {
                         this.model.config.set("project", (args.config.project));
                     }
