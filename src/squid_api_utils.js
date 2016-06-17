@@ -580,30 +580,23 @@
                 projectId = me.defaultConfig.project;
             }
             if (projectId && bookmarkId) {
-                // fetch the Bookmark
-                var bookmarkModel = new squid_api.model.BookmarkModel();
-                bookmarkModel.set({
-                    "id": {
-                        "customerId": this.customerId,
-                        "projectId": projectId,
-                        "bookmarkId": bookmarkId
-                    }
-                });
-                bookmarkModel.fetch({
-                    success: function (bookmark, response, options) {
-                        console.log("bookmark fetched : " + bookmark.get("name"));
-                        // current bookmark id goes to the config (whereas shortcut)
-                        if (!forcedConfig) {
-                            forcedConfig = {};
-                        }
-                        forcedConfig.project = projectId;
-                        forcedConfig.bookmark = bookmarkId;
-                        me.setBookmarkAction(bookmark, forcedConfig, attributes);
-                    },
-                    error: function (model, response, options) {
-                        console.error("bookmark fetch failed : " + bookmarkId);
-                        dfd.reject();
-                    }
+                // get the Bookmark
+                squid_api.getCustomer().then(function(customer) {
+                    customer.get("projects").load(projectId).then(function(project) {
+                        project.get("bookmarks").load(bookmarkId).done(function(bookmark) {
+                            // current bookmark id goes to the config
+                            if (!forcedConfig) {
+                                forcedConfig = {};
+                            }
+                            forcedConfig.project = projectId;
+                            forcedConfig.bookmark = bookmarkId;
+                            me.setBookmarkAction(bookmark, forcedConfig, attributes);
+                            dfd.resolve(bookmark);
+                        }).fail(function(model, response, options) {
+                            console.error("bookmark fetch failed : " + bookmarkId);
+                            dfd.reject();
+                        });
+                    });
                 });
             } else {
                 me.model.config.set(squid_api.defaultConfig);
