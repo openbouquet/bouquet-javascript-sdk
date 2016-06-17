@@ -1370,6 +1370,29 @@
             return dfd.promise();
         },
 
+        setBookmarkAction: function (bookmark, forcedConfig, attributes) {
+            squid_api.setBookmark(bookmark, forcedConfig, attributes);
+        },
+        
+        setBookmark: function (bookmark, forcedConfig, attributes) {
+            var config = bookmark.get("config");
+            squid_api.model.status.set("bookmark", bookmark);
+
+            // if attributes array exists - only set these attributes
+            if (attributes) {
+                config = squid_api.model.config.toJSON();
+                for (i=0; i<attributes.length; i++) {
+                    var attr = attributes[i];
+                    if (config[attr] && bookmark.get("config")[attr]) {
+                        config[attr] = bookmark.get("config")[attr];
+                    }
+                }
+            }
+            
+            // set the config
+            squid_api.setConfig(config, forcedConfig);
+        },
+
         setBookmarkId: function (bookmarkId, forcedConfig, attributes) {
             var me = this;
             var dfd = new $.Deferred();
@@ -1378,46 +1401,23 @@
                 projectId = me.defaultConfig.project;
             }
             if (projectId && bookmarkId) {
-                // fetch the Bookmark
-                var bookmarkModel = new squid_api.model.BookmarkModel();
-                bookmarkModel.set({
-                    "id": {
-                        "customerId": this.customerId,
-                        "projectId": projectId,
-                        "bookmarkId": bookmarkId
-                    }
-                });
-                bookmarkModel.fetch({
-                    success: function (model, response, options) {
-                        console.log("bookmark fetched : " + model.get("name"));
-                        var config = model.get("config");
-                        me.model.status.set("bookmark", model);
-
-                        // current bookmark id goes to the config (whereas shortcut)
-                        if (!forcedConfig) {
-                            forcedConfig = {};
-                        }
-                        forcedConfig.project = projectId;
-                        forcedConfig.bookmark = bookmarkId;
-
-                        // if attributes array exists - only set these attributes
-                        if (attributes) {
-                            config = me.model.config.toJSON();
-                            for (i=0; i<attributes.length; i++) {
-                                var attr = attributes[i];
-                                if (config[attr] && model.get("config")[attr]) {
-                                    config[attr] = model.get("config")[attr];
-                                }
+                // get the Bookmark
+                squid_api.getCustomer().then(function(customer) {
+                    customer.get("projects").load(projectId).then(function(project) {
+                        project.get("bookmarks").load(bookmarkId).done(function(bookmark) {
+                            // current bookmark id goes to the config
+                            if (!forcedConfig) {
+                                forcedConfig = {};
                             }
-                        }
-                        
-                        // set the config
-                        me.setConfig(config, forcedConfig);
-                    },
-                    error: function (model, response, options) {
-                        console.error("bookmark fetch failed : " + bookmarkId);
-                        dfd.reject();
-                    }
+                            forcedConfig.project = projectId;
+                            forcedConfig.bookmark = bookmarkId;
+                            me.setBookmarkAction(bookmark, forcedConfig, attributes);
+                            dfd.resolve(bookmark);
+                        }).fail(function(model, response, options) {
+                            console.error("bookmark fetch failed : " + bookmarkId);
+                            dfd.reject();
+                        });
+                    });
                 });
             } else {
                 me.model.config.set(squid_api.defaultConfig);
