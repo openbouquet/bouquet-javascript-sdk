@@ -310,6 +310,7 @@
                 error: function (model, response) {
                     console.error("create job error");
                     jobModel.set("error", response);
+                    Raven.captureMessage(response);
                     jobModel.set("status", "DONE");
                     dfd.reject();
                 }
@@ -333,6 +334,7 @@
                 jobModel.set("error", projectFacetJob.get("error"));
                 if (projectFacetJob.get("error")) {
                     // jobs returned an error
+                    Raven.captureMessage(projectFacetJob.get("error"));
                     console.error("FacetJob computation error " + projectFacetJob.get("error").message);
                     squid_api.model.status.set("error", projectFacetJob.get("error"));
                 }
@@ -393,6 +395,7 @@
             facetJob.fetch({
                 error: function (model, response) {
                     jobModel.set("error", {message: response.statusText});
+                    Raven.captureMessage(response);
                     jobModel.set("status", "DONE");
                     dfd.reject();
                 },
@@ -444,6 +447,7 @@
             jobResults.fetch({
                 error: function (model, response) {
                     jobModel.set("error", {message: response.statusText});
+                    Raven.captureMessage(response);
                     jobModel.set("status", "DONE");
                     dfd.reject();
                 },

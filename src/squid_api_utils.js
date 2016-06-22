@@ -205,6 +205,7 @@
                     return this.controller.analysisjob.compute(job, filters);
                 }
             } else {
+                Raven.captureMessage("Cannot compute Job as dependencies are not loaded");
                 throw Error("Cannot compute Job as dependencies are not loaded");
             }
 
@@ -240,6 +241,7 @@
                     squid_api.model.login.set({"login": null});
                 } else {
                     squid_api.model.login.set("error", response);
+                    Raven.captureMessage(response);
                     squid_api.model.login.set("login", "error");
                     var mes = "Cannot connect to Bouquet (error " + model.status + ")";
                     if (model.status === 404) {
@@ -350,6 +352,7 @@
                             deferred.resolve(customer2);
                         }).fail( function() {
                             console.error("unable to fetch customer");
+                            Raven.captureMessage("unable to fetch customer");
                             deferred.reject(customer2);
                         });
                     }).fail( function() {
@@ -439,6 +442,7 @@
                         },
                         error: function (model, response, options) {
                             console.error("state save failed");
+                            Raven.captureMessage("state save failed");
                             delete squid_api.pendingStateSave[hashCode];
                         }
                     });
@@ -528,6 +532,7 @@
                     },
                     error: function (model, response, options) {
                         console.error("shortcut fetch failed : " + shortcutId);
+                        Raven.captureMessage("shortcut fetch failed : " + shortcutId);
                         dfd.reject();
                     }
                 });
@@ -583,6 +588,7 @@
                     },
                     error: function (model, response, options) {
                         console.error("bookmark fetch failed : " + bookmarkId);
+                        Raven.captureMessage("bookmark fetch failed : " + bookmarkId);
                         dfd.reject();
                     }
                 });
@@ -715,6 +721,7 @@
                 apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
                 if (!apiUrl) {
                     console.error("Please provide an API endpoint URL");
+                    Raven.captureMessage("Please provide an API endpoint URL");
                 } else {
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
@@ -764,6 +771,7 @@
                                     "dismissible": false,
                                     "message": "Please provide an API endpoint URL"
                                 });
+                            Raven.captureMessage("Please provide an API endpoint URL");
                     } else {
                         // continue init process
                         this.initStep0(args);
@@ -777,6 +785,7 @@
                                 "dismissible": false,
                                 "message": "Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari"
                             });
+                        Raven.captureMessage("Sorry, you're using an unsupported browser. Supported browsers are Chrome, Firefox, Safari");
                 }
             } else {
                 // API already initialized
@@ -807,6 +816,7 @@
                     "dismissible": false,
                     "message": message
                 });
+                Raven.captureMessage(message);
             });
         },
 
@@ -821,6 +831,7 @@
             this.model.status.on('change:error', function (model) {
                 var err = model.get("error");
                 if (err) {
+                    Raven.captureMessage(err);
                     var status = err.status;
                     if (status == 401) {
                         me.utils.clearLogin();

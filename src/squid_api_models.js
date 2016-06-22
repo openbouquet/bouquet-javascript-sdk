@@ -183,6 +183,7 @@
             options.error = function (model, response, options) {
                 if (me.statusModel) {
                     me.statusModel.set("error", response);
+                    Raven.captureMessage(response);
                     me.statusModel.pullTask(model);
                 }
                 if (!response.status) {
@@ -312,6 +313,7 @@
                             }
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
+                            Raven.captureMessage(error);
                             deferred.reject(error);
                         });
                     }
@@ -326,6 +328,7 @@
                             deferred.resolve(me);
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
+                            Raven.captureMessage(error);
                             deferred.reject(error);
                         });
                     }
@@ -373,6 +376,7 @@
             request.fail(function (jqXHR, textStatus, errorThrown) {
                 squid_api.model.status.set("message", "logout failed");
                 squid_api.model.status.set("error", "error");
+                Raven.captureMessage(error);
             });
         }
 

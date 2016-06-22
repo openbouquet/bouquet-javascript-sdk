@@ -341,6 +341,7 @@
                 success: function (model, response) {
                     if (model.get("error")) {
                         console.error("createAnalysis error " + model.get("error").message);
+                        Raven.captureMessage(model.get("error"));
                         analysisModel.set("results", null);
                         analysisModel.set("error", model.get("error"));
                         analysisModel.set("status", "DONE");
@@ -356,6 +357,7 @@
                     console.error("createAnalysis error");
                     analysisModel.set("results", null);
                     analysisModel.set("error", response);
+                    Raven.captureMessage(response);
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
                 }
@@ -393,6 +395,7 @@
             // get the results from API
             analysisJobResults.fetch({
                 error: function (model, response) {
+                    Raven.captureMessage(response);
                     analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
                     observer.reject(model, response);
@@ -436,6 +439,7 @@
                 error: function (model, response) {
                     analysisModel.set("error", {message: response.statusText});
                     analysisModel.set("status", "DONE");
+                    Raven.captureMessage(response);
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
@@ -502,6 +506,7 @@
                             analysisJob.set("error", model.get("error"));
                             analysisJob.set("results", model.get("results"));
                             analysisJob.set("status", "DONE");
+                            Raven.captureMessage(response);
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
@@ -540,6 +545,7 @@
                     var analysis = analyses[i];
                     if (analysis.get("error")) {
                         multiAnalysisModel.set("error", analysis.get("error"));
+                        Raven.captureMessage(analysis.get("error"));
                     }
                 }
                 multiAnalysisModel.set("status", "DONE");
