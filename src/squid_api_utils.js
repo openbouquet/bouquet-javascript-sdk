@@ -464,7 +464,7 @@
             }
             
             // fix some invalid config attributes
-            if (newConfig.chosenDimensions === null) {
+            if (newConfig.chosenDimensions === null || ! newConfig.chosenDimensions) {
                 newConfig.chosenDimensions = [];
             }
             if (newConfig.project === undefined) {
