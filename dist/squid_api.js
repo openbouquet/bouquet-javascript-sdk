@@ -23,6 +23,7 @@
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiHost: null,
         apiEnv: null,
+        apiBaseURL : null,
         apiURL: null,
         loginURL: null,
         timeoutMillis: null,
@@ -38,6 +39,7 @@
         apiVersion: null,
         uri : null,
         browserOK : null,
+        wsNotification : null,
 
         // declare some namespaces
         model: {},
@@ -1332,6 +1334,7 @@
                 success: function (model, response, options) {
                     // set the config
                     me.setConfig(model.get("config"), forcedConfig);
+                    dfd.resolve(model);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -1552,8 +1555,9 @@
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
                     }
-                    this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
-                    this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
+                    this.apiBaseURL = apiUrl + "/" + api + "/" + version;
+                    this.setApiURL(this.apiBaseURL + "/rs");
+                    this.swaggerURL = this.apiBaseURL + "/swagger.json";
                 }
                 // building default loginURL from apiURL
                 squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
@@ -1670,29 +1674,56 @@
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
-                    var dfd = me.setStateId(null, state);
-                    dfd.fail(function () {
+                    me.setStateId(null, state).fail(function () {
                         console.log("Warning : specified application state not found");
-                        if (shortcut) {
-                            me.setShortcutId(shortcut);
-                        } else if (bookmark) {
-                            me.setBookmarkId(bookmark);
-                        } else {
-                            me.model.config.set(me.defaultConfig);
-                        }
+                        me.initStep2(shortcut, bookmark);
+                    }).done(function() {
+                        me.initStep3();
                     });
                 } else {
-                    if (shortcut) {
-                        me.setShortcutId(shortcut);
-                    } else if (bookmark) {
-                        me.setBookmarkId(bookmark);
-                    } else {
-                        me.model.config.set(me.defaultConfig);
-                    }
+                    me.initStep2(shortcut, bookmark);
                 }
             }).fail(function() {
                 squid_api.model.login.set("login", null);
             });
+        },
+        
+        initStep2: function (shortcut, bookmark) {
+            // set the config
+            if (shortcut) {
+                squid_api.setShortcutId(shortcut);
+            } else if (bookmark) {
+                squid_api.setBookmarkId(bookmark);
+            } else {
+                squid_api.model.config.set(squid_api.defaultConfig);
+            }
+            squid_api.initStep3();
+        },
+            
+        initStep3: function () {
+            // init the notification websocket
+            var ws;
+            var endpoint = "ws"+squid_api.apiBaseURL.substring(4)+"/notification";
+            console.log("Establishing WebSocket connection to "+endpoint);
+            if ("WebSocket" in window) {
+                ws = new WebSocket(endpoint);
+            } else if ("MozWebSocket" in window) {
+                ws = new MozWebSocket(endpoint);
+            } else {
+                console.error("WebSocket is not supported by this browser.");
+            }
+            if (ws) {
+                squid_api.wsNotification = ws;
+                ws.onopen = function () {
+                    console.log("Info: WebSocket connection opened.");
+                };
+                ws.onmessage = function (event) {
+                    console.log("Received: " + event.data);
+                };
+                ws.onclose = function (event) {
+                    console.log("Info: WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason));
+                };
+            }
         },
 
         /**

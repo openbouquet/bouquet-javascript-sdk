@@ -23,6 +23,7 @@
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiHost: null,
         apiEnv: null,
+        apiBaseURL : null,
         apiURL: null,
         loginURL: null,
         timeoutMillis: null,
@@ -38,6 +39,7 @@
         apiVersion: null,
         uri : null,
         browserOK : null,
+        wsNotification : null,
 
         // declare some namespaces
         model: {},
