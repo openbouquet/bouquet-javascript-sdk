@@ -671,7 +671,7 @@
                                     "selection" : {
                                         "domain" : null,
                                         "facets": []
-                                    }
+            }
                                 });
                             }
                         });
@@ -799,7 +799,7 @@
             }).fail(function(v){
                 var message;
                 if (!v) {
-                    message = "Unable to get Bouquet Server version";
+                    message = "Unable to connect to the API";
                 } else {
                     message = "Bouquet Server version does not match this App's api version requirements";
                 }
