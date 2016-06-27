@@ -1,13 +1,8 @@
 {
   "name": "squid_api",
-  "version": "3.4.7",
   "homepage": "https://github.com/openbouquet/bouquet-javascript-sdk",
-  "authors": [
-    "obalbous <oba@squid>"
-  ],
   "main": "dist/squid_api.js",
   "license": "AGPL-3.0",
-  "private": true,
   "ignore": [
     "**/.*",
     "node_modules",
