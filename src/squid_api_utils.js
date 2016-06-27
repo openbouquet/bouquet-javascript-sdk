@@ -464,7 +464,7 @@
             }
             
             // fix some invalid config attributes
-            if (newConfig.chosenDimensions === null) {
+            if (newConfig.chosenDimensions === null || ! newConfig.chosenDimensions) {
                 newConfig.chosenDimensions = [];
             }
             if (newConfig.project === undefined) {
@@ -535,6 +535,29 @@
                 me.model.config.set(squid_api.defaultConfig);
             }
             return dfd.promise();
+        },
+        
+        setBookmarkAction: function (bookmark, forcedConfig, attributes) {
+            squid_api.setBookmark(bookmark, forcedConfig, attributes);
+        },
+        
+        setBookmark: function (bookmark, forcedConfig, attributes) {
+            var config = bookmark.get("config");
+            squid_api.model.status.set("bookmark", bookmark);
+
+            // if attributes array exists - only set these attributes
+            if (attributes) {
+                config = squid_api.model.config.toJSON();
+                for (i=0; i<attributes.length; i++) {
+                    var attr = attributes[i];
+                    if (config[attr] && bookmark.get("config")[attr]) {
+                        config[attr] = bookmark.get("config")[attr];
+                    }
+                }
+            }
+            
+            // set the config
+            squid_api.setConfig(config, forcedConfig);
         },
 
         setBookmarkAction: function (bookmark, forcedConfig, attributes) {
@@ -782,7 +805,7 @@
                 // API already initialized
                 if (args && args.config) {
                     if (args.config.bookmark) {
-                        this.setBookmarkId(args.config.bookmark);
+                    	this.setBookmarkId(args.config.bookmark);
                     } else if (args.config.project) {
                         this.model.config.set("project", (args.config.project));
                     }
