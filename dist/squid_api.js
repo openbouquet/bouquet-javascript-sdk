@@ -1393,29 +1393,6 @@
             squid_api.setConfig(config, forcedConfig);
         },
 
-        setBookmarkAction: function (bookmark, forcedConfig, attributes) {
-            squid_api.setBookmark(bookmark, forcedConfig, attributes);
-        },
-        
-        setBookmark: function (bookmark, forcedConfig, attributes) {
-            var config = bookmark.get("config");
-            squid_api.model.status.set("bookmark", bookmark);
-
-            // if attributes array exists - only set these attributes
-            if (attributes) {
-                config = squid_api.model.config.toJSON();
-                for (i=0; i<attributes.length; i++) {
-                    var attr = attributes[i];
-                    if (config[attr] && bookmark.get("config")[attr]) {
-                        config[attr] = bookmark.get("config")[attr];
-                    }
-                }
-            }
-            
-            // set the config
-            squid_api.setConfig(config, forcedConfig);
-        },
-
         setBookmarkId: function (bookmarkId, forcedConfig, attributes) {
             var me = this;
             var dfd = new $.Deferred();
