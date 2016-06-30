@@ -812,7 +812,7 @@
         initStep3: function () {
             // init the notification websocket
             var ws;
-            var endpoint = "ws"+squid_api.apiBaseURL.substring(4)+"/notification";
+            var endpoint = "ws"+squid_api.apiBaseURL.substring(4)+"/notification"+"?access_token="+squid_api.model.login.get("accessToken");
             console.log("Establishing WebSocket connection to "+endpoint);
             if ("WebSocket" in window) {
                 ws = new WebSocket(endpoint);
@@ -828,6 +828,10 @@
                 };
                 ws.onmessage = function (event) {
                     console.log("Received: " + event.data);
+                    squid_api.model.status.set({
+                        "message" : "A project was modified by an external action, please refresh your page",
+                        "details" : "Event : "+event.data
+                        });
                 };
                 ws.onclose = function (event) {
                     console.log("Info: WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason));
