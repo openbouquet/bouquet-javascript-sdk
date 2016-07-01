@@ -829,8 +829,9 @@
                 ws.onmessage = function (event) {
                     console.log("Received: " + event.data);
                     squid_api.model.status.set({
-                        "message" : "A project was modified by an external action, please refresh your page",
-                        "details" : "Event : "+event.data
+                        "type" : "notification",
+                        "message" : "A project was modified by an external action, please refresh your page to reflect this change.",
+                        "data" : event.data
                         });
                 };
                 ws.onclose = function (event) {
