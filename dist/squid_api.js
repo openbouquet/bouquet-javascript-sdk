@@ -1560,8 +1560,13 @@
                 if (args && args.config) {
                     if (args.config.bookmark) {
                     	this.setBookmarkId(args.config.bookmark);
-                    } else if (args.config.project) {
-                        this.model.config.set("project", (args.config.project));
+                    } else {
+                        if (args.config.project) {
+                            this.model.config.set("project", (args.config.project));
+                        }
+                        if (args.config.domain) {
+                            this.model.config.set("domain", (args.config.domain));
+                        }
                     }
                 }
             }
