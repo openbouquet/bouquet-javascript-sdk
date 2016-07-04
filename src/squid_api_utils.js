@@ -827,14 +827,21 @@
                     console.log("Info: WebSocket connection opened.");
                 };
                 ws.onmessage = function (event) {
-                    console.log("Received: " + event.data);
-                    squid_api.model.status.set({
-                        "type" : "notification",
-                        "message" : "A project was modified by an external action, please refresh your page to reflect this change.",
-                        "data" : event.data
-                        });
+                    var data = JSON.parse(event.data);
+                    if (data.bouquetSessionId) {
+                        // that's a welcome message
+                        squid_api.bouquetSessionId = data.bouquetSessionId;
+                        console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
+                    } else {
+                        squid_api.model.status.set({
+                            "type" : "notification",
+                            "message" : "A project was modified by an external action, please refresh your page to reflect this change.",
+                            "data" : data
+                            });
+                    }
                 };
                 ws.onclose = function (event) {
+                    squid_api.bouquetSessionId = null;
                     console.log("Info: WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason));
                 };
             }

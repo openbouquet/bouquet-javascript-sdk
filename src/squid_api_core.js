@@ -40,6 +40,10 @@
         uri : null,
         browserOK : null,
         wsNotification : null,
+        bouquetSessionId : null,
+        constants : {
+            HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
+        },
 
         // declare some namespaces
         model: {},
