@@ -366,7 +366,7 @@
         logout: function () {
             var me = this;
             // set the access token and refresh data
-            var request = $.ajax({
+            var request = Backbone.ajax({
                 type: "GET",
                 url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
                 dataType: 'json',

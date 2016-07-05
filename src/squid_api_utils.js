@@ -832,9 +832,16 @@
                 ws.onmessage = function (event) {
                     var data = JSON.parse(event.data);
                     if (data.bouquetSessionId) {
-                        // that's a welcome message
-                        squid_api.bouquetSessionId = data.bouquetSessionId;
-                        console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
+                        if (data.logout === true) {
+                            // that's a logout message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            console.log("Logout bouquetSessionId: " + squid_api.bouquetSessionId);
+                            squid_api.utils.clearLogin();
+                        } else {
+                            // that's a welcome message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
+                        }
                     } else {
                         squid_api.model.status.set({
                             "type" : "notification",
