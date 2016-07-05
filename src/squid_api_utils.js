@@ -824,7 +824,10 @@
             if (ws) {
                 squid_api.wsNotification = ws;
                 ws.onopen = function () {
-                    console.log("Info: WebSocket connection opened.");
+                    // reset the tries back to 1 since we have a new connection opened.
+                    squid_api.wsConnectionAttempts = 1; 
+                    console.log("WebSocket connection opened.");
+                    ws.send("hello");
                 };
                 ws.onmessage = function (event) {
                     var data = JSON.parse(event.data);
@@ -842,7 +845,14 @@
                 };
                 ws.onclose = function (event) {
                     squid_api.bouquetSessionId = null;
-                    console.log("Info: WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason));
+                    var time = Math.random() * (Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1)));
+                    console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
+                    setTimeout(function () {
+                        // We've tried to reconnect so increment the attempts by 1
+                        squid_api.wsConnectionAttempts++;
+                        // Connection has closed so try to reconnect every 10 seconds.
+                        squid_api.initStep3(); 
+                    }, time*1000);
                 };
             }
         },
