@@ -499,6 +499,7 @@
                 success: function (model, response, options) {
                     // set the config
                     me.setConfig(model.get("config"), forcedConfig);
+                    dfd.resolve(model);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -663,8 +664,9 @@
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
                     }
-                    this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
-                    this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
+                    this.apiBaseURL = apiUrl + "/" + api + "/" + version;
+                    this.setApiURL(this.apiBaseURL + "/rs");
+                    this.swaggerURL = this.apiBaseURL + "/swagger.json";
                 }
                 // building default loginURL from apiURL
                 squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
@@ -786,29 +788,85 @@
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
                 if (state) {
-                    var dfd = me.setStateId(null, state);
-                    dfd.fail(function () {
+                    me.setStateId(null, state).fail(function () {
                         console.log("Warning : specified application state not found");
-                        if (shortcut) {
-                            me.setShortcutId(shortcut);
-                        } else if (bookmark) {
-                            me.setBookmarkId(bookmark);
-                        } else {
-                            me.model.config.set(me.defaultConfig);
-                        }
+                        me.initStep2(shortcut, bookmark);
+                    }).done(function() {
+                        me.initStep3();
                     });
                 } else {
-                    if (shortcut) {
-                        me.setShortcutId(shortcut);
-                    } else if (bookmark) {
-                        me.setBookmarkId(bookmark);
-                    } else {
-                        me.model.config.set(me.defaultConfig);
-                    }
+                    me.initStep2(shortcut, bookmark);
                 }
             }).fail(function() {
                 squid_api.model.login.set("login", null);
             });
+        },
+        
+        initStep2: function (shortcut, bookmark) {
+            // set the config
+            if (shortcut) {
+                squid_api.setShortcutId(shortcut);
+            } else if (bookmark) {
+                squid_api.setBookmarkId(bookmark);
+            } else {
+                squid_api.model.config.set(squid_api.defaultConfig);
+            }
+            squid_api.initStep3();
+        },
+            
+        initStep3: function () {
+            // init the notification websocket
+            var ws;
+            var endpoint = "ws"+squid_api.apiBaseURL.substring(4)+"/notification"+"?access_token="+squid_api.model.login.get("accessToken");
+            console.log("Establishing WebSocket connection to "+endpoint);
+            if ("WebSocket" in window) {
+                ws = new WebSocket(endpoint);
+            } else if ("MozWebSocket" in window) {
+                ws = new MozWebSocket(endpoint);
+            } else {
+                console.error("WebSocket is not supported by this browser.");
+            }
+            if (ws) {
+                squid_api.wsNotification = ws;
+                ws.onopen = function () {
+                    // reset the tries back to 1 since we have a new connection opened.
+                    squid_api.wsConnectionAttempts = 1; 
+                    console.log("WebSocket connection opened.");
+                    ws.send("hello");
+                };
+                ws.onmessage = function (event) {
+                    var data = JSON.parse(event.data);
+                    if (data.bouquetSessionId) {
+                        if (data.logout === true) {
+                            // that's a logout message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            console.log("Logout bouquetSessionId: " + squid_api.bouquetSessionId);
+                            squid_api.utils.clearLogin();
+                        } else {
+                            // that's a welcome message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
+                        }
+                    } else {
+                        squid_api.model.status.set({
+                            "type" : "notification",
+                            "message" : "A project was modified by an external action, please refresh your page to reflect this change.",
+                            "data" : data
+                            });
+                    }
+                };
+                ws.onclose = function (event) {
+                    squid_api.bouquetSessionId = null;
+                    var time = Math.random() * (Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1)));
+                    console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
+                    setTimeout(function () {
+                        // We've tried to reconnect so increment the attempts by 1
+                        squid_api.wsConnectionAttempts++;
+                        // Connection has closed so try to reconnect every 10 seconds.
+                        squid_api.initStep3(); 
+                    }, time*1000);
+                };
+            }
         },
 
         /**

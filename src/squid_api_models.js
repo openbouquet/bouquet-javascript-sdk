@@ -6,6 +6,13 @@
         factory(root.Backbone, _, root.squid_api);
     }
 }(this, function (Backbone, _, squid_api) {
+    
+    // override Backbone ajax to handle bouquet session id header
+    Backbone.ajax = function() {
+        arguments[0].headers = {};
+        arguments[0].headers[squid_api.constants.HEADER_BOUQUET_SESSIONID] = squid_api.bouquetSessionId;
+        return Backbone.$.ajax.apply(Backbone.$, arguments);      
+    };
 
     // setup squid_api.model
 
@@ -359,7 +366,7 @@
         logout: function () {
             var me = this;
             // set the access token and refresh data
-            var request = $.ajax({
+            var request = Backbone.ajax({
                 type: "GET",
                 url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
                 dataType: 'json',
