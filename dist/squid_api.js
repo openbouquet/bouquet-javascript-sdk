@@ -40,6 +40,7 @@
         uri : null,
         browserOK : null,
         wsNotification : null,
+        wsConnectionAttempts: 1,
         bouquetSessionId : null,
         constants : {
             HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
@@ -1676,7 +1677,6 @@
                 squid_api.wsNotification = ws;
                 ws.onopen = function () {
                     // reset the tries back to 1 since we have a new connection opened.
-                    squid_api.wsConnectionAttempts = 1; 
                     console.log("WebSocket connection opened.");
                     ws.send("hello");
                 };
@@ -1691,6 +1691,7 @@
                         } else {
                             // that's a welcome message
                             squid_api.bouquetSessionId = data.bouquetSessionId;
+                            squid_api.wsConnectionAttempts = 1; 
                             console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
                         }
                     } else {

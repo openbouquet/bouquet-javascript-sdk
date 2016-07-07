@@ -40,6 +40,7 @@
         uri : null,
         browserOK : null,
         wsNotification : null,
+        wsConnectionAttempts: 1,
         bouquetSessionId : null,
         constants : {
             HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
