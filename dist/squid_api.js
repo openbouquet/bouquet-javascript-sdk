@@ -1170,7 +1170,35 @@
             }
             return deferred;
         },
-
+        
+        /**
+         * Get a Model object
+         * @param the object composite Id
+         * Returns a Promise
+         */
+        getObject : function(id) {
+            return this.getObjectHelper(squid_api.getCustomer(), id, 0);
+        },
+        
+        getObjectHelper : function(p, id, level) {
+            var keys = Object.keys(id);
+            var l = keys.length;
+            var oid = keys[level];
+            if (level < l) {
+                level++;
+                return p.then(function(o) {
+                    // done
+                    var c = o.get(oid.substring(0,oid.length-2)+"s");
+                    return squid_api.getObjectHelper(c.load(id[oid]),id, level);
+                }, function() {
+                    // fail
+                    return p;
+                });
+            } else {
+                return p;
+            }
+        },
+        
         /**
          * Get the current Customer Model.
          * Returns a Promise
@@ -1695,11 +1723,17 @@
                             console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
                         }
                     } else {
-                        squid_api.model.status.set({
-                            "type" : "notification",
-                            "message" : "A project was modified by an external action, please refresh your page to reflect this change.",
-                            "data" : data
-                            });
+                        // that's a object update message
+                        // lookup the object
+                        squid_api.getObject(data.source).done(function(o) {
+                            data.name = o.get("name"); 
+                            data.objectType = o.get("objectType"); 
+                            squid_api.model.status.set({
+                                "type" : "notification",
+                                "message" : "An object was modified by an external action, please refresh your page to reflect this change.",
+                                "data" : data
+                                });
+                        });
                     }
                 };
                 ws.onclose = function (event) {
