@@ -713,7 +713,7 @@
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * Note this method is idempotent.
-         * @param a config json object (if present will call the setup method).
+         * @param a json object. If this object contains a "config" attribute, it'll be used as a default for setConfig.
          */
         init: function (args) {
             if (this.browserOK === null) {
@@ -758,12 +758,7 @@
                     if (args.config.bookmark) {
                     	this.setBookmarkId(args.config.bookmark);
                     } else {
-                        if (args.config.project) {
-                            this.model.config.set("project", (args.config.project));
-                        }
-                        if (args.config.domain) {
-                            this.model.config.set("domain", (args.config.domain));
-                        }
+                        this.setConfig(args.config);
                     }
                 }
             }
@@ -792,10 +787,6 @@
         initStep1: function (args) {
             var me = this;
 
-            if (args) {
-                this.setup(args);
-            }
-
             // handle session expiration
             this.model.status.on('change:error', function (model) {
                 var err = model.get("error");
@@ -818,24 +809,26 @@
                 if (state) {
                     me.setStateId(null, state).fail(function () {
                         console.log("Warning : specified application state not found");
-                        me.initStep2(shortcut, bookmark);
+                        me.initStep2(args, shortcut, bookmark);
                     }).done(function() {
                         me.initStep3();
                     });
                 } else {
-                    me.initStep2(shortcut, bookmark);
+                    me.initStep2(args, shortcut, bookmark);
                 }
             }).fail(function() {
                 squid_api.model.login.set("login", null);
             });
         },
         
-        initStep2: function (shortcut, bookmark) {
+        initStep2: function (args, shortcut, bookmark) {
             // set the config
             if (shortcut) {
                 squid_api.setShortcutId(shortcut);
             } else if (bookmark) {
                 squid_api.setBookmarkId(bookmark);
+            } else if (args && args.config) {
+                squid_api.setConfig(args.config);
             } else {
                 squid_api.model.config.set(squid_api.defaultConfig);
             }
