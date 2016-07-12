@@ -1731,7 +1731,7 @@
                 };
                 ws.onclose = function (event) {
                     squid_api.bouquetSessionId = null;
-                    var time = Math.random() * (Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1)));
+                    var time = Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1));
                     console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
                     setTimeout(function () {
                         // We've tried to reconnect so increment the attempts by 1
