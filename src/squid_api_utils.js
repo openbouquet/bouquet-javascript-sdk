@@ -188,6 +188,34 @@
             }
             url.setQuery("redirect_uri",rurlString);
             return url;
+        },
+        
+        buildApiUrl : function(host, path, queryParameters) {
+            var uri = host;
+            if (!uri) {
+                uri = squid_api.apiURL;
+            }
+            if (path) {
+                uri = uri + path;
+            }
+            var url = new URI(uri);
+            // add extra parameters
+            if (queryParameters) {
+                for (var i = 0; i < queryParameters.length; i++) {
+                    var param = queryParameters[i];
+                    if ((param.value !== null) && (typeof param.value !== 'undefined')) {
+                        url.addQuery(param.name, param.value);
+                    }
+                }
+            }
+            // enforce some query parameters
+            if (!url.hasQuery("timeout")) {
+                url.setQuery("timeout", squid_api.timeoutMillis);
+            }
+            if (!url.hasQuery("access_token")) {
+                url.setQuery("access_token", squid_api.model.login.get("accessToken"));
+            }
+            return url;
         }
 
     });

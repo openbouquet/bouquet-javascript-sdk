@@ -49,7 +49,6 @@
             return null;
         },
 
-
         setParameter: function (name, value) {
             var index = null;
             if (!this.parameters) {
@@ -115,57 +114,19 @@
             return this.baseRoot();
         },
         url: function () {
-            var url = this.urlRoot();
-            if (!this.hasParam("timeout")) {
-                if (typeof this.timeoutMillis === 'undefined') {
-                    this.setParameter("timeout", squid_api.timeoutMillis);
-                } else {
-                    if (this.timeoutMillis !== null) {
-                        this.setParameter("timeout", this.timeoutMillis());
-                    }
-                }
+            if (typeof this.timeoutMillis === 'undefined') {
+                this.setParameter("timeout", squid_api.timeoutMillis);
+            } else if (this.timeoutMillis !== null) {
+                this.setParameter("timeout", this.timeoutMillis());
             }
-            if (!this.hasParam("access_token")) {
-                this.setParameter("access_token", squid_api.model.login.get("accessToken"));
-            }
-            // add parameters
-            if (this.parameters) {
-                for (var i = 0; i < this.parameters.length; i++) {
-                    var param = this.parameters[i];
-                    if (param.value !== null) {
-                        url = this.addParam(url, param.name, param.value);
-                    }
-                }
-            }
-            return url;
+            this.setParameter("access_token", squid_api.model.login.get("accessToken"));
+            
+            // build uri
+            var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
+            return url.toString();
         },
+        
         error: null,
-        hasParam: function (name) {
-            var hasParam = false, i = 0;
-            if (this.parameters) {
-                while (i < this.parameters.length && (!hasParam)) {
-                    var param = this.parameters[i];
-                    if (param.name == name) {
-                        hasParam = true;
-                    }
-                    i++;
-                }
-            }
-
-            return hasParam;
-        },
-        addParam: function (url, name, value) {
-            if (value) {
-                var delim;
-                if (url.indexOf("?") < 0) {
-                    delim = "?";
-                } else {
-                    delim = "&";
-                }
-                url += delim + name + "=" + encodeURIComponent(value);
-            }
-            return url;
-        },
 
         optionsFilter: function (options) {
             // success
@@ -235,6 +196,30 @@
         addParameter: function (name, value) {
             this.parameters.push({"name": name, "value": value});
         },
+        
+        setParameter: function (name, value) {
+            var index = null;
+            if (!this.parameters) {
+                this.parameters = [];
+            }
+            for (var i = 0; i < this.parameters.length; i++) {
+                if (this.parameters[i].name === name) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index !== null) {
+                if ((typeof value === 'undefined') || (value === null)) {
+                    // unset
+                    this.parameters.splice(index, 1);
+                } else {
+                    // set
+                    this.parameters[index].value = value;
+                }
+            } else {
+                this.parameters.push({"name": name, "value": value});
+            }
+        },
 
         initialize: function (model, options) {
             if (options) {
@@ -250,24 +235,18 @@
         },
 
         url: function () {
-            var url = this.urlRoot();
             if (typeof this.timeoutMillis === 'undefined') {
-                url = this.addParam(url, "timeout", squid_api.timeoutMillis);
-            } else {
-                if (this.timeoutMillis !== null) {
-                    url = this.addParam(url, "timeout", this.timeoutMillis());
-                }
+                this.setParameter("timeout", squid_api.timeoutMillis);
+            } else if (this.timeoutMillis !== null) {
+                this.setParameter("timeout", this.timeoutMillis());
             }
-            url = this.addParam(url, "access_token", squid_api.model.login.get("accessToken"));
-            // add parameters
-            if (this.parameters) {
-                for (var i = 0; i < this.parameters.length; i++) {
-                    var param = this.parameters[i];
-                    url = this.addParam(url, param.name, param.value);
-                }
-            }
+            this.setParameter("access_token", squid_api.model.login.get("accessToken"));
+            
+            // build uri
+            var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
             return url;
         },
+        
         addParam: function (url, name, value) {
             if (value) {
                 var delim;
@@ -278,7 +257,7 @@
                 }
                 url += delim + name + "=" + value;
             }
-            return url;
+            return url.toString();
         },
 
         /**
@@ -315,7 +294,16 @@
                             if (model) {
                                 deferred.resolve(model);
                             } else {
-                                deferred.reject("object not found");
+                                // try to fetch first (T1625)
+                                var parentId = collection.parent.get("id");
+                                model = new collection.model({"id" : parentId});
+                                model.set({"oid" : oid});
+                                model.fetch().done(function() {
+                                    collection.add(model);
+                                    deferred.resolve(model);
+                                }).fail(function() {
+                                    deferred.reject("object not found");
+                                });
                             }
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
