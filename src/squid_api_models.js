@@ -264,7 +264,8 @@
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
-         * @param forceRefresh if set and true : object in cache will be fetched
+         * @param forceRefresh if set and true : object in cache will be fetched and non child attributes 
+         * will be updated.
          * @return a Promise
          */
         load : function(oid, forceRefresh) {
@@ -284,9 +285,26 @@
                 if (oid) {
                     // check if already existing
                     var model = this.findWhere({"oid" : oid});
-                    if (model && (forceRefresh !== true)) {
-                        // return existing
-                        deferred.resolve(model);
+                    if (model) {
+                        if (forceRefresh !== true) {
+                            // return existing
+                            deferred.resolve(model);
+                        } else {
+                            // update the model's attributes (non child)
+                            var clone = model.clone();
+                            clone.fetch().done(function() {
+                                var excluded = clone.get("_children");
+                                var attributes = clone.attributes;
+                                for (var att in attributes) {
+                                    if (!excluded || (excluded.indexOf(att)<0)) {
+                                        model.set(att, clone.get(att));
+                                    }
+                                }
+                                deferred.resolve(model);
+                            }).fail(function() {
+                                deferred.resolve(model);
+                            });
+                        }
                     } else {
                         // fetch collection to get the model
                         this.load().done( function(collection) {

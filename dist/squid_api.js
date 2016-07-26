@@ -439,7 +439,8 @@
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
-         * @param forceRefresh if set and true : object in cache will be fetched
+         * @param forceRefresh if set and true : object in cache will be fetched and non child attributes 
+         * will be updated.
          * @return a Promise
          */
         load : function(oid, forceRefresh) {
@@ -459,9 +460,26 @@
                 if (oid) {
                     // check if already existing
                     var model = this.findWhere({"oid" : oid});
-                    if (model && (forceRefresh !== true)) {
-                        // return existing
-                        deferred.resolve(model);
+                    if (model) {
+                        if (forceRefresh !== true) {
+                            // return existing
+                            deferred.resolve(model);
+                        } else {
+                            // update the model's attributes (non child)
+                            var clone = model.clone();
+                            clone.fetch().done(function() {
+                                var excluded = clone.get("_children");
+                                var attributes = clone.attributes;
+                                for (var att in attributes) {
+                                    if (!excluded || (excluded.indexOf(att)<0)) {
+                                        model.set(att, clone.get(att));
+                                    }
+                                }
+                                deferred.resolve(model);
+                            }).fail(function() {
+                                deferred.resolve(model);
+                            });
+                        }
                     } else {
                         // fetch collection to get the model
                         this.load().done( function(collection) {
@@ -1192,11 +1210,11 @@
          * @param the object composite Id
          * Returns a Promise
          */
-        getObject : function(id) {
-            return this.getObjectHelper(squid_api.getCustomer(), id, 0);
+        getObject : function(id, forceRefresh) {
+            return this.getObjectHelper(squid_api.getCustomer(), id, 0, forceRefresh);
         },
         
-        getObjectHelper : function(p, id, level) {
+        getObjectHelper : function(p, id, level, forceRefresh) {
             var keys = Object.keys(id);
             var l = keys.length;
             var oid = keys[level];
@@ -1205,7 +1223,12 @@
                 return p.then(function(o) {
                     // done
                     var c = o.get(oid.substring(0,oid.length-2)+"s");
-                    return squid_api.getObjectHelper(c.load(id[oid]),id, level);
+                    var doForceRefresh = false;
+                    if (forceRefresh && (level === l)) {
+                        // this is our object
+                        doForceRefresh = true;
+                    }
+                    return squid_api.getObjectHelper(c.load(id[oid], doForceRefresh),id, level, forceRefresh);
                 }, function() {
                     // fail
                     return p;
@@ -1734,7 +1757,7 @@
                     } else {
                         // that's a object update message
                         // lookup the object
-                        squid_api.getObject(data.source).done(function(o) {
+                        squid_api.getObject(data.source, true).done(function(o) {
                             data.name = o.get("name"); 
                             data.objectType = o.get("objectType"); 
                             squid_api.model.status.set({

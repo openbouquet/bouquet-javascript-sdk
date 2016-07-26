@@ -357,11 +357,11 @@
          * @param the object composite Id
          * Returns a Promise
          */
-        getObject : function(id) {
-            return this.getObjectHelper(squid_api.getCustomer(), id, 0);
+        getObject : function(id, forceRefresh) {
+            return this.getObjectHelper(squid_api.getCustomer(), id, 0, forceRefresh);
         },
         
-        getObjectHelper : function(p, id, level) {
+        getObjectHelper : function(p, id, level, forceRefresh) {
             var keys = Object.keys(id);
             var l = keys.length;
             var oid = keys[level];
@@ -370,7 +370,12 @@
                 return p.then(function(o) {
                     // done
                     var c = o.get(oid.substring(0,oid.length-2)+"s");
-                    return squid_api.getObjectHelper(c.load(id[oid]),id, level);
+                    var doForceRefresh = false;
+                    if (forceRefresh && (level === l)) {
+                        // this is our object
+                        doForceRefresh = true;
+                    }
+                    return squid_api.getObjectHelper(c.load(id[oid], doForceRefresh),id, level, forceRefresh);
                 }, function() {
                     // fail
                     return p;
@@ -899,7 +904,7 @@
                     } else {
                         // that's a object update message
                         // lookup the object
-                        squid_api.getObject(data.source).done(function(o) {
+                        squid_api.getObject(data.source, true).done(function(o) {
                             data.name = o.get("name"); 
                             data.objectType = o.get("objectType"); 
                             squid_api.model.status.set({
