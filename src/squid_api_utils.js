@@ -839,8 +839,13 @@
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut, me.uri);
                 var bookmark = me.defaultConfig.bookmark;
                 var status = squid_api.model.status;
+                var forcedConfig;
+                if (args && args.config) {
+                    // passing a config should take precedence over any state passed in url
+                    forcedConfig = args.config;
+                }
                 if (state) {
-                    me.setStateId(null, state).fail(function () {
+                    me.setStateId(null, state, forcedConfig).fail(function () {
                         console.log("Warning : specified application state not found");
                         me.initStep2(args, shortcut, bookmark);
                     }).done(function() {
