@@ -291,8 +291,7 @@
                     projectId: projectId
                 },
                 "domains": domains,
-                "selection": selection,
-                "includeDynamic" : jobModel.get("includeDynamic")
+                "selection": selection
             });
 
             // save the job
