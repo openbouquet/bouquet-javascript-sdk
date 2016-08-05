@@ -42,6 +42,9 @@
         wsNotification : null,
         wsConnectionAttempts: 1,
         bouquetSessionId : null,
+        options : {
+            enableTracking : true
+        },
         constants : {
             HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
         },
