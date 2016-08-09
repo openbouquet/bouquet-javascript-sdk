@@ -867,6 +867,9 @@
                 var state = squid_api.utils.getParamValue("state", null, me.uri);
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut, me.uri);
                 var bookmark = me.defaultConfig.bookmark;
+                if (args && args.config && args.config.bookmark) {
+                    bookmark = args.config.bookmark;
+                }
                 var status = squid_api.model.status;
                 var forcedConfig;
                 if (args && args.config) {
@@ -893,7 +896,7 @@
             if (shortcut) {
                 squid_api.setShortcutId(shortcut);
             } else if (bookmark) {
-                squid_api.setBookmarkId(bookmark);
+                squid_api.setBookmarkId(bookmark, {"project" : args.config.project});
             } else if (args && args.config) {
                 squid_api.setConfig(args.config);
             } else {
