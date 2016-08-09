@@ -1302,6 +1302,35 @@
             });
         },
 
+        setConfigSelection : function(selectionClone) {
+            var config = squid_api.model.config;
+            var domain = config.get("domain");
+
+            // persist config period facet selection
+            if (config.get("period") && config.get("period")[domain]) {
+                var configSelection = config.get("selection");
+                var currentPeriodId = config.get("period")[domain];
+                var configPeriodSelectedItems;
+
+                // find current period selected Items
+                for (var i=0; i<configSelection.facets.length; i++) {
+                    if (configSelection.facets[i].id === currentPeriodId) {
+                        configPeriodSelectedItems = configSelection.facets[i].selectedItems;
+                    }
+                }
+                
+                // update selectionClone with period selected items
+                for (var ix=0; ix<selectionClone.facets.length; ix++) {
+                    if (selectionClone.facets[ix].id === currentPeriodId) {
+                        selectionClone.facets[ix].selectedItems = configPeriodSelectedItems;
+                    }
+                }
+            }
+
+            // Set the updated filters model
+            config.set("selection", squid_api.utils.buildCleanSelection(selectionClone));
+        },
+
         /**
          * Save the current State model
          * @param an array of extra config elements
