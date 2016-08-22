@@ -439,7 +439,7 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("status") && (model.get("status") != "DONE")) {
+                    if (model.get("status") && (model.get("status") != "DONE") && (model.get("status") != "PENDING")) {
                         // retry in 1s
                         setTimeout(function () {
                             controller.getAnalysisJob(observer, analysisModel);
@@ -505,7 +505,7 @@
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
-                            controller.getAnalysisJobResults(observer, analysisJob);
+                            controller.getAnalysisJob(observer, analysisJob);
                         }
                     })
                     .fail(function (model, response) {
