@@ -2285,6 +2285,9 @@
             analysisJob.set("id", analysisModel.get("id"));
             analysisJob.set("oid", analysisModel.get("oid"));
 
+            // set parameters
+            analysisJob.parameters = analysisModel.parameters;
+
             // get the results from API
             analysisJob.fetch({
                 error: function (model, response) {
