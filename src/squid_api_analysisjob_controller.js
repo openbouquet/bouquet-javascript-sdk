@@ -456,7 +456,7 @@
                         // update the analysis Model
                         analysisModel.set("statistics", t);
                         analysisModel.set("error", null);
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.resolve(model, response);
                     }
                 }
