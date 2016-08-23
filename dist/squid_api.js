@@ -2296,7 +2296,7 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("status") && (model.get("status") != "DONE") && (model.get("status") != "PENDING")) {
+                    if (model.get("status") && (model.get("status") === "RUNNING")) {
                         // retry in 1s
                         setTimeout(function () {
                             controller.getAnalysisJob(observer, analysisModel);
