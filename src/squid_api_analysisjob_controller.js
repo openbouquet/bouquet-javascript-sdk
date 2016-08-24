@@ -349,6 +349,7 @@
                         console.log("createAnalysis success");
                         analysisModel.set("id", model.get("id"));
                         analysisModel.set("oid", model.get("id").analysisJobId);
+                        analysisModel.set("results", model.get("results"));
                         if (model.get("results") === null && model.get("status") !== "RUNNING") {
                             analysisModel.set("status", "PENDING");
                         } else {
