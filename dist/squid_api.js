@@ -2252,7 +2252,12 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
+                    if (response === null || response === undefined) {
+                        analysisModel.set("status", "PENDING");
+                        analysisModel.set("results", []);
+                        observer.resolve(model, response);
+                    } else {
+                        if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
@@ -2266,6 +2271,7 @@
                         analysisModel.set("results", model.toJSON());
                         analysisModel.set("status", "DONE");
                         observer.resolve(model, response);
+                        }
                     }
                 }
             });
@@ -2362,7 +2368,7 @@
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
-                            controller.getAnalysisJob(observer, analysisJob);
+                            controller.getAnalysisJobResults(observer, analysisJob);
                         }
                     })
                     .fail(function (model, response) {
