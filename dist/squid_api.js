@@ -2197,12 +2197,17 @@
                         console.error("createAnalysis error " + model.get("error").message);
                         analysisModel.set("results", null);
                         analysisModel.set("error", model.get("error"));
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.reject(model, response);
                     } else {
                         console.log("createAnalysis success");
                         analysisModel.set("id", model.get("id"));
                         analysisModel.set("oid", model.get("id").analysisJobId);
+                        if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                            analysisModel.set("status", "PENDING");
+                        } else {
+                            analysisModel.set("status", model.get("status"));
+                        }
                         observer.resolve(model, response);
                     }
                 },
@@ -2364,7 +2369,12 @@
                             analysisJob.set("statistics", t);
                             analysisJob.set("error", model.get("error"));
                             analysisJob.set("results", model.get("results"));
-                            analysisJob.set("status", "DONE");
+                            if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                                analysisJob.set("status", "PENDING");
+                            } else {
+                                analysisJob.set("status", model.get("status"));
+                            }
+                            
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
