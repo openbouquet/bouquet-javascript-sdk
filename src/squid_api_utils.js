@@ -587,9 +587,30 @@
             });
             stateModel.fetch({
                 success: function (model, response, options) {
-                    // set the config
-                    me.setConfig(model.get("config"), forcedConfig);
-                    dfd.resolve(model);
+                    /* check that the domain in the state 
+                       is the same as the one in the 
+                       bookmark or domain
+                    */
+                    if (forcedConfig.bookmark) {
+                        squid_api.getCustomer().then(function(customer) {
+                            customer.get("projects").load(forcedConfig.project).then(function(project) {
+                                project.get("bookmarks").load(forcedConfig.bookmark).done(function(bookmark) {
+                                    if (bookmark.get("config") && model.get("config") && (bookmark.get("config").domain === model.get("config").domain)) {
+                                        me.setConfig(model.get("config"), forcedConfig);
+                                    }
+                                    dfd.resolve(model);
+                                }).fail(function(model, response, options) {
+                                    console.error("bookmark fetch failed : " + bookmarkId);
+                                    dfd.reject();
+                                });
+                            });
+                        });
+                    } else if (model.get("config") && (forcedConfig.domain === model.get("config").domain)) {
+                        // set the config
+                        me.setConfig(model.get("config"), forcedConfig);
+                    } else {
+                        dfd.resolve(model);
+                    }
                 },
                 error: function (model, response, options) {
                     // state fetch failed
