@@ -597,6 +597,10 @@
                                 project.get("bookmarks").load(forcedConfig.bookmark).done(function(bookmark) {
                                     if (bookmark.get("config") && model.get("config") && (bookmark.get("config").domain === model.get("config").domain)) {
                                         me.setConfig(model.get("config"), forcedConfig);
+                                    } else {
+                                        squid_api.setBookmarkId(bookmark.get("oid"), {
+                                            "project": forcedConfig.project}
+                                        );
                                     }
                                     dfd.resolve(model);
                                 }).fail(function(model, response, options) {
@@ -608,9 +612,8 @@
                     } else if (model.get("config") && (forcedConfig.domain === model.get("config").domain)) {
                         // set the config
                         me.setConfig(model.get("config"), forcedConfig);
-                    } else {
-                        dfd.resolve(model);
                     }
+                    dfd.resolve(model);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
