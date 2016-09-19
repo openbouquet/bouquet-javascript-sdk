@@ -819,8 +819,6 @@
                 if (args && args.config) {
                     if (args.config.bookmark) {
                     	this.setBookmarkId(args.config.bookmark);
-                    } else {
-                        this.setConfig(args.config);
                     }
                 }
             }
