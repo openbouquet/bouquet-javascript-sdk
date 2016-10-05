@@ -1190,6 +1190,12 @@
                         "redirect_uri": null
                     }
                 }).fail(function (jqXHR) {
+                    if (jqXHR.status === 401) {
+                        // init the Login URL if provided by server
+                        if (jqXHR.responseJSON.loginURL) {
+                            squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                        }
+                    }
                     deferred.reject();
                 }).done(function (data) {
                     var token = data.oid;
