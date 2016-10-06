@@ -10,7 +10,47 @@
     // Enhance Squid API utils
 
     squid_api.utils = _.extend(squid_api.utils, {
+        
+        getAPIUrlDfd : null,
+        
+        getAPIUrl : function() {
+            var dfd = squid_api.utils.getAPIUrlDfd;
+            if (!dfd) {
+                squid_api.utils.getAPIUrlDfd = $.Deferred();
+                dfd = squid_api.utils.getAPIUrlDfd;
 
+                if (!squid_api.apiURL) {
+                    if (squid_api.obioURL && squid_api.teamId && squid_api.authCode) {
+                        $.ajax({
+                            url: squid_api.obioURL+"/teams?teamId="+squid_api.teamId,
+                            dataType: 'json',
+                            headers: {
+                                "Authorization":("Bearer "+squid_api.authCode)
+                            }
+                        }).done(null, function (xhr, status, error) {
+                            if (xhr.serverUrl.charAt(xhr.serverUrl.length-1) == '/') {
+                                squid_api.apiBaseURL = xhr.serverUrl.substring(0, xhr.serverUrl.length-1);
+                            } else {
+                                squid_api.apiBaseURL = xhr.serverUrl;
+                            }
+                            squid_api.setApiURL(squid_api.apiBaseURL + "/rs");
+                            squid_api.swaggerURL = squid_api.apiBaseURL + "/swagger.json";
+                            console.log("apiURL:"+squid_api.apiURL);
+                            dfd.resolve(squid_api.apiURL);
+                        }).fail(null, function (xhr, status, error) {
+                            console.error("failed to get apiURL");
+                            dfd.reject();
+                        });
+                    } else {
+                        dfd.reject();
+                    }
+                } else {
+                    dfd.resolve(squid_api.apiURL);
+                }
+            }
+            return dfd;
+        },
+        
         /**
          * Check the API matches a given version string.
          * @param semver range to match (e.g. ">=4.2.4")
@@ -20,27 +60,28 @@
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
-                $.ajax({
-                    url: squid_api.apiURL+"/status"
-                }).done(null, function (xhr) {
-                    // put in cache
-                    squid_api.apiVersion = xhr;
-                    // version check
-                    if (xhr["bouquet-server"]) {
-                        var version = xhr["bouquet-server"].version;
-                        version = version.replace("-SNAPSHOT","");
-                        if (semver.satisfies(version, range)) {
-                            dfd.resolve(version);
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        url: apiURL+"/status"
+                    }).done(null, function (xhr) {
+                        // put in cache
+                        squid_api.apiVersion = xhr;
+                        // version check
+                        if (xhr["bouquet-server"]) {
+                            var version = xhr["bouquet-server"].version;
+                            version = version.replace("-SNAPSHOT","");
+                            if (semver.satisfies(version, range)) {
+                                dfd.resolve(version);
+                            } else {
+                                dfd.reject(version);
+                            }
                         } else {
-                            dfd.reject(version);
+                            dfd.reject();
                         }
-                    } else {
+                    }).fail(null, function (xhr) {
                         dfd.reject();
-                    }
-                }).fail(null, function (xhr) {
-                    dfd.reject();
+                    });
                 });
-                return dfd;
             } else {
                 // already in cache
                 // just check and return a promise
@@ -48,14 +89,15 @@
                     var version = squid_api.apiVersion["bouquet-server"].version;
                     version = version.replace("-SNAPSHOT","");
                     if (semver.satisfies(version, range)) {
-                        return dfd.resolve(version);
+                        dfd.resolve(version);
                     } else {
-                        return dfd.reject(version);
+                        dfd.reject(version);
                     }
                 } else {
-                    return dfd.reject();
+                    dfd.reject();
                 }
             }
+            return dfd;
         },
 
         /*
@@ -321,32 +363,38 @@
                     uri.removeQuery("code");
                     window.history.pushState(code, "", uri);
                 }
+                var data = {
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": squid_api.clientId,
+                    "redirect_uri": null
+                };
+                if (squid_api.teamId) {
+                    data.teamId = squid_api.teamId;
+                }
 
                 // fetch the access token
-                $.ajax({
-                    type: "POST",
-                    url: squid_api.apiURL + "/token",
-                    dataType: 'json',
-                    data: {
-                        "grant_type": "authorization_code",
-                        "code": code,
-                        "client_id": squid_api.clientId,
-                        "redirect_uri": null
-                    }
-                }).fail(function (jqXHR) {
-                    if (jqXHR.status === 401) {
-                        // init the Login URL if provided by server
-                        if (jqXHR.responseJSON.loginURL) {
-                            squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        type: "POST",
+                        url: apiURL + "/token",
+                        dataType: 'json',
+                        data: data
+                    }).fail(function (jqXHR) {
+                        if (jqXHR.status === 401) {
+                            // init the Login URL if provided by server
+                            if (jqXHR.responseJSON.loginURL) {
+                                squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                            }
                         }
-                    }
-                    deferred.reject();
-                }).done(function (data) {
-                    var token = data.oid;
-                    me.getLoginFromToken(token).done( function(login) {
-                        deferred.resolve(login);
-                    }).fail( function() {
                         deferred.reject();
+                    }).done(function (data) {
+                        var token = data.oid;
+                        me.getLoginFromToken(token).done( function(login) {
+                            deferred.resolve(login);
+                        }).fail( function() {
+                            deferred.reject();
+                        });
                     });
                 });
             } else {
@@ -711,6 +759,8 @@
             this.customerId = squid_api.utils.getParamValue("customerId", args.customerId || this.customerId, uri);
             this.clientId = squid_api.utils.getParamValue("clientId", args.clientId || this.clientId, uri);
             this.debug = squid_api.utils.getParamValue("debug", args.debug || this.debug, uri);
+            this.teamId = squid_api.utils.getParamValue("teamId", null, me.uri);
+            this.authCode = squid_api.utils.getParamValue("code", null, me.uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = this.utils.mergeAttributes(this.defaultConfig, args.config);
@@ -754,18 +804,18 @@
                 version = squid_api.utils.getParamValue("version", "v4.2", uri);
     
                 apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
-                if (!apiUrl) {
-                    console.error("Please provide an API endpoint URL");
-                } else {
+                if (apiUrl) {
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
                     }
                     this.apiBaseURL = apiUrl + "/" + api + "/" + version;
                     this.setApiURL(this.apiBaseURL + "/rs");
                     this.swaggerURL = this.apiBaseURL + "/swagger.json";
+                    // building default loginURL from apiURL
+                    squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+                } else {
+                    this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
                 }
-                // building default loginURL from apiURL
-                squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
     
                 // init the timout
                 timeoutMillis = args.timeoutMillis;
@@ -784,6 +834,7 @@
          * @param a json object. If this object contains a "config" attribute, it'll be used as a default for setConfig.
          */
         init: function (args) {
+            var me = this;
             if (this.browserOK === null) {
                 this.browserOK = false;
                 if (this.browsers) {
@@ -798,18 +849,8 @@
                     this.browserOK = true;
                 }
                 if (this.browserOK) {
-                    if (!this.apiURL) {
-                        this.model.status
-                            .set(
-                                "error",
-                                {
-                                    "dismissible": false,
-                                    "message": "Please provide an API endpoint URL"
-                                });
-                    } else {
-                        // continue init process
-                        this.initStep0(args);
-                    }
+                    // continue init process
+                    this.initStep0(args);
                 } else {
                     console.error("Unsupported browser : " + navigator.userAgent);
                     this.model.status

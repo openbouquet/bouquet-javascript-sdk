@@ -48,6 +48,9 @@
         constants : {
             HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
         },
+        obioURL : null,
+        teamId : null,
+        authCode : null,
 
         // declare some namespaces
         model: {},
