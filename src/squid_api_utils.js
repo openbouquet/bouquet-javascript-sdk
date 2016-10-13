@@ -69,7 +69,9 @@
                         // version check
                         if (xhr["bouquet-server"]) {
                             var version = xhr["bouquet-server"].version;
-                            version = version.substring(0, version.indexOf('-'));
+                            if (version.indexOf('-') > -1) {
+                                version = version.substring(0, version.indexOf('-'));
+                            }
                             if (semver.satisfies(version, range)) {
                                 dfd.resolve(version);
                             } else {
@@ -87,7 +89,9 @@
                 // just check and return a promise
                 if (squid_api.apiVersion["bouquet-server"]) {
                     var version = squid_api.apiVersion["bouquet-server"].version;
-                    version = version.substring(0, version.indexOf('-'));
+                    if (version.indexOf('-') > -1) {
+                        version = version.substring(0, version.indexOf('-'));
+                    }
                     if (semver.satisfies(version, range)) {
                         dfd.resolve(version);
                     } else {
