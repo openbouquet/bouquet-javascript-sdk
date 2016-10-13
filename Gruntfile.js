@@ -4,7 +4,11 @@ module.exports = function(grunt) {
             all : "dist/"
         },
         jshint : {
-            all : [ 'src/*.js' ]
+            all : [ 'src/*.js' ],
+	    options: {
+                    //"" for stdout
+                    reporterOutput: ""
+            }
         },
         concat : {
             options : {

@@ -23,6 +23,7 @@
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiHost: null,
         apiEnv: null,
+        apiBaseURL : null,
         apiURL: null,
         loginURL: null,
         timeoutMillis: null,
@@ -38,6 +39,18 @@
         apiVersion: null,
         uri : null,
         browserOK : null,
+        wsNotification : null,
+        wsConnectionAttempts: 1,
+        bouquetSessionId : null,
+        options : {
+            enableTracking : true
+        },
+        constants : {
+            HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
+        },
+        obioURL : null,
+        teamId : null,
+        authCode : null,
 
         // declare some namespaces
         model: {},
@@ -174,6 +187,13 @@
         factory(root.Backbone, _, root.squid_api);
     }
 }(this, function (Backbone, _, squid_api) {
+    
+    // override Backbone ajax to handle bouquet session id header
+    Backbone.ajax = function() {
+        arguments[0].headers = {};
+        arguments[0].headers[squid_api.constants.HEADER_BOUQUET_SESSIONID] = squid_api.bouquetSessionId;
+        return Backbone.$.ajax.apply(Backbone.$, arguments);      
+    };
 
     // setup squid_api.model
 
@@ -209,7 +229,6 @@
             }
             return null;
         },
-
 
         setParameter: function (name, value) {
             var index = null;
@@ -276,57 +295,19 @@
             return this.baseRoot();
         },
         url: function () {
-            var url = this.urlRoot();
-            if (!this.hasParam("timeout")) {
-                if (typeof this.timeoutMillis === 'undefined') {
-                    this.setParameter("timeout", squid_api.timeoutMillis);
-                } else {
-                    if (this.timeoutMillis !== null) {
-                        this.setParameter("timeout", this.timeoutMillis());
-                    }
-                }
+            if (typeof this.timeoutMillis === 'undefined') {
+                this.setParameter("timeout", squid_api.timeoutMillis);
+            } else if (this.timeoutMillis !== null) {
+                this.setParameter("timeout", this.timeoutMillis());
             }
-            if (!this.hasParam("access_token")) {
-                this.setParameter("access_token", squid_api.model.login.get("accessToken"));
-            }
-            // add parameters
-            if (this.parameters) {
-                for (var i = 0; i < this.parameters.length; i++) {
-                    var param = this.parameters[i];
-                    if (param.value !== null) {
-                        url = this.addParam(url, param.name, param.value);
-                    }
-                }
-            }
-            return url;
+            this.setParameter("access_token", squid_api.model.login.get("accessToken"));
+            
+            // build uri
+            var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
+            return url.toString();
         },
+        
         error: null,
-        hasParam: function (name) {
-            var hasParam = false, i = 0;
-            if (this.parameters) {
-                while (i < this.parameters.length && (!hasParam)) {
-                    var param = this.parameters[i];
-                    if (param.name == name) {
-                        hasParam = true;
-                    }
-                    i++;
-                }
-            }
-
-            return hasParam;
-        },
-        addParam: function (url, name, value) {
-            if (value) {
-                var delim;
-                if (url.indexOf("?") < 0) {
-                    delim = "?";
-                } else {
-                    delim = "&";
-                }
-                url += delim + name + "=" + encodeURIComponent(value);
-            }
-            return url;
-        },
 
         optionsFilter: function (options) {
             // success
@@ -396,6 +377,30 @@
         addParameter: function (name, value) {
             this.parameters.push({"name": name, "value": value});
         },
+        
+        setParameter: function (name, value) {
+            var index = null;
+            if (!this.parameters) {
+                this.parameters = [];
+            }
+            for (var i = 0; i < this.parameters.length; i++) {
+                if (this.parameters[i].name === name) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index !== null) {
+                if ((typeof value === 'undefined') || (value === null)) {
+                    // unset
+                    this.parameters.splice(index, 1);
+                } else {
+                    // set
+                    this.parameters[index].value = value;
+                }
+            } else {
+                this.parameters.push({"name": name, "value": value});
+            }
+        },
 
         initialize: function (model, options) {
             if (options) {
@@ -411,24 +416,18 @@
         },
 
         url: function () {
-            var url = this.urlRoot();
             if (typeof this.timeoutMillis === 'undefined') {
-                url = this.addParam(url, "timeout", squid_api.timeoutMillis);
-            } else {
-                if (this.timeoutMillis !== null) {
-                    url = this.addParam(url, "timeout", this.timeoutMillis());
-                }
+                this.setParameter("timeout", squid_api.timeoutMillis);
+            } else if (this.timeoutMillis !== null) {
+                this.setParameter("timeout", this.timeoutMillis());
             }
-            url = this.addParam(url, "access_token", squid_api.model.login.get("accessToken"));
-            // add parameters
-            if (this.parameters) {
-                for (var i = 0; i < this.parameters.length; i++) {
-                    var param = this.parameters[i];
-                    url = this.addParam(url, param.name, param.value);
-                }
-            }
+            this.setParameter("access_token", squid_api.model.login.get("accessToken"));
+            
+            // build uri
+            var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
             return url;
         },
+        
         addParam: function (url, name, value) {
             if (value) {
                 var delim;
@@ -439,14 +438,15 @@
                 }
                 url += delim + name + "=" + value;
             }
-            return url;
+            return url.toString();
         },
 
         /**
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
-         * @param forceRefresh if set and true : object in cache will be fetched
+         * @param forceRefresh if set and true : object in cache will be fetched and non child attributes 
+         * will be updated.
          * @return a Promise
          */
         load : function(oid, forceRefresh) {
@@ -466,9 +466,26 @@
                 if (oid) {
                     // check if already existing
                     var model = this.findWhere({"oid" : oid});
-                    if (model && (forceRefresh !== true)) {
-                        // return existing
-                        deferred.resolve(model);
+                    if (model) {
+                        if (forceRefresh !== true) {
+                            // return existing
+                            deferred.resolve(model);
+                        } else {
+                            // update the model's attributes (non child)
+                            var clone = model.clone();
+                            clone.fetch().done(function() {
+                                var excluded = clone.get("_children");
+                                var attributes = clone.attributes;
+                                for (var att in attributes) {
+                                    if (!excluded || (excluded.indexOf(att)<0)) {
+                                        model.set(att, clone.get(att));
+                                    }
+                                }
+                                deferred.resolve(model);
+                            }).fail(function() {
+                                deferred.resolve(model);
+                            });
+                        }
                     } else {
                         // fetch collection to get the model
                         this.load().done( function(collection) {
@@ -476,7 +493,16 @@
                             if (model) {
                                 deferred.resolve(model);
                             } else {
-                                deferred.reject("object not found");
+                                // try to fetch first (T1625)
+                                var parentId = collection.parent.get("id");
+                                model = new collection.model({"id" : parentId});
+                                model.set({"oid" : oid});
+                                model.fetch().done(function() {
+                                    collection.add(model);
+                                    deferred.resolve(model);
+                                }).fail(function() {
+                                    deferred.reject("object not found");
+                                });
                             }
                         }).fail(function(error) {
                             squid_api.model.status.set("error", error);
@@ -527,7 +553,7 @@
         logout: function () {
             var me = this;
             // set the access token and refresh data
-            var request = $.ajax({
+            var request = Backbone.ajax({
                 type: "GET",
                 url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
                 dataType: 'json',
@@ -698,6 +724,19 @@
             return this.baseRoot() + "/users";
         }
     });
+    
+    squid_api.model.BookmarkfolderModel = squid_api.model.BaseModel.extend({
+        urlRoot: function () {
+            return this.baseRoot() + "/bookmarkfolders/" + this.getOid("bookmarkfolderId");
+        }
+    });
+    
+    squid_api.model.BookmarkfolderCollection = squid_api.model.BaseCollection.extend({
+        model: squid_api.model.BookmarkfolderModel,
+        urlRoot: function () {
+            return this.baseRoot() + "/bookmarkfolders";
+        }
+    });
 
     squid_api.model.DomainModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
@@ -771,7 +810,8 @@
         "users" : squid_api.model.UserCollection,
         "userGroups" : squid_api.model.GroupCollection,
         "shortcuts" : squid_api.model.ShortcutCollection,
-        "clients" : squid_api.model.ClientCollection
+        "clients" : squid_api.model.ClientCollection,
+        "bookmarkfolders" : squid_api.model.BookmarkfolderCollection
     };
 
     squid_api.model.ProjectModel.prototype.relations = {
@@ -783,6 +823,10 @@
     squid_api.model.DomainModel.prototype.relations = {
         "dimensions" : squid_api.model.DimensionCollection,
         "metrics" : squid_api.model.MetricCollection
+    };
+    
+    squid_api.model.BookmarkfolderModel.prototype.relations = {
+        "folders" : squid_api.model.BookmarkfolderCollection
     };
 
     /**
@@ -825,7 +869,47 @@
     // Enhance Squid API utils
 
     squid_api.utils = _.extend(squid_api.utils, {
+        
+        getAPIUrlDfd : null,
+        
+        getAPIUrl : function() {
+            var dfd = squid_api.utils.getAPIUrlDfd;
+            if (!dfd) {
+                squid_api.utils.getAPIUrlDfd = $.Deferred();
+                dfd = squid_api.utils.getAPIUrlDfd;
 
+                if (!squid_api.apiURL) {
+                    if (squid_api.obioURL && squid_api.teamId && squid_api.authCode) {
+                        $.ajax({
+                            url: squid_api.obioURL+"/teams?teamId="+squid_api.teamId,
+                            dataType: 'json',
+                            headers: {
+                                "Authorization":("Bearer "+squid_api.authCode)
+                            }
+                        }).done(null, function (xhr, status, error) {
+                            if (xhr.serverUrl.charAt(xhr.serverUrl.length-1) == '/') {
+                                squid_api.apiBaseURL = xhr.serverUrl.substring(0, xhr.serverUrl.length-1);
+                            } else {
+                                squid_api.apiBaseURL = xhr.serverUrl;
+                            }
+                            squid_api.setApiURL(squid_api.apiBaseURL + "/rs");
+                            squid_api.swaggerURL = squid_api.apiBaseURL + "/swagger.json";
+                            console.log("apiURL:"+squid_api.apiURL);
+                            dfd.resolve(squid_api.apiURL);
+                        }).fail(null, function (xhr, status, error) {
+                            console.error("failed to get apiURL");
+                            dfd.reject();
+                        });
+                    } else {
+                        dfd.reject();
+                    }
+                } else {
+                    dfd.resolve(squid_api.apiURL);
+                }
+            }
+            return dfd;
+        },
+        
         /**
          * Check the API matches a given version string.
          * @param semver range to match (e.g. ">=4.2.4")
@@ -835,27 +919,28 @@
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
-                $.ajax({
-                    url: squid_api.apiURL+"/status"
-                }).done(null, function (xhr) {
-                    // put in cache
-                    squid_api.apiVersion = xhr;
-                    // version check
-                    if (xhr["bouquet-server"]) {
-                        var version = xhr["bouquet-server"].version;
-                        version = version.replace("-SNAPSHOT","");
-                        if (semver.satisfies(version, range)) {
-                            dfd.resolve(version);
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        url: apiURL+"/status"
+                    }).done(null, function (xhr) {
+                        // put in cache
+                        squid_api.apiVersion = xhr;
+                        // version check
+                        if (xhr["bouquet-server"]) {
+                            var version = xhr["bouquet-server"].version;
+                            version = version.replace("-SNAPSHOT","");
+                            if (semver.satisfies(version, range)) {
+                                dfd.resolve(version);
+                            } else {
+                                dfd.reject(version);
+                            }
                         } else {
-                            dfd.reject(version);
+                            dfd.reject();
                         }
-                    } else {
+                    }).fail(null, function (xhr) {
                         dfd.reject();
-                    }
-                }).fail(null, function (xhr) {
-                    dfd.reject();
+                    });
                 });
-                return dfd;
             } else {
                 // already in cache
                 // just check and return a promise
@@ -863,14 +948,15 @@
                     var version = squid_api.apiVersion["bouquet-server"].version;
                     version = version.replace("-SNAPSHOT","");
                     if (semver.satisfies(version, range)) {
-                        return dfd.resolve(version);
+                        dfd.resolve(version);
                     } else {
-                        return dfd.reject(version);
+                        dfd.reject(version);
                     }
                 } else {
-                    return dfd.reject();
+                    dfd.reject();
                 }
             }
+            return dfd;
         },
 
         /*
@@ -1003,6 +1089,34 @@
             }
             url.setQuery("redirect_uri",rurlString);
             return url;
+        },
+        
+        buildApiUrl : function(host, path, queryParameters) {
+            var uri = host;
+            if (!uri) {
+                uri = squid_api.apiURL;
+            }
+            if (path) {
+                uri = uri + path;
+            }
+            var url = new URI(uri);
+            // add extra parameters
+            if (queryParameters) {
+                for (var i = 0; i < queryParameters.length; i++) {
+                    var param = queryParameters[i];
+                    if ((param.value !== null) && (typeof param.value !== 'undefined')) {
+                        url.addQuery(param.name, param.value);
+                    }
+                }
+            }
+            // enforce some query parameters
+            if (!url.hasQuery("timeout")) {
+                url.setQuery("timeout", squid_api.timeoutMillis);
+            }
+            if (!url.hasQuery("access_token")) {
+                url.setQuery("access_token", squid_api.model.login.get("accessToken"));
+            }
+            return url;
         }
 
     });
@@ -1108,26 +1222,38 @@
                     uri.removeQuery("code");
                     window.history.pushState(code, "", uri);
                 }
+                var data = {
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": squid_api.clientId,
+                    "redirect_uri": null
+                };
+                if (squid_api.teamId) {
+                    data.teamId = squid_api.teamId;
+                }
 
                 // fetch the access token
-                $.ajax({
-                    type: "POST",
-                    url: squid_api.apiURL + "/token",
-                    dataType: 'json',
-                    data: {
-                        "grant_type": "authorization_code",
-                        "code": code,
-                        "client_id": squid_api.clientId,
-                        "redirect_uri": null
-                    }
-                }).fail(function (jqXHR) {
-                    deferred.reject();
-                }).done(function (data) {
-                    var token = data.oid;
-                    me.getLoginFromToken(token).done( function(login) {
-                        deferred.resolve(login);
-                    }).fail( function() {
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        type: "POST",
+                        url: apiURL + "/token",
+                        dataType: 'json',
+                        data: data
+                    }).fail(function (jqXHR) {
+                        if (jqXHR.status === 401) {
+                            // init the Login URL if provided by server
+                            if (jqXHR.responseJSON.loginURL) {
+                                squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                            }
+                        }
                         deferred.reject();
+                    }).done(function (data) {
+                        var token = data.oid;
+                        me.getLoginFromToken(token).done( function(login) {
+                            deferred.resolve(login);
+                        }).fail( function() {
+                            deferred.reject();
+                        });
                     });
                 });
             } else {
@@ -1138,7 +1264,40 @@
             }
             return deferred;
         },
-
+        
+        /**
+         * Get a Model object
+         * @param the object composite Id
+         * Returns a Promise
+         */
+        getObject : function(id, forceRefresh) {
+            return this.getObjectHelper(squid_api.getCustomer(), id, 0, forceRefresh);
+        },
+        
+        getObjectHelper : function(p, id, level, forceRefresh) {
+            var keys = Object.keys(id);
+            var l = keys.length;
+            var oid = keys[level];
+            if (level < l) {
+                level++;
+                return p.then(function(o) {
+                    // done
+                    var c = o.get(oid.substring(0,oid.length-2)+"s");
+                    var doForceRefresh = false;
+                    if (forceRefresh && (level === l)) {
+                        // this is our object
+                        doForceRefresh = true;
+                    }
+                    return squid_api.getObjectHelper(c.load(id[oid], doForceRefresh),id, level, forceRefresh);
+                }, function() {
+                    // fail
+                    return p;
+                });
+            } else {
+                return p;
+            }
+        },
+        
         /**
          * Get the current Customer Model.
          * Returns a Promise
@@ -1198,6 +1357,35 @@
                     return project.get("domains").load(domainId, forceRefresh);
                 });
             });
+        },
+
+        setConfigSelection : function(selectionClone) {
+            var config = squid_api.model.config;
+            var domain = config.get("domain");
+
+            // persist config period facet selection
+            if (config.get("period") && config.get("period")[domain]) {
+                var configSelection = config.get("selection");
+                var currentPeriodId = config.get("period")[domain];
+                var configPeriodSelectedItems;
+
+                // find current period selected Items
+                for (var i=0; i<configSelection.facets.length; i++) {
+                    if (configSelection.facets[i].id === currentPeriodId) {
+                        configPeriodSelectedItems = configSelection.facets[i].selectedItems;
+                    }
+                }
+                
+                // update selectionClone with period selected items
+                for (var ix=0; ix<selectionClone.facets.length; ix++) {
+                    if (selectionClone.facets[ix].id === currentPeriodId) {
+                        selectionClone.facets[ix].selectedItems = configPeriodSelectedItems;
+                    }
+                }
+            }
+
+            // Set the updated filters model
+            config.set("selection", squid_api.utils.buildCleanSelection(selectionClone));
         },
 
         /**
@@ -1261,29 +1449,40 @@
             }
         },
 
-        invalidConfigCheck: function(config) {
-            // fix invalid config attributes
-            if (config.chosenDimensions === null) {
-                config.chosenDimensions = [];
-            }
-            if (config.project === undefined) {
-                delete config.project;
-            }
-            return config;
-        },
-
+        /**
+         * Apply a new config to squid_api.model.config
+         * @param config the new config to apply
+         * @param forcedConfig a function (or an object) used to post-process config values
+         */
         setConfig : function(config, forcedConfig) {
             // keep for comparison when saved again
             squid_api.model.state = config;
             var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
-            newConfig = this.invalidConfigCheck(newConfig);
+            
+            // set to null attributes no longer in current config
+            for (var att in squid_api.model.config.attributes) {
+                if (!newConfig[att]) {
+                    newConfig[att] = null;
+                }
+            }
+            
+            // fix some invalid config attributes
+            if (newConfig.chosenDimensions === null || ! newConfig.chosenDimensions) {
+                newConfig.chosenDimensions = [];
+            }
+            if (newConfig.project === undefined) {
+                delete newConfig.project;
+            }
+            
+            // apply forcedConfig
             if (_.isFunction(forcedConfig)) {
                 newConfig = forcedConfig(newConfig);
             } else {
                 newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
+            
+            // apply the new config to current config
             squid_api.model.status.set("configReady", false);
-            // apply the config
             squid_api.model.config.set(newConfig);
             squid_api.model.status.set("configReady", true);
         },
@@ -1303,6 +1502,7 @@
                 success: function (model, response, options) {
                     // set the config
                     me.setConfig(model.get("config"), forcedConfig);
+                    dfd.resolve(model);
                 },
                 error: function (model, response, options) {
                     // state fetch failed
@@ -1340,55 +1540,58 @@
             }
             return dfd.promise();
         },
+        
+        setBookmarkAction: function (bookmark, forcedConfig, attributes) {
+            squid_api.setBookmark(bookmark, forcedConfig, attributes);
+        },
+        
+        setBookmark: function (bookmark, forcedConfig, attributes) {
+            var config = bookmark.get("config");
+            squid_api.model.status.set("bookmark", bookmark);
+
+            // if attributes array exists - only set these attributes
+            if (attributes) {
+                config = squid_api.model.config.toJSON();
+                for (i=0; i<attributes.length; i++) {
+                    var attr = attributes[i];
+                    if (config[attr] && bookmark.get("config")[attr]) {
+                        config[attr] = bookmark.get("config")[attr];
+                    }
+                }
+            }
+            
+            // set the config
+            squid_api.setConfig(config, forcedConfig);
+        },
 
         setBookmarkId: function (bookmarkId, forcedConfig, attributes) {
             var me = this;
             var dfd = new $.Deferred();
-            var projectId = me.model.config.get("project");
+            if (!forcedConfig) {
+                forcedConfig = {};
+            }
+            var projectId = forcedConfig.project;
+            if (!projectId) {
+                projectId = me.model.config.get("project");
+            }
             if (!projectId) {
                 projectId = me.defaultConfig.project;
             }
             if (projectId && bookmarkId) {
-                // fetch the Bookmark
-                var bookmarkModel = new squid_api.model.BookmarkModel();
-                bookmarkModel.set({
-                    "id": {
-                        "customerId": this.customerId,
-                        "projectId": projectId,
-                        "bookmarkId": bookmarkId
-                    }
-                });
-                bookmarkModel.fetch({
-                    success: function (model, response, options) {
-                        console.log("bookmark fetched : " + model.get("name"));
-                        var config = model.get("config");
-                        me.model.status.set("bookmark", model);
-
-                        // current bookmark id goes to the config (whereas shortcut)
-                        if (!forcedConfig) {
-                            forcedConfig = {};
-                        }
-                        forcedConfig.project = projectId;
-                        forcedConfig.bookmark = bookmarkId;
-
-                        // if attributes array exists - only set these attributes
-                        if (attributes) {
-                            config = me.model.config.toJSON();
-                            for (i=0; i<attributes.length; i++) {
-                                var attr = attributes[i];
-                                if (config[attr] && model.get("config")[attr]) {
-                                    config[attr] = model.get("config")[attr];
-                                }
-                            }
-                        }
-                        
-                        // set the config
-                        me.setConfig(config, forcedConfig);
-                    },
-                    error: function (model, response, options) {
-                        console.error("bookmark fetch failed : " + bookmarkId);
-                        dfd.reject();
-                    }
+                // get the Bookmark
+                squid_api.getCustomer().then(function(customer) {
+                    customer.get("projects").load(projectId).then(function(project) {
+                        project.get("bookmarks").load(bookmarkId).done(function(bookmark) {
+                            // current bookmark id goes to the config
+                            forcedConfig.project = projectId;
+                            forcedConfig.bookmark = bookmarkId;
+                            me.setBookmarkAction(bookmark, forcedConfig, attributes);
+                            dfd.resolve(bookmark);
+                        }).fail(function(model, response, options) {
+                            console.error("bookmark fetch failed : " + bookmarkId);
+                            dfd.reject();
+                        });
+                    });
                 });
             } else {
                 me.model.config.set(squid_api.defaultConfig);
@@ -1415,6 +1618,8 @@
             this.customerId = squid_api.utils.getParamValue("customerId", args.customerId || this.customerId, uri);
             this.clientId = squid_api.utils.getParamValue("clientId", args.clientId || this.clientId, uri);
             this.debug = squid_api.utils.getParamValue("debug", args.debug || this.debug, uri);
+            this.teamId = squid_api.utils.getParamValue("teamId", null, me.uri);
+            this.authCode = squid_api.utils.getParamValue("code", null, me.uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = this.utils.mergeAttributes(this.defaultConfig, args.config);
@@ -1445,65 +1650,6 @@
             // config
             if (!this.model.config) {
                 this.model.config = new Backbone.Model();
-    
-                // listen for project/domain change
-                this.model.config.on("change", function (config, value) {
-                    var project;
-                    var hasChangedProject = config.hasChanged("project");
-                    var hasChangedDomain = config.hasChanged("domain");
-                    var hasChangedDimensions = config.hasChanged("chosenDimensions");
-                    var hasChangedMetrics = config.hasChanged("chosenMetrics");
-                    var hasChangedSelection = config.hasChanged("selection");
-                    var hasChangedPeriod = config.hasChanged("period");
-                    var forceRefresh = (value === true);
-                    if (config.get("project") && (hasChangedProject || forceRefresh)) {
-                        squid_api.getSelectedProject(forceRefresh).always( function(project) {
-                            if ((hasChangedDomain && config.get("domain")) || forceRefresh) {
-                                // load the domain
-                                squid_api.getSelectedDomain(forceRefresh);
-                            } else {
-                                // project only changed
-                                // reset the config
-                                config.set({
-                                    "bookmark" : null,
-                                    "domain" : null,
-                                    "period" : null,
-                                    "chosenDimensions" : [],
-                                    "chosenMetrics" : [],
-                                    "rollups" : [],
-                                    "orderBy" : null,
-                                    "selection" : {
-                                        "domain" : null,
-                                        "facets": []
-                                    }
-                                });
-                            }
-                        });
-                    } else if (hasChangedDomain || forceRefresh) {
-                        // load the domain
-                        squid_api.getSelectedDomain(forceRefresh).always( function(domain) {
-                            // reset the config taking care of changing domain-dependant attributes
-                            // as they shouldn't be reset in case of a bookmark selection
-                            var newConfig = {};
-                            if (!hasChangedPeriod) {
-                                newConfig.period = null;
-                            }
-                            if (!hasChangedDimensions) {
-                                newConfig.chosenDimensions = [];
-                            }
-                            if (!hasChangedMetrics) {
-                                newConfig.chosenMetrics = [];
-                            }
-                            if (!hasChangedSelection) {
-                                newConfig.selection = {
-                                    "domain" : domain.get("oid"),
-                                    "facets": []
-                                };
-                            }
-                            config.set(newConfig);
-                        });
-                    }
-                });
             }
 
             // filters
@@ -1517,17 +1663,18 @@
                 version = squid_api.utils.getParamValue("version", "v4.2", uri);
     
                 apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
-                if (!apiUrl) {
-                    console.error("Please provide an API endpoint URL");
-                } else {
+                if (apiUrl) {
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
                     }
-                    this.setApiURL(apiUrl + "/" + api + "/" + version + "/rs");
-                    this.swaggerURL = apiUrl + "/" + api + "/" + version + "/swagger.json";
+                    this.apiBaseURL = apiUrl + "/" + api + "/" + version;
+                    this.setApiURL(this.apiBaseURL + "/rs");
+                    this.swaggerURL = this.apiBaseURL + "/swagger.json";
+                    // building default loginURL from apiURL
+                    squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+                } else {
+                    this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
                 }
-                // building default loginURL from apiURL
-                squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
     
                 // init the timout
                 timeoutMillis = args.timeoutMillis;
@@ -1543,9 +1690,10 @@
         /**
          * Init the API by checking if an AccessToken is present in the url and updating the loginModel accordingly.
          * Note this method is idempotent.
-         * @param a config json object (if present will call the setup method).
+         * @param a json object. If this object contains a "config" attribute, it'll be used as a default for setConfig.
          */
         init: function (args) {
+            var me = this;
             if (this.browserOK === null) {
                 this.browserOK = false;
                 if (this.browsers) {
@@ -1560,18 +1708,8 @@
                     this.browserOK = true;
                 }
                 if (this.browserOK) {
-                    if (!this.apiURL) {
-                        this.model.status
-                            .set(
-                                "error",
-                                {
-                                    "dismissible": false,
-                                    "message": "Please provide an API endpoint URL"
-                                });
-                    } else {
-                        // continue init process
-                        this.initStep0(args);
-                    }
+                    // continue init process
+                    this.initStep0(args);
                 } else {
                     console.error("Unsupported browser : " + navigator.userAgent);
                     this.model.status
@@ -1586,9 +1724,7 @@
                 // API already initialized
                 if (args && args.config) {
                     if (args.config.bookmark) {
-                        this.setBookmarkId(args.config.bookmark);
-                    } else if (args.config.project) {
-                        this.model.config.set("project", (args.config.project));
+                    	this.setBookmarkId(args.config.bookmark);
                     }
                 }
             }
@@ -1603,7 +1739,7 @@
             }).fail(function(v){
                 var message;
                 if (!v) {
-                    message = "Unable to get Bouquet Server version";
+                    message = "Unable to connect to the API";
                 } else {
                     message = "Bouquet Server version does not match this App's api version requirements";
                 }
@@ -1616,10 +1752,6 @@
 
         initStep1: function (args) {
             var me = this;
-
-            if (args) {
-                this.setup(args);
-            }
 
             // handle session expiration
             this.model.status.on('change:error', function (model) {
@@ -1639,31 +1771,103 @@
                 var state = squid_api.utils.getParamValue("state", null, me.uri);
                 var shortcut = squid_api.utils.getParamValue("shortcut", me.defaultShortcut, me.uri);
                 var bookmark = me.defaultConfig.bookmark;
+                if (args && args.config && args.config.bookmark) {
+                    bookmark = args.config.bookmark;
+                }
                 var status = squid_api.model.status;
+                var forcedConfig;
+                if (args && args.config) {
+                    // passing a config should take precedence over any state passed in url
+                    forcedConfig = args.config;
+                }
                 if (state) {
-                    var dfd = me.setStateId(null, state);
-                    dfd.fail(function () {
+                    me.setStateId(null, state, forcedConfig).fail(function () {
                         console.log("Warning : specified application state not found");
-                        if (shortcut) {
-                            me.setShortcutId(shortcut);
-                        } else if (bookmark) {
-                            me.setBookmarkId(bookmark);
-                        } else {
-                            me.model.config.set(me.defaultConfig);
-                        }
+                        me.initStep2(args, shortcut, bookmark);
+                    }).done(function() {
+                        me.initStep3();
                     });
                 } else {
-                    if (shortcut) {
-                        me.setShortcutId(shortcut);
-                    } else if (bookmark) {
-                        me.setBookmarkId(bookmark);
-                    } else {
-                        me.model.config.set(me.defaultConfig);
-                    }
+                    me.initStep2(args, shortcut, bookmark);
                 }
             }).fail(function() {
                 squid_api.model.login.set("login", null);
             });
+        },
+        
+        initStep2: function (args, shortcut, bookmark) {
+            // set the config
+            if (shortcut) {
+                squid_api.setShortcutId(shortcut);
+            } else if (bookmark) {
+                squid_api.setBookmarkId(bookmark, {"project" : args.config.project});
+            } else if (args && args.config) {
+                squid_api.setConfig(args.config);
+            } else {
+                squid_api.model.config.set(squid_api.defaultConfig);
+            }
+            squid_api.initStep3();
+        },
+            
+        initStep3: function () {
+            // init the notification websocket
+            var ws;
+            var endpoint = "ws"+squid_api.apiBaseURL.substring(4)+"/notification"+"?access_token="+squid_api.model.login.get("accessToken");
+            console.log("Establishing WebSocket connection to "+endpoint);
+            if ("WebSocket" in window) {
+                ws = new WebSocket(endpoint);
+            } else if ("MozWebSocket" in window) {
+                ws = new MozWebSocket(endpoint);
+            } else {
+                console.error("WebSocket is not supported by this browser.");
+            }
+            if (ws) {
+                squid_api.wsNotification = ws;
+                ws.onopen = function () {
+                    // reset the tries back to 1 since we have a new connection opened.
+                    console.log("WebSocket connection opened.");
+                    ws.send("hello");
+                };
+                ws.onmessage = function (event) {
+                    var data = JSON.parse(event.data);
+                    if (data.bouquetSessionId) {
+                        if (data.logout === true) {
+                            // that's a logout message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            console.log("Logout bouquetSessionId: " + squid_api.bouquetSessionId);
+                            squid_api.utils.clearLogin();
+                        } else {
+                            // that's a welcome message
+                            squid_api.bouquetSessionId = data.bouquetSessionId;
+                            squid_api.wsConnectionAttempts = 1; 
+                            console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
+                        }
+                    } else {
+                        // that's a object update message
+                        // lookup the object
+                        squid_api.getObject(data.source, true).done(function(o) {
+                            data.name = o.get("name"); 
+                            data.objectType = o.get("objectType"); 
+                            squid_api.model.status.set({
+                                "type" : "notification",
+                                "message" : "An object was modified by an external action, please refresh your page to reflect this change.",
+                                "data" : data
+                                });
+                        });
+                    }
+                };
+                ws.onclose = function (event) {
+                    squid_api.bouquetSessionId = null;
+                    var time = Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1));
+                    console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
+                    setTimeout(function () {
+                        // We've tried to reconnect so increment the attempts by 1
+                        squid_api.wsConnectionAttempts++;
+                        // Connection has closed so try to reconnect every 10 seconds.
+                        squid_api.initStep3(); 
+                    }, time*1000);
+                };
+            }
         },
 
         /**
@@ -2041,12 +2245,18 @@
                         console.error("createAnalysis error " + model.get("error").message);
                         analysisModel.set("results", null);
                         analysisModel.set("error", model.get("error"));
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.reject(model, response);
                     } else {
                         console.log("createAnalysis success");
                         analysisModel.set("id", model.get("id"));
                         analysisModel.set("oid", model.get("id").analysisJobId);
+                        analysisModel.set("results", model.get("results"));
+                        if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                            analysisModel.set("status", "PENDING");
+                        } else {
+                            analysisModel.set("status", model.get("status"));
+                        }
                         observer.resolve(model, response);
                     }
                 },
@@ -2096,7 +2306,12 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
+                    if (response === null || response === undefined) {
+                        analysisModel.set("status", "PENDING");
+                        analysisModel.set("results", []);
+                        observer.resolve(model, response);
+                    } else {
+                        if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
@@ -2110,6 +2325,7 @@
                         analysisModel.set("results", model.toJSON());
                         analysisModel.set("status", "DONE");
                         observer.resolve(model, response);
+                        }
                     }
                 }
             });
@@ -2129,6 +2345,9 @@
             analysisJob.set("id", analysisModel.get("id"));
             analysisJob.set("oid", analysisModel.get("oid"));
 
+            // set parameters
+            analysisJob.parameters = analysisModel.parameters;
+
             // get the results from API
             analysisJob.fetch({
                 error: function (model, response) {
@@ -2137,7 +2356,7 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("status") && (model.get("status") != "DONE")) {
+                    if (model.get("status") && (model.get("status") === "RUNNING")) {
                         // retry in 1s
                         setTimeout(function () {
                             controller.getAnalysisJob(observer, analysisModel);
@@ -2151,7 +2370,7 @@
                         // update the analysis Model
                         analysisModel.set("statistics", t);
                         analysisModel.set("error", null);
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.resolve(model, response);
                     }
                 }
@@ -2199,7 +2418,12 @@
                             analysisJob.set("statistics", t);
                             analysisJob.set("error", model.get("error"));
                             analysisJob.set("results", model.get("results"));
-                            analysisJob.set("status", "DONE");
+                            if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                                analysisJob.set("status", "PENDING");
+                            } else {
+                                analysisJob.set("status", model.get("status"));
+                            }
+                            
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
@@ -2756,8 +2980,10 @@
                 for (i = 0; ((i < facets.length)); i++) {
                     var facet1 = facets[i];
                     if (facet1.dimension.parentId) {
-                        if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
-                            this.unSelectChildren(facets, facet1, true);
+                        if (facetMap[facet1.dimension.parentId.dimensionId]) {
+                            if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+                                this.unSelectChildren(facets, facet1, true);
+                            }
                         }
                     }
                 }
