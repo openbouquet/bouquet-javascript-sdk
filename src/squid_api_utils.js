@@ -13,7 +13,7 @@
         
         getAPIUrlDfd : null,
         authCodeCookiePrefix : "authcode_",
-        tokenCookiePrefix = "sq-token",
+        tokenCookiePrefix : "sq-token",
         
         getAuthCode : function(teamId) {
             var authCode = squid_api.utils.getParamValue("code", null, me.uri);

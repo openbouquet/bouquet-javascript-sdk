@@ -872,6 +872,7 @@
         
         getAPIUrlDfd : null,
         authCodeCookiePrefix : "authcode_",
+        tokenCookiePrefix : "sq-token",
         
         getAuthCode : function(teamId) {
             var authCode = squid_api.utils.getParamValue("code", null, me.uri);
@@ -1081,9 +1082,11 @@
         },
 
         clearLogin: function () {
-            var cookiePrefix = "sq-token";
-            squid_api.utils.writeCookie(cookiePrefix + "_" + squid_api.customerId, "", -100000, null);
-            squid_api.utils.writeCookie(cookiePrefix, "", -100000, null);
+            squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
+            squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
+            if (squid_api.utils.teamId) {
+                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix+squid_api.utils.teamId, "", -100000, null);
+            }
             squid_api.getLoginFromToken(null);
         },
 
@@ -1642,7 +1645,6 @@
             this.clientId = squid_api.utils.getParamValue("clientId", args.clientId || this.clientId, uri);
             this.debug = squid_api.utils.getParamValue("debug", args.debug || this.debug, uri);
             this.teamId = squid_api.utils.getParamValue("teamId", null, me.uri);
-            this.authCode = squid_api.utils.getParamValue("code", null, me.uri);
 
             this.defaultShortcut = args.defaultShortcut || null;
             this.defaultConfig = this.utils.mergeAttributes(this.defaultConfig, args.config);
