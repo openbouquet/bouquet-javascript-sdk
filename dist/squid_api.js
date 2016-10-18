@@ -871,6 +871,19 @@
     squid_api.utils = _.extend(squid_api.utils, {
         
         getAPIUrlDfd : null,
+        authCodeCookiePrefix : "authcode_",
+        
+        getAuthCode : function(teamId) {
+            var authCode = squid_api.utils.getParamValue("code", null, me.uri);
+            if (authCode) {
+                // store it for future use in same session
+                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix + teamId, "", null, authCode);
+            } else {
+                // try to retrieve it from storage
+                authCode = squid_api.utils.readCookie(squid_api.utils.authCodeCookiePrefix + teamId);
+            }
+            return authCode;
+        },
         
         getAPIUrl : function() {
             var dfd = squid_api.utils.getAPIUrlDfd;
@@ -878,8 +891,9 @@
                 squid_api.utils.getAPIUrlDfd = $.Deferred();
                 dfd = squid_api.utils.getAPIUrlDfd;
 
-                if (!squid_api.apiURL) {
-                    if (squid_api.obioURL && squid_api.teamId && squid_api.authCode) {
+                if ((!squid_api.apiURL) && squid_api.teamId) {
+                    var authCode = squid_api.utils.getAuthCode(squid_api.teamId);
+                    if (squid_api.obioURL && authCode) {
                         $.ajax({
                             url: squid_api.obioURL+"/teams?teamId="+squid_api.teamId,
                             dataType: 'json',
@@ -901,6 +915,11 @@
                             dfd.reject();
                         });
                     } else {
+                        var message = "Unable to connect to the API, please check openbouquet.io";
+                        squid_api.model.status.set("error",{
+                            "dismissible": false,
+                            "message": message
+                        });
                         dfd.reject();
                     }
                 } else {
@@ -1258,8 +1277,12 @@
                 });
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null, me.uri);
-                me.getLoginFromToken(token).always( function(login) {
-                    deferred.resolve(login);
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    me.getLoginFromToken(token).always( function(login) {
+                        deferred.resolve(login);
+                    });
+                }).fail(function () {
+                    deferred.reject();
                 });
             }
             return deferred;
