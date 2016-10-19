@@ -16,7 +16,7 @@
         tokenCookiePrefix : "sq-token",
         
         getAuthCode : function(teamId) {
-            var authCode = squid_api.utils.getParamValue("code", null, me.uri);
+            var authCode = squid_api.utils.getParamValue("code", null, squid_api.uri);
             if (authCode) {
                 // store it for future use in same session
                 squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix + teamId, "", null, authCode);
@@ -40,7 +40,7 @@
                             url: squid_api.obioURL+"/teams?teamId="+squid_api.teamId,
                             dataType: 'json',
                             headers: {
-                                "Authorization":("Bearer "+squid_api.authCode)
+                                "Authorization":("Bearer "+authCode)
                             }
                         }).done(null, function (xhr, status, error) {
                             if (xhr.serverUrl.charAt(xhr.serverUrl.length-1) == '/') {
