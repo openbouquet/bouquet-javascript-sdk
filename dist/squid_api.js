@@ -871,17 +871,17 @@
     squid_api.utils = _.extend(squid_api.utils, {
         
         getAPIUrlDfd : null,
-        authCodeCookiePrefix : "authcode_",
+        authCodeCookiePrefix : "obioac_",
         tokenCookiePrefix : "sq-token",
         
-        getAuthCode : function(teamId) {
+        getAuthCode : function() {
             var authCode = squid_api.utils.getParamValue("code", null, squid_api.uri);
             if (authCode) {
                 // store it for future use in same session
-                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix + teamId, "", null, authCode);
+                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", null, authCode);
             } else {
                 // try to retrieve it from storage
-                authCode = squid_api.utils.readCookie(squid_api.utils.authCodeCookiePrefix + teamId);
+                authCode = squid_api.utils.readCookie(squid_api.utils.authCodeCookiePrefix);
             }
             return authCode;
         },
@@ -893,7 +893,7 @@
                 dfd = squid_api.utils.getAPIUrlDfd;
 
                 if ((!squid_api.apiURL) && squid_api.teamId) {
-                    var authCode = squid_api.utils.getAuthCode(squid_api.teamId);
+                    var authCode = squid_api.utils.getAuthCode();
                     if (squid_api.obioURL && authCode) {
                         $.ajax({
                             url: squid_api.obioURL+"/teams/"+squid_api.teamId,
@@ -1089,7 +1089,7 @@
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
             if (squid_api.utils.teamId) {
-                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix+squid_api.utils.teamId, "", -100000, null);
+                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
             }
             squid_api.getLoginFromToken(null);
         },
