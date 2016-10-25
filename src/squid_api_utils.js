@@ -917,6 +917,7 @@
                     "dismissible": false,
                     "message": message
                 });
+                me.initStep1(args);
             });
         },
 
@@ -961,6 +962,7 @@
                     me.initStep2(args, shortcut, bookmark);
                 }
             }).fail(function() {
+                squid_api.model.login.set({"error": "failed to get customer"}, {silent : true});
                 squid_api.model.login.set("login", null);
             });
         },
