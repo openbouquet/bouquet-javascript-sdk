@@ -1768,7 +1768,11 @@
             }).fail(function(v){
                 var message;
                 if (!v) {
-                    message = "Unable to connect to the API";
+                    if (squid_api.apiURL) {
+                        message = "Unable to connect to Bouquet Server at "+squid_api.apiURL;
+                    } else {
+                        message = "Unable to connect to Bouquet Server (no server URL provided)";
+                    }
                 } else {
                     message = "Bouquet Server version does not match this App's api version requirements";
                 }
