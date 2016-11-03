@@ -23,6 +23,7 @@
         DATE_FORMAT: "YYYY-MM-DDTHH:mm:ss.SSSZZ",
         apiHost: null,
         apiEnv: null,
+        apiBaseURL : null,
         apiURL: null,
         loginURL: null,
         timeoutMillis: null,
@@ -38,6 +39,15 @@
         apiVersion: null,
         uri : null,
         browserOK : null,
+        wsNotification : null,
+        wsConnectionAttempts: 1,
+        bouquetSessionId : null,
+        options : {
+            enableTracking : true
+        },
+        constants : {
+            HEADER_BOUQUET_SESSIONID : "X-Bouquet-Session-Id"
+        },
 
         // declare some namespaces
         model: {},

@@ -491,8 +491,10 @@
                 for (i = 0; ((i < facets.length)); i++) {
                     var facet1 = facets[i];
                     if (facet1.dimension.parentId) {
-                        if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
-                            this.unSelectChildren(facets, facet1, true);
+                        if (facetMap[facet1.dimension.parentId.dimensionId]) {
+                            if (facetMap[facet1.dimension.parentId.dimensionId].id === facet.id) {
+                                this.unSelectChildren(facets, facet1, true);
+                            }
                         }
                     }
                 }

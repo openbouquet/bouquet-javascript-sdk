@@ -343,12 +343,18 @@
                         console.error("createAnalysis error " + model.get("error").message);
                         analysisModel.set("results", null);
                         analysisModel.set("error", model.get("error"));
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.reject(model, response);
                     } else {
                         console.log("createAnalysis success");
                         analysisModel.set("id", model.get("id"));
                         analysisModel.set("oid", model.get("id").analysisJobId);
+                        analysisModel.set("results", model.get("results"));
+                        if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                            analysisModel.set("status", "PENDING");
+                        } else {
+                            analysisModel.set("status", model.get("status"));
+                        }
                         observer.resolve(model, response);
                     }
                 },
@@ -398,7 +404,12 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
+                    if (response === null || response === undefined) {
+                        analysisModel.set("status", "PENDING");
+                        analysisModel.set("results", []);
+                        observer.resolve(model, response);
+                    } else {
+                        if (model.get("apiError") && (model.get("apiError") == "COMPUTING_IN_PROGRESS")) {
                         // retry
                         controller.getAnalysisJobResults(observer, analysisModel);
                     } else {
@@ -412,6 +423,7 @@
                         analysisModel.set("results", model.toJSON());
                         analysisModel.set("status", "DONE");
                         observer.resolve(model, response);
+                        }
                     }
                 }
             });
@@ -431,6 +443,9 @@
             analysisJob.set("id", analysisModel.get("id"));
             analysisJob.set("oid", analysisModel.get("oid"));
 
+            // set parameters
+            analysisJob.parameters = analysisModel.parameters;
+
             // get the results from API
             analysisJob.fetch({
                 error: function (model, response) {
@@ -439,7 +454,7 @@
                     observer.reject(model, response);
                 },
                 success: function (model, response) {
-                    if (model.get("status") && (model.get("status") != "DONE")) {
+                    if (model.get("status") && (model.get("status") === "RUNNING")) {
                         // retry in 1s
                         setTimeout(function () {
                             controller.getAnalysisJob(observer, analysisModel);
@@ -453,7 +468,7 @@
                         // update the analysis Model
                         analysisModel.set("statistics", t);
                         analysisModel.set("error", null);
-                        analysisModel.set("status", "DONE");
+                        analysisModel.set("status", model.get("status"));
                         observer.resolve(model, response);
                     }
                 }
@@ -501,7 +516,12 @@
                             analysisJob.set("statistics", t);
                             analysisJob.set("error", model.get("error"));
                             analysisJob.set("results", model.get("results"));
-                            analysisJob.set("status", "DONE");
+                            if (model.get("results") === null && model.get("status") !== "RUNNING") {
+                                analysisJob.set("status", "PENDING");
+                            } else {
+                                analysisJob.set("status", model.get("status"));
+                            }
+                            
                             observer.resolve(model, response);
                         } else {
                             // try to get the results
