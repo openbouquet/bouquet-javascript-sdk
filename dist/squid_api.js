@@ -331,9 +331,6 @@
                     me.statusModel.set("error", response);
                     me.statusModel.pullTask(model);
                 }
-                if (!response.status) {
-                    squid_api.model.status.set("error", {"message": "Unable to reach API Services"});
-                }
                 if (error) {
                     // normal behavior
                     error.call(this.model, response, options);
