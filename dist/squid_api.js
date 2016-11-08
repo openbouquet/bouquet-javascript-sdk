@@ -927,12 +927,7 @@
             return dfd;
         },
         
-        /**
-         * Check the API matches a given version string.
-         * @param semver range to match (e.g. ">=4.2.4")
-         * @return a Promise
-         */
-        checkAPIVersion : function(range) {
+        getAPIStatus : function() {
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
@@ -942,29 +937,30 @@
                     }).done(null, function (xhr) {
                         // put in cache
                         squid_api.apiVersion = xhr;
-                        // version check
-                        if (xhr["bouquet-server"]) {
-                            var version = xhr["bouquet-server"].version;
-                            if (version.indexOf('-') > -1) {
-                                version = version.substring(0, version.indexOf('-'));
-                            }
-                            if (semver.satisfies(version, range)) {
-                                dfd.resolve(version);
-                            } else {
-                                dfd.reject(version);
-                            }
-                        } else {
-                            dfd.reject();
-                        }
+                        dfd.resolve(xhr);
                     }).fail(null, function (xhr) {
                         dfd.reject();
                     });
+                }).fail(null, function (xhr) {
+                    dfd.reject();
                 });
             } else {
-                // already in cache
-                // just check and return a promise
-                if (squid_api.apiVersion["bouquet-server"]) {
-                    var version = squid_api.apiVersion["bouquet-server"].version;
+                dfd.resolve(squid_api.apiVersion);
+            }
+            return dfd;
+        },
+        
+        /**
+         * Check the API matches a given version string.
+         * @param semver range to match (e.g. ">=4.2.4")
+         * @return a Promise
+         */
+        checkAPIVersion : function(range) {
+            var dfd = $.Deferred();
+            squid_api.utils.getAPIStatus().done(function (status) {
+                // version check
+                if (status["bouquet-server"]) {
+                    var version = status["bouquet-server"].version;
                     if (version.indexOf('-') > -1) {
                         version = version.substring(0, version.indexOf('-'));
                     }
@@ -976,7 +972,9 @@
                 } else {
                     dfd.reject();
                 }
-            }
+            }).fail(null, function () {
+                dfd.reject();
+            });
             return dfd;
         },
 
@@ -1111,7 +1109,16 @@
                 url.setQuery("client_id", squid_api.clientId);
             }
             url.setQuery("redirect_uri",rurlString);
-            return url;
+            var dfd = $.Deferred();
+            squid_api.utils.getAPIStatus().done(function(status) {
+                if (status.teamId) {
+                    url.setQuery("teamId", status.teamId);
+                }
+                dfd.resolve(url);
+            }).fail(function() {
+                dfd.resolve(url);
+            });
+            return dfd;
         },
         
         buildApiUrl : function(host, path, queryParameters) {
