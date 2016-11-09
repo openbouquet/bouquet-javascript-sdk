@@ -369,21 +369,25 @@
         logout: function () {
             var me = this;
             // set the access token and refresh data
-            var request = Backbone.ajax({
-                type: "GET",
-                url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
-                dataType: 'json',
-                contentType: 'application/json'
-            });
-
-            request.done(function (jsonData) {
+            if (this.get("accessToken")) {
+                var request = Backbone.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                });
+    
+                request.done(function (jsonData) {
+                    squid_api.utils.clearLogin();
+                });
+    
+                request.fail(function (jqXHR, textStatus, errorThrown) {
+                    squid_api.model.status.set("message", "logout failed");
+                    squid_api.model.status.set("error", "error");
+                });
+            } else {
                 squid_api.utils.clearLogin();
-            });
-
-            request.fail(function (jqXHR, textStatus, errorThrown) {
-                squid_api.model.status.set("message", "logout failed");
-                squid_api.model.status.set("error", "error");
-            });
+            }
         }
 
     });

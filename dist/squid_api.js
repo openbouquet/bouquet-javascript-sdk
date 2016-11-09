@@ -550,21 +550,25 @@
         logout: function () {
             var me = this;
             // set the access token and refresh data
-            var request = Backbone.ajax({
-                type: "GET",
-                url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
-                dataType: 'json',
-                contentType: 'application/json'
-            });
-
-            request.done(function (jsonData) {
+            if (this.get("accessToken")) {
+                var request = Backbone.ajax({
+                    type: "GET",
+                    url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                });
+    
+                request.done(function (jsonData) {
+                    squid_api.utils.clearLogin();
+                });
+    
+                request.fail(function (jqXHR, textStatus, errorThrown) {
+                    squid_api.model.status.set("message", "logout failed");
+                    squid_api.model.status.set("error", "error");
+                });
+            } else {
                 squid_api.utils.clearLogin();
-            });
-
-            request.fail(function (jqXHR, textStatus, errorThrown) {
-                squid_api.model.status.set("message", "logout failed");
-                squid_api.model.status.set("error", "error");
-            });
+            }
         }
 
     });
@@ -1090,34 +1094,40 @@
         },
 
         getLoginUrl : function(redirectURI) {
-            if (!this.redirectUri) {
-                // use the current location stripping token or code parameters
-                redirectUri = window.location.href;
-            }
-            // build redirect URI with appropriate token or code parameters
-            var rurl = new URI(redirectUri);
-            rurl.removeQuery("access_token");
-            rurl.setQuery("code","auth_code");
-            var rurlString = rurl.toString();
-            // ugly trick to bypass urlencoding of auth_code parameter value
-            rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
-
-            // redirection mode
-            var url = new URI(squid_api.loginURL);
-            url.setQuery("response_type","code");
-            if (squid_api.clientId) {
-                url.setQuery("client_id", squid_api.clientId);
-            }
-            url.setQuery("redirect_uri",rurlString);
             var dfd = $.Deferred();
-            squid_api.utils.getAPIStatus().done(function(status) {
-                if (status.teamId) {
-                    url.setQuery("teamId", status.teamId);
+            if (squid_api.loginURL) {
+                var url = new URI(squid_api.loginURL);
+                url.setQuery("response_type","code");
+                if (squid_api.clientId) {
+                    url.setQuery("client_id", squid_api.clientId);
                 }
-                dfd.resolve(url);
-            }).fail(function() {
-                dfd.resolve(url);
-            });
+                
+                // build redirectUri
+                if (!this.redirectUri) {
+                    // use the current location stripping token or code parameters
+                    redirectUri = window.location.href;
+                }
+                // build redirect URI with appropriate token or code parameters
+                var rurl = new URI(redirectUri);
+                rurl.removeQuery("access_token");
+                rurl.setQuery("code","auth_code");
+                var rurlString = rurl.toString();
+                // ugly trick to bypass urlencoding of auth_code parameter value
+                rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
+                
+                url.setQuery("redirect_uri",rurlString);
+                
+                squid_api.utils.getAPIStatus().done(function(status) {
+                    if (status.teamId) {
+                        url.setQuery("teamId", status.teamId);
+                    }
+                    dfd.resolve(url);
+                }).fail(function() {
+                    dfd.resolve(url);
+                });
+            } else {
+                dfd.reject();
+            }
             return dfd;
         },
         
