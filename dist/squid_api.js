@@ -1286,7 +1286,7 @@
                                 squid_api.loginURL = jqXHR.responseJSON.loginURL;
                             }
                         }
-                        deferred.reject();
+                        deferred.reject(jqXHR.responseJSON);
                     }).done(function (data) {
                         var token = data.oid;
                         me.getLoginFromToken(token).done( function(login) {
@@ -1370,8 +1370,8 @@
                             console.error("unable to fetch customer");
                             deferred.reject(customer2);
                         });
-                    }).fail( function() {
-                        deferred.reject();
+                    }).fail( function(data) {
+                        deferred.reject(data);
                     });
                 }
             }
@@ -1838,8 +1838,14 @@
                 } else {
                     me.initStep2(args, shortcut, bookmark);
                 }
-            }).fail(function() {
-                squid_api.model.login.set({"error": "failed to get customer"}, {silent : true});
+            }).fail(function(data) {
+                var error;
+                if (data) {
+                    error = data.error;
+                } else {
+                    error = "failed to get customer";
+                }
+                squid_api.model.login.set({"error": error}, {silent : true});
                 squid_api.model.login.set("login", null);
             });
         },
