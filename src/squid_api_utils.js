@@ -921,19 +921,13 @@
                 me.initStep1(args);
             }).fail(function(v){
                 var message;
-                if (!v) {
-                    if (squid_api.apiURL) {
-                        message = "Unable to connect to Bouquet Server at "+squid_api.apiURL;
-                    } else {
-                        message = "Unable to connect to Bouquet Server (no server URL provided)";
-                    }
-                } else {
+                if (v) {
                     message = "Bouquet Server version does not match this App's api version requirements";
+                    me.model.status.set("error",{
+                        "dismissible": false,
+                        "message": message
+                    });
                 }
-                me.model.status.set("error",{
-                    "dismissible": false,
-                    "message": message
-                });
                 me.initStep1(args);
             });
         },
