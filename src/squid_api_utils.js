@@ -297,6 +297,21 @@
                 url.setQuery("access_token", squid_api.model.login.get("accessToken"));
             }
             return url;
+        },
+        
+        redirect: function(url) {
+            if (squid_api.wsNotification) {
+                // close the notification WS
+                squid_api.bouquetSessionId = null;
+                squid_api.wsNotification.close();
+            }
+            if (!squid_api.debug) {
+                // redirect
+                window.location.href = url;
+            } else {
+                // bypass redirection
+                console.log("DEBUG redirection : "+url);
+            }
         }
 
     });
@@ -1050,15 +1065,17 @@
                     }
                 };
                 ws.onclose = function (event) {
-                    squid_api.bouquetSessionId = null;
-                    var time = Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1));
-                    console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
-                    setTimeout(function () {
-                        // We've tried to reconnect so increment the attempts by 1
-                        squid_api.wsConnectionAttempts++;
-                        // Connection has closed so try to reconnect every 10 seconds.
-                        squid_api.initStep3(); 
-                    }, time*1000);
+                    if (squid_api.bouquetSessionId) {
+                        squid_api.bouquetSessionId = null;
+                        var time = Math.min(30, (Math.pow(2, squid_api.wsConnectionAttempts) - 1));
+                        console.log("WebSocket connection closed, Code: " + event.code + (event.reason === "" ? "" : ", Reason: " + event.reason)+" - retrying in " + time + " sec");
+                        setTimeout(function () {
+                            // We've tried to reconnect so increment the attempts by 1
+                            squid_api.wsConnectionAttempts++;
+                            // Connection has closed so try to reconnect every 10 seconds.
+                            squid_api.initStep3(); 
+                        }, time*1000);
+                    }
                 };
             }
         },
