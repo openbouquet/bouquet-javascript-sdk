@@ -844,7 +844,9 @@
                 // init the api server URL
                 api = squid_api.utils.getParamValue("api", "release", uri);
                 version = squid_api.utils.getParamValue("version", "v4.2", uri);
-    
+                if (args.loginURL) {
+                    squid_api.loginURL = args.loginURL;
+                }
                 apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
                 if (apiUrl) {
                     if (apiUrl.indexOf("://") < 0) {
@@ -853,8 +855,10 @@
                     this.apiBaseURL = apiUrl + "/" + api + "/" + version;
                     this.setApiURL(this.apiBaseURL + "/rs");
                     this.swaggerURL = this.apiBaseURL + "/swagger.json";
-                    // building default loginURL from apiURL
-                    squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+                    if (!squid_api.loginURL) {
+                        // building default loginURL
+                        squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+                    }
                 } else {
                     this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
                 }
