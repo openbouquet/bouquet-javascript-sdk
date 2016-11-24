@@ -1310,6 +1310,8 @@
                             deferred.reject();
                         });
                     });
+                }).fail(function () {
+                    deferred.reject();
                 });
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null, me.uri);
