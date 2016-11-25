@@ -11,7 +11,7 @@
 
     squid_api.utils = _.extend(squid_api.utils, {
         
-        getAPIUrlDfd : null,
+        getServerUrlDfd : null,
         authCodeCookiePrefix : "obioac_",
         tokenCookiePrefix : "sq-token",
         
@@ -28,12 +28,12 @@
         },
         
         getAPIUrl : function() {
-            var dfd = squid_api.utils.getAPIUrlDfd;
+            var dfd = squid_api.utils.getServerUrlDfd;
             if (!dfd) {
-                squid_api.utils.getAPIUrlDfd = $.Deferred();
-                dfd = squid_api.utils.getAPIUrlDfd;
+                squid_api.utils.getServerUrlDfd = $.Deferred();
+                dfd = squid_api.utils.getServerUrlDfd;
 
-                if ((!squid_api.apiURL) && squid_api.teamId) {
+                if ((!squid_api.serverURL) && squid_api.teamId) {
                     var authCode = squid_api.utils.getAuthCode();
                     if (squid_api.obioURL && authCode) {
                         $.ajax({
@@ -48,16 +48,17 @@
                             } else {
                                 squid_api.apiBaseURL = xhr.serverUrl;
                             }
-                            squid_api.setApiURL(squid_api.apiBaseURL + "/rs");
+                            squid_api.serverURL = squid_api.apiBaseURL + "/rs";
+                            squid_api.setApiURL(squid_api.serverURL);
                             squid_api.swaggerURL = squid_api.apiBaseURL + "/swagger.json";
-                            console.log("apiURL:"+squid_api.apiURL);
-                            dfd.resolve(squid_api.apiURL);
+                            console.log("serverURL : "+squid_api.serverURL);
+                            dfd.resolve(squid_api.serverURL);
                         }).fail(null, function (xhr, status, error) {
-                            console.error("failed to get apiURL");
+                            console.error("failed to get serverURL from OBIO");
                             dfd.reject();
                         });
                     } else {
-                        var message = "Unable to connect to the API, please check openbouquet.io";
+                        var message = "Unable to get server URL from openbouquet.io";
                         squid_api.model.status.set("error",{
                             "dismissible": false,
                             "message": message
@@ -250,6 +251,8 @@
                 // build redirect URI with appropriate token or code parameters
                 var rurl = new URI(redirectUri);
                 rurl.removeQuery("access_token");
+                rurl.removeQuery("apiUrl");
+                rurl.removeQuery("api");
                 rurl.setQuery("code","auth_code");
                 var rurlString = rurl.toString();
                 // ugly trick to bypass urlencoding of auth_code parameter value
@@ -876,17 +879,17 @@
                         // building default loginURL
                         squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
                     }
-                } else {
-                    this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
                 }
-    
-                // init the timout
-                timeoutMillis = args.timeoutMillis;
-                if (!timeoutMillis) {
-                    timeoutMillis = 10 * 1000; // 10 Sec.
-                }
-                this.setTimeoutMillis(timeoutMillis);
             }
+            
+            this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
+
+            // init the timout
+            timeoutMillis = args.timeoutMillis;
+            if (!timeoutMillis) {
+                timeoutMillis = 10 * 1000; // 10 Sec.
+            }
+            this.setTimeoutMillis(timeoutMillis);
 
             return this;
         },
