@@ -32,8 +32,12 @@
             if (!dfd) {
                 squid_api.utils.getServerUrlDfd = $.Deferred();
                 dfd = squid_api.utils.getServerUrlDfd;
-
-                if ((!squid_api.serverURL) && squid_api.teamId) {
+                
+                if (squid_api.apiURLParam) {
+                    // if there's a apiURLParam we must use it
+                    dfd.resolve(squid_api.apiURL);
+                } else if ((!squid_api.serverURL) && squid_api.teamId) {
+                    // we have a team, let's get api url from obio
                     var authCode = squid_api.utils.getAuthCode();
                     if (squid_api.obioURL && authCode) {
                         $.ajax({
@@ -48,13 +52,19 @@
                             } else {
                                 squid_api.apiBaseURL = xhr.serverUrl;
                             }
-                            squid_api.serverURL = squid_api.apiBaseURL + "/rs";
-                            squid_api.setApiURL(squid_api.serverURL);
+                            squid_api.serverURL = squid_api.apiBaseURL;
+                            squid_api.setApiURL(squid_api.serverURL + "/rs");
                             squid_api.swaggerURL = squid_api.apiBaseURL + "/swagger.json";
                             console.log("serverURL : "+squid_api.serverURL);
-                            dfd.resolve(squid_api.serverURL);
+                            dfd.resolve(squid_api.apiURL);
                         }).fail(null, function (xhr, status, error) {
-                            console.error("failed to get serverURL from OBIO");
+                            if ((xhr.status === 401) || (xhr.status === 403)) {
+                                console.error("Access Denied on OBIO");
+                                // force login
+                                squid_api.model.login.set({"login": null});
+                            } else {
+                                console.error("failed to get serverURL from OBIO");
+                            }
                             dfd.reject();
                         });
                     } else {
@@ -235,7 +245,6 @@
         },
 
         getLoginUrl : function(redirectURI) {
-            var dfd = $.Deferred();
             if (squid_api.loginURL) {
                 var url = new URI(squid_api.loginURL);
                 url.setQuery("response_type","code");
@@ -257,21 +266,15 @@
                 var rurlString = rurl.toString();
                 // ugly trick to bypass urlencoding of auth_code parameter value
                 rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
-                
                 url.setQuery("redirect_uri",rurlString);
-                
-                squid_api.utils.getAPIStatus().done(function(status) {
-                    if (status.teamId) {
-                        url.setQuery("teamId", status.teamId);
-                    }
-                    dfd.resolve(url);
-                }).fail(function() {
-                    dfd.resolve(url);
-                });
+                return url;
             } else {
-                dfd.reject();
+                var message = "Unable to get URL from Authentication server";
+                squid_api.model.status.set("error",{
+                    "dismissible": false,
+                    "message": message
+                });
             }
-            return dfd;
         },
         
         buildApiUrl : function(host, path, queryParameters) {
@@ -864,10 +867,13 @@
                 // init the api server URL
                 api = squid_api.utils.getParamValue("api", "release", uri);
                 version = squid_api.utils.getParamValue("version", "v4.2", uri);
-                if (args.loginURL) {
-                    squid_api.loginURL = args.loginURL;
+                apiUrl = squid_api.utils.getParamValue("apiUrl", null, uri);
+                // store in apiUrlParam for obio server registration
+                this.apiURLParam = apiUrl;
+                // check in args
+                if (!apiUrl) {
+                    apiUrl = args.apiUrl;
                 }
-                apiUrl = squid_api.utils.getParamValue("apiUrl", args.apiUrl, uri);
                 if (apiUrl) {
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
@@ -882,7 +888,13 @@
                 }
             }
             
-            this.obioURL = squid_api.utils.getParamValue("obioUrl", args.obioUrl, uri);
+            if (args.loginURL) {
+                squid_api.loginURL = args.loginURL;
+            }
+            if (args.logoutURL) {
+                squid_api.logoutURL = args.logoutURL;
+            }
+            this.obioURL = args.obioUrl;
 
             // init the timout
             timeoutMillis = args.timeoutMillis;

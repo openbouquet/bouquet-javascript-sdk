@@ -25,6 +25,7 @@
         apiEnv: null,
         apiBaseURL : null,
         apiURL: null,
+        apiURLParam : null,
         serverURL: null,
         loginURL: null,
         timeoutMillis: null,
