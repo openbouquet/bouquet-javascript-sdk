@@ -366,7 +366,7 @@
         /**
          * Logout the current user
          */
-        logout: function () {
+        logout: function (force) {
             var me = this;
             // set the access token and refresh data
             if (this.get("accessToken")) {
@@ -382,8 +382,14 @@
                 });
     
                 request.fail(function (jqXHR, textStatus, errorThrown) {
-                    squid_api.model.status.set("message", "logout failed");
-                    squid_api.model.status.set("error", "error");
+                    if (!force) {
+                        squid_api.model.status.set("error",{
+                            "dismissible": false,
+                            "message": "Failed to logout from Open Bouquet Server"
+                        });
+                    } else {
+                        squid_api.utils.clearLogin();
+                    }
                 });
             } else {
                 squid_api.utils.clearLogin();
