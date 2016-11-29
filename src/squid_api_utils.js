@@ -29,7 +29,7 @@
         
         getAPIUrl : function() {
             var dfd = squid_api.utils.getServerUrlDfd;
-            if (!dfd) {
+            if ((!dfd) || (dfd.state() === "rejected")){
                 squid_api.utils.getServerUrlDfd = $.Deferred();
                 dfd = squid_api.utils.getServerUrlDfd;
                 
@@ -69,10 +69,8 @@
                         });
                     } else {
                         var message = "Unable to get server URL from openbouquet.io";
-                        squid_api.model.status.set("error",{
-                            "dismissible": false,
-                            "message": message
-                        });
+                        squid_api.model.login.set({"login": null}, {"silent":true});
+                        squid_api.model.login.trigger("change:login");
                         dfd.reject();
                     }
                 } else {
@@ -467,20 +465,15 @@
                 });
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null, me.uri);
-                if (token) {
-                    squid_api.utils.getAPIUrl().done(function(apiURL) {
-                        me.getLoginFromToken(token).done( function(login) {
-                            deferred.resolve(login);
-                        }).fail( function() {
-                            deferred.reject();
-                        });
-                    }).fail(function () {
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    me.getLoginFromToken(token).done( function(login) {
+                        deferred.resolve(login);
+                    }).fail( function() {
                         deferred.reject();
                     });
-                } else {
-                    squid_api.model.login.set({"login": null});
-                    deferred.reject("no access token");
-                }
+                }).fail(function () {
+                    deferred.reject();
+                });
             }
             return deferred;
         },
