@@ -238,10 +238,11 @@
         clearLogin: function () {
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
-            if (squid_api.utils.teamId) {
-                squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
-            }
-            squid_api.getLoginFromToken(null);
+            squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
+            // force logout
+            squid_api.model.login.set({"error": null});
+            squid_api.model.login.set({"login": null}, {"silent":true});
+            squid_api.model.login.trigger("change:login");
         },
 
         getLoginUrl : function(redirectURI) {
@@ -339,6 +340,33 @@
             }
 
         },
+        
+        loginFailureHandler : function (deferred, jqXHR) {
+            var reject;
+            if (jqXHR.status === 401) {
+                // init the Login URL if provided by server
+                if (jqXHR.responseJSON.loginURL) {
+                    squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                }
+                squid_api.model.login.set({"error": null});
+                reject = jqXHR.responseJSON;
+            } else if (jqXHR.status === 403) {
+                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.error)) {
+                    squid_api.model.login.set({"error": jqXHR.responseJSON.error});
+                } else {
+                    squid_api.model.login.set({"error": "Invalid credentials"});
+                }
+                reject = "Invalid credentials";
+            } else if (jqXHR.status === 0) {
+                squid_api.model.login.set({"error": "Failed to connect to Open Bouquet Server"});
+                reject = "failed to connect";
+            } else {
+                squid_api.model.login.set({"error": "Authentication with Server failed ("+jqXHR.status+")"});
+                reject = jqXHR;
+            }
+            squid_api.model.login.set({"login": null});
+            deferred.reject(reject);
+        },
 
         getLoginFromToken: function (token, cookieExpiration) {
             var deferred = $.Deferred();
@@ -361,24 +389,8 @@
 
             // fetch the token info from server
             var tokenModel = new squid_api.model.TokenModel();
-            tokenModel.fetch().fail(function (model, response, options) {
-                if (model.status === 401) {
-                    // init the Login URL if provided by server
-                    if (model.responseJSON.loginURL) {
-                        squid_api.loginURL = model.responseJSON.loginURL;
-                    }
-                    squid_api.model.login.set({"login": null});
-                } else {
-                    squid_api.model.login.set("error", response);
-                    squid_api.model.login.set("login", "error");
-                    var mes = "Cannot connect to Bouquet (error " + model.status + ")";
-                    if (model.status === 404) {
-                        mes += "\nCheck that the apiUrl parameter is correct";
-                    }
-                    squid_api.model.status.set({"message": mes, "canStart": false}, {silent: true});// must silent to avoid double display
-                    squid_api.model.status.set("error", true);
-                }
-                deferred.reject();
+            tokenModel.fetch().fail(function (jqXHR, response, options) {
+                me.loginFailureHandler(deferred, jqXHR);
             }).done(function (model, response, options) {
                 // set the customerId
                 squid_api.customerId = model.customerId;
@@ -441,13 +453,7 @@
                         dataType: 'json',
                         data: data
                     }).fail(function (jqXHR) {
-                        if (jqXHR.status === 401) {
-                            // init the Login URL if provided by server
-                            if (jqXHR.responseJSON.loginURL) {
-                                squid_api.loginURL = jqXHR.responseJSON.loginURL;
-                            }
-                        }
-                        deferred.reject(jqXHR.responseJSON);
+                        me.loginFailureHandler(deferred, jqXHR);
                     }).done(function (data) {
                         var token = data.oid;
                         me.getLoginFromToken(token).done( function(login) {
@@ -461,13 +467,20 @@
                 });
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null, me.uri);
-                squid_api.utils.getAPIUrl().done(function(apiURL) {
-                    me.getLoginFromToken(token).always( function(login) {
-                        deferred.resolve(login);
+                if (token) {
+                    squid_api.utils.getAPIUrl().done(function(apiURL) {
+                        me.getLoginFromToken(token).done( function(login) {
+                            deferred.resolve(login);
+                        }).fail( function() {
+                            deferred.reject();
+                        });
+                    }).fail(function () {
+                        deferred.reject();
                     });
-                }).fail(function () {
-                    deferred.reject();
-                });
+                } else {
+                    squid_api.model.login.set({"login": null});
+                    deferred.reject("no access token");
+                }
             }
             return deferred;
         },
@@ -1008,15 +1021,8 @@
                 } else {
                     me.initStep2(args, shortcut, bookmark);
                 }
-            }).fail(function(data) {
-                var error;
-                if (data) {
-                    error = data.error;
-                } else {
-                    error = "failed to get customer";
-                }
-                squid_api.model.login.set({"error": error}, {silent : true});
-                squid_api.model.login.set("login", null);
+            }).fail(function() {
+                // should already be handled
             });
         },
         
