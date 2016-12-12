@@ -84,10 +84,14 @@
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
+                var message = "Contacting Open Bouquet Server...";
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     $.ajax({
                         url: apiURL+"/status"
                     }).done(null, function (xhr) {
+                        if (squid_api.model.status.get("message") === message) {
+                            squid_api.model.status.set({"error" : null, "status" : null, "message" : null});
+                        }
                         // put in cache
                         squid_api.apiVersion = xhr;
                         dfd.resolve(xhr);
@@ -96,6 +100,11 @@
                     });
                 }).fail(null, function (xhr) {
                     dfd.reject();
+                });
+                // set wait status
+                squid_api.model.status.set({
+                    "message" : message,
+                    "status" : squid_api.model.STATUS_PENDING
                 });
             } else {
                 dfd.resolve(squid_api.apiVersion);
