@@ -972,7 +972,8 @@
                 // set wait status
                 squid_api.model.status.set({
                     "message" : message,
-                    "status" : squid_api.model.STATUS_PENDING
+                    "status" : squid_api.model.STATUS_PENDING,
+                    "delayMillis" : 1000
                 });
             } else {
                 dfd.resolve(squid_api.apiVersion);
