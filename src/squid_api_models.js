@@ -18,6 +18,17 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
 
+        cloneWithoutChildren: function() {
+            var c = this.clone();
+            var children = this.get("_children");
+            if (children) {
+                for (var i=0; i<children.length; i++) {
+                    c.unset(children[i]);
+                }
+            }
+            return c;
+        },
+        
         addParameter: function (name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
                 if (!this.parameters) {
