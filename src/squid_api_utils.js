@@ -387,6 +387,7 @@
 
             // fetch the token info from server
             var tokenModel = new squid_api.model.TokenModel();
+            tokenModel.initialize(this.clientId);
             tokenModel.fetch().fail(function (jqXHR, response, options) {
                 me.loginFailureHandler(deferred, jqXHR);
             }).done(function (model, response, options) {
