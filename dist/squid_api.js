@@ -201,6 +201,17 @@
 
     squid_api.model.BaseModel = Backbone.Model.extend({
 
+        cloneWithoutChildren: function() {
+            var c = this.clone();
+            var children = this.get("_children");
+            if (children) {
+                for (var i=0; i<children.length; i++) {
+                    c.unset(children[i]);
+                }
+            }
+            return c;
+        },
+        
         addParameter: function (name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
                 if (!this.parameters) {
@@ -952,10 +963,14 @@
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
+                var message = "Contacting Open Bouquet Server...";
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     $.ajax({
                         url: apiURL+"/status"
                     }).done(null, function (xhr) {
+                        if (squid_api.model.status.get("message") === message) {
+                            squid_api.model.status.set({"error" : null, "status" : null, "message" : null});
+                        }
                         // put in cache
                         squid_api.apiVersion = xhr;
                         dfd.resolve(xhr);
@@ -964,6 +979,12 @@
                     });
                 }).fail(null, function (xhr) {
                     dfd.reject();
+                });
+                // set wait status
+                squid_api.model.status.set({
+                    "message" : message,
+                    "status" : squid_api.model.STATUS_PENDING,
+                    "delayMillis" : 1000
                 });
             } else {
                 dfd.resolve(squid_api.apiVersion);
