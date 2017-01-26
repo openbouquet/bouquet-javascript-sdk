@@ -1233,7 +1233,11 @@
             if (jqXHR.status === 401) {
                 // init the Login URL if provided by server
                 if (jqXHR.responseJSON.loginURL) {
-                    squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                	if (jqXHR.responseJSON.loginURL.indexOf("http") === 0) {
+                		squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                	} else {
+                 		squid_api.loginURL = squid_api.apiURL + jqXHR.responseJSON.loginURL;
+                	}
                 }
                 squid_api.model.login.set({"error": null});
                 reject = jqXHR.responseJSON;
@@ -1276,6 +1280,7 @@
 
             // fetch the token info from server
             var tokenModel = new squid_api.model.TokenModel();
+            tokenModel.setParameter("client_id",this.clientId);
             tokenModel.fetch().fail(function (jqXHR, response, options) {
                 me.loginFailureHandler(deferred, jqXHR);
             }).done(function (model, response, options) {

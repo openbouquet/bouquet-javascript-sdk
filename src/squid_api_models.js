@@ -357,18 +357,8 @@
     });
 
     squid_api.model.TokenModel = squid_api.model.BaseModel.extend({
-    	clientId: null,
-    	
-    	initialyze: function(clientId) {
-    		this.clientId = clientId;
-    	},
-    	
         urlRoot: function () {
-        	var url = this.baseRoot() + "/tokeninfo";
-        	if (clientId) {
-        		url += "?client_id="+clientId;
-        	}
-            return url;
+            return this.baseRoot() + "/tokeninfo";
         }
     });
 
