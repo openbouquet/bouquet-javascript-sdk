@@ -269,8 +269,12 @@
                 // build redirect URI with appropriate token or code parameters
                 var rurl = new URI(redirectUri);
                 rurl.removeQuery("access_token");
-                rurl.removeQuery("apiUrl");
-                rurl.removeQuery("api");
+                
+                //We keep them when not an obio server
+                if (squid_api.obioURL) {
+                	rurl.removeQuery("apiUrl");
+                	rurl.removeQuery("api");
+                }
                 rurl.setQuery("code","auth_code");
                 var rurlString = rurl.toString();
                 // ugly trick to bypass urlencoding of auth_code parameter value
