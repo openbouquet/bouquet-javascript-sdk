@@ -175,6 +175,40 @@
                     path += "/"+oid.substring(0,oid.length-2)+"s/"+id[oid];
                 }
                 return path;
+            },
+            
+            formatTime: function(v, d3Formatter) {
+            	if (v!== 'undefined' && v) {
+					var d = moment.duration(parseFloat(v), 'milliseconds');
+					// obtain hours / minutes & seconds
+					var hours = d.asHours();
+					var minutes = d.asMinutes();
+					var days = d.asDays();
+					var years = d.asYears();
+					var seconds = d.asSeconds();
+					var milliseconds = d.asMilliseconds();
+					var timeData = d._data;
+					// contruct readable time values
+					if (milliseconds > 1) {
+						v = d3Formatter(Math.round(timeData.milliseconds * 100) / 100);
+						if (seconds > 1) {
+							v = timeData.seconds + "s";
+							if (minutes > 1) {
+								v = timeData.minutes + "m " + v;
+								if (hours > 1) {
+									v = timeData.hours + "h " + v;
+									if (days > 1) {
+										v = timeData.days + "d " + v;
+										if (years > 1) {
+											v = timeData.years + "y " + v;
+										}
+									}
+								}
+							}
+						}
+					}
+            	}
+				return v;
             }
         }
     };
