@@ -180,7 +180,7 @@
             formatTime: function(v, d3Formatter, format) {
             	if (v!== 'undefined' && v) {
             		if (typeof v === 'string' || v instanceof String) {
-            			v = parseFloat(v.replace(',',''));
+            			v = parseFloat(v.replace(new RegExp(',', 'g'),''));
             		}
 					var d = moment.duration(v, 'milliseconds');
 					// obtain hours / minutes & seconds
