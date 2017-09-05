@@ -177,9 +177,12 @@
                 return path;
             },
             
-            formatTime: function(v, d3Formatter) {
+            formatTime: function(v, d3Formatter, format) {
             	if (v!== 'undefined' && v) {
-					var d = moment.duration(parseFloat(v), 'milliseconds');
+            		if (typeof v === 'string' || v instanceof String) {
+            			v = parseFloat(v.replace(',',''));
+            		}
+					var d = moment.duration(v, 'milliseconds');
 					// obtain hours / minutes & seconds
 					var hours = d.asHours();
 					var minutes = d.asMinutes();
