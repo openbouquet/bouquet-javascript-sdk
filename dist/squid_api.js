@@ -1289,12 +1289,6 @@
                     squid_api.model.login.set({"error": "Invalid credentials"});
                 }
                 reject = "Invalid credentials";
-            } else if (jqXHR.status === 302) {
-                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.redirectURL)) {
-                    window.location.replace(jqXHR.responseJSON.redirectURL);
-                } else {
-                    squid_api.model.login.set({"error": "Authentication with Server failed ("+jqXHR.status+")"});
-                }
             } else if (jqXHR.status === 0) {
                 squid_api.model.login.set({"error": "Failed to connect to Open Bouquet Server"});
                 reject = "failed to connect";
@@ -1329,7 +1323,7 @@
             var tokenModel = new squid_api.model.TokenModel();
             tokenModel.setParameter("client_id",this.clientId);
             tokenModel.fetch().fail(function (jqXHR, response, options) {
-                me.loginFailureHandler(deferred, jqXHR);
+ 		        me.loginFailureHandler(deferred, jqXHR);
             }).done(function (model, response, options) {
                 // set the customerId
                 squid_api.customerId = model.customerId;
@@ -1382,26 +1376,35 @@
                 };
                 if (squid_api.teamId) {
                     data.teamId = squid_api.teamId;
-                }
-
-                var redirectUri = new URI(window.location.href);
-                if (!redirectUri.hasSearch("access_token")) {
-                    redirectUri.addSearch("access_token", "{token}");
-                }
-                else {
-                    redirectUri.setSearch("access_token", "{token}");
+                    var redirectUri = new URI(window.location.href);
+                    if (!redirectUri.hasSearch("access_token")) {
+                        redirectUri.addSearch("access_token", "{token}");
+                    }
+                    else {
+                        redirectUri.setSearch("access_token", "{token}");
+                    }
+                    data.redirect_uri = redirectUri.href();
                 }
 
                 // fetch the access token
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     $.ajax({
                         type: "POST",
-                        url: apiURL + "/token?redirect_uri=" + encodeURIComponent(redirectUri.href()),
+                        url: apiURL + "/token",
                         dataType: 'json',
                         data: data
                     }).fail(function (jqXHR) {
-                        me.loginFailureHandler(deferred, jqXHR);
-                    }).done(function (data) {
+                    	if (jqXHR.status === 302) {
+        	                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.redirectURL)) {
+        	                	squid_api.model.login.set({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                	deferred.reject({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                } else {
+        		                me.loginFailureHandler(deferred, jqXHR);
+        	    			}            
+                        } else {
+        		        	me.loginFailureHandler(deferred, jqXHR);
+        	    		}
+                   }).done(function (data) {
                         var token = data.oid;
                         me.getLoginFromToken(token).done( function(login) {
                             deferred.resolve(login);
