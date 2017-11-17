@@ -1417,6 +1417,8 @@
                 });
             } else {
                 var token = squid_api.utils.getParamValue("access_token", null, me.uri);
+                me.uri.removeQuery("access_token");
+                history.pushState({}, null, me.uri);
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     me.getLoginFromToken(token).done( function(login) {
                         deferred.resolve(login);
