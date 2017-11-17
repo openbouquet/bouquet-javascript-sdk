@@ -10,11 +10,11 @@
     // Enhance Squid API utils
 
     squid_api.utils = _.extend(squid_api.utils, {
-        
+
         getServerUrlDfd : null,
         authCodeCookiePrefix : "obioac_",
         tokenCookiePrefix : "sq-token",
-        
+
         getAuthCode : function() {
             var authCode = squid_api.utils.getParamValue("code", null, squid_api.uri);
             if (authCode) {
@@ -26,13 +26,13 @@
             }
             return authCode;
         },
-        
+
         getAPIUrl : function() {
             var dfd = squid_api.utils.getServerUrlDfd;
             if ((!dfd) || (dfd.state() === "rejected")){
                 squid_api.utils.getServerUrlDfd = $.Deferred();
                 dfd = squid_api.utils.getServerUrlDfd;
-                
+
                 if (squid_api.apiURLParam) {
                     // if there's a apiURLParam we must use it
                     dfd.resolve(squid_api.apiURL);
@@ -79,7 +79,7 @@
             }
             return dfd;
         },
-        
+
         getAPIStatus : function() {
             var dfd = $.Deferred();
             if (!squid_api.apiVersion) {
@@ -112,7 +112,7 @@
             }
             return dfd;
         },
-        
+
         /**
          * Check the API matches a given version string.
          * @param semver range to match (e.g. ">=4.2.4")
@@ -260,7 +260,7 @@
                 if (squid_api.clientId) {
                     url.setQuery("client_id", squid_api.clientId);
                 }
-                
+
                 // build redirectUri
                 if (!this.redirectUri) {
                     // use the current location stripping token or code parameters
@@ -269,11 +269,11 @@
                 // build redirect URI with appropriate token or code parameters
                 var rurl = new URI(redirectUri);
                 rurl.removeQuery("access_token");
-                
+
                 //We keep them when not an obio server
                 if (squid_api.obioURL) {
-                	rurl.removeQuery("apiUrl");
-                	rurl.removeQuery("api");
+                    rurl.removeQuery("apiUrl");
+                    rurl.removeQuery("api");
                 }
                 rurl.setQuery("code","auth_code");
                 var rurlString = rurl.toString();
@@ -289,7 +289,7 @@
                 });
             }
         },
-        
+
         buildApiUrl : function(host, path, queryParameters) {
             var uri = host;
             if (!uri) {
@@ -317,7 +317,7 @@
             }
             return url;
         },
-        
+
         redirect: function(url) {
             if (squid_api.wsNotification) {
                 // close the notification WS
@@ -352,17 +352,17 @@
             }
 
         },
-        
+
         loginFailureHandler : function (deferred, jqXHR) {
             var reject;
             if (jqXHR.status === 401) {
                 // init the Login URL if provided by server
                 if (jqXHR.responseJSON.loginURL) {
-                	if (jqXHR.responseJSON.loginURL.indexOf("http") === 0) {
-                		squid_api.loginURL = jqXHR.responseJSON.loginURL;
-                	} else {
-                 		squid_api.loginURL = squid_api.apiURL + jqXHR.responseJSON.loginURL;
-                	}
+                    if (jqXHR.responseJSON.loginURL.indexOf("http") === 0) {
+                        squid_api.loginURL = jqXHR.responseJSON.loginURL;
+                    } else {
+                         squid_api.loginURL = squid_api.apiURL + jqXHR.responseJSON.loginURL;
+                    }
                 }
                 squid_api.model.login.set({"error": null});
                 reject = jqXHR.responseJSON;
@@ -373,6 +373,12 @@
                     squid_api.model.login.set({"error": "Invalid credentials"});
                 }
                 reject = "Invalid credentials";
+            } else if (jqXHR.status === 302) {
+                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.redirectURL)) {
+                    window.location.replace(jqXHR.responseJSON.redirectURL);
+                } else {
+                    squid_api.model.login.set({"error": "Authentication with Server failed ("+jqXHR.status+")"});
+                }
             } else if (jqXHR.status === 0) {
                 squid_api.model.login.set({"error": "Failed to connect to Open Bouquet Server"});
                 reject = "failed to connect";
@@ -462,11 +468,19 @@
                     data.teamId = squid_api.teamId;
                 }
 
+                var redirectUri = new URI(window.location.href);
+                if (!redirectUri.hasSearch("access_token")) {
+                    redirectUri.addSearch("access_token", "{token}");
+                }
+                else {
+                    redirectUri.setSearch("access_token", "{token}");
+                }
+
                 // fetch the access token
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     $.ajax({
                         type: "POST",
-                        url: apiURL + "/token",
+                        url: apiURL + "/token?redirect_uri=" + encodeURIComponent(redirectUri.href()),
                         dataType: 'json',
                         data: data
                     }).fail(function (jqXHR) {
@@ -496,7 +510,7 @@
             }
             return deferred;
         },
-        
+
         /**
          * Get a Model object
          * @param the object composite Id
@@ -505,7 +519,7 @@
         getObject : function(id, forceRefresh) {
             return this.getObjectHelper(squid_api.getCustomer(), id, 0, forceRefresh);
         },
-        
+
         getObjectHelper : function(p, id, level, forceRefresh) {
             var keys = Object.keys(id);
             var l = keys.length;
@@ -529,7 +543,7 @@
                 return p;
             }
         },
-        
+
         /**
          * Get the current Customer Model.
          * Returns a Promise
@@ -607,7 +621,7 @@
                         configPeriodSelectedItems = configSelection.facets[i].selectedItems;
                     }
                 }
-                
+
                 // update selectionClone with period selected items
                 for (var ix=0; ix<selectionClone.facets.length; ix++) {
                     if (selectionClone.facets[ix].id === currentPeriodId) {
@@ -690,14 +704,14 @@
             // keep for comparison when saved again
             squid_api.model.state = config;
             var newConfig = squid_api.utils.mergeAttributes(squid_api.defaultConfig, config);
-            
+
             // set to null attributes no longer in current config
             for (var att in squid_api.model.config.attributes) {
                 if (!newConfig[att]) {
                     newConfig[att] = null;
                 }
             }
-            
+
             // fix some invalid config attributes
             if (newConfig.chosenDimensions === null || ! newConfig.chosenDimensions) {
                 newConfig.chosenDimensions = [];
@@ -705,14 +719,14 @@
             if (newConfig.project === undefined) {
                 delete newConfig.project;
             }
-            
+
             // apply forcedConfig
             if (_.isFunction(forcedConfig)) {
                 newConfig = forcedConfig(newConfig);
             } else {
                 newConfig = squid_api.utils.mergeAttributes(newConfig, forcedConfig);
             }
-            
+
             // apply the new config to current config
             squid_api.model.status.set("configReady", false);
             squid_api.model.config.set(newConfig);
@@ -772,11 +786,11 @@
             }
             return dfd.promise();
         },
-        
+
         setBookmarkAction: function (bookmark, forcedConfig, attributes) {
             squid_api.setBookmark(bookmark, forcedConfig, attributes);
         },
-        
+
         setBookmark: function (bookmark, forcedConfig, attributes) {
             var config = bookmark.get("config");
             squid_api.model.status.set("bookmark", bookmark);
@@ -791,7 +805,7 @@
                     }
                 }
             }
-            
+
             // set the config
             squid_api.setConfig(config, forcedConfig);
         },
@@ -912,7 +926,7 @@
                     }
                 }
             }
-            
+
             if (args.loginURL) {
                 squid_api.loginURL = args.loginURL;
             }
@@ -968,7 +982,7 @@
                 // API already initialized
                 if (args && args.config) {
                     if (args.config.bookmark) {
-                    	this.setBookmarkId(args.config.bookmark);
+                        this.setBookmarkId(args.config.bookmark);
                     }
                 }
             }
@@ -1006,7 +1020,7 @@
                     }
                 }
             });
-            
+
             // check for login performed
             squid_api.getCustomer().done(function(customer) {
                 // perform config init chain
@@ -1037,7 +1051,7 @@
                 // should already be handled
             });
         },
-        
+
         initStep2: function (args, shortcut, bookmark) {
             // set the config
             if (shortcut) {
@@ -1051,7 +1065,7 @@
             }
             squid_api.initStep3();
         },
-            
+
         initStep3: function () {
             // init the notification websocket
             var ws;
@@ -1082,15 +1096,15 @@
                         } else {
                             // that's a welcome message
                             squid_api.bouquetSessionId = data.bouquetSessionId;
-                            squid_api.wsConnectionAttempts = 1; 
+                            squid_api.wsConnectionAttempts = 1;
                             console.log("New bouquetSessionId: " + squid_api.bouquetSessionId);
                         }
                     } else {
                         // that's a object update message
                         // lookup the object
                         squid_api.getObject(data.source, true).done(function(o) {
-                            data.name = o.get("name"); 
-                            data.objectType = o.get("objectType"); 
+                            data.name = o.get("name");
+                            data.objectType = o.get("objectType");
                             squid_api.model.status.set({
                                 "type" : "notification",
                                 "message" : "An object was modified by an external action, please refresh your page to reflect this change.",
@@ -1108,7 +1122,7 @@
                             // We've tried to reconnect so increment the attempts by 1
                             squid_api.wsConnectionAttempts++;
                             // Connection has closed so try to reconnect every 10 seconds.
-                            squid_api.initStep3(); 
+                            squid_api.initStep3();
                         }, time*1000);
                     }
                 };
