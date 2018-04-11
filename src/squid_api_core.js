@@ -132,7 +132,8 @@
              */
             buildCleanSelection: function (selectionOpt) {
                 var selection = {
-                    "facets": []
+                    "facets": [],
+                	"rootFacets": []
                 };
                 if (selectionOpt) {
                     var facets = selectionOpt.facets;
@@ -149,7 +150,21 @@
                             }
                         }
                     }
-                    // compare
+                    var rootFacets = selectionOpt.rootFacets;
+                    if (rootFacets) {
+                        for (var ir = 0; ir < rootFacets.length; ir++) {
+                            var rootFacet = rootFacets[ir];
+                            if (rootFacet.selectedItems && (rootFacet.selectedItems.length > 0)) {
+                                var newRootFacet = {
+                                    "selectedItems": rootFacet.selectedItems,
+                                    "dimension": rootFacet.dimension,
+                                    "id": rootFacet.id
+                                };
+                                selection.facets.push(newRootFacet);
+                            }
+                        }
+                    }
+                     // compare
                     selection.compareTo = selectionOpt.compareTo;
                 }
                 return selection;
