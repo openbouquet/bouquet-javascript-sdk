@@ -160,7 +160,7 @@
                                     "dimension": rootFacet.dimension,
                                     "id": rootFacet.id
                                 };
-                                selection.facets.push(newRootFacet);
+                                selection.rootFacets.push(newRootFacet);
                             }
                         }
                     }
