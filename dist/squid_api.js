@@ -1205,6 +1205,8 @@
                 if (squid_api.obioURL) {
                     rurl.removeQuery("apiUrl");
                     rurl.removeQuery("api");
+                    rurl.removeQuery("customerId");
+                    rurl.removeQuery("tokenFromOBio");
                 }
                 rurl.setQuery("code","auth_code");
                 var rurlString = rurl.toString();
