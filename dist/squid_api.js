@@ -959,6 +959,7 @@
         },
 
         getAPIUrl : function() {
+        	var me = this;
             var dfd = squid_api.utils.getServerUrlDfd;
             if ((!dfd) || (dfd.state() === "rejected")){
                 squid_api.utils.getServerUrlDfd = $.Deferred();
@@ -989,12 +990,20 @@
                             console.log("serverURL : "+squid_api.serverURL);
                             dfd.resolve(squid_api.apiURL);
                         }).fail(null, function (xhr, status, error) {
+                        	var msg = "";
+                        	if (xhr.responseJSON && xhr.responseJSON.message) {
+                        		msg  =  ": " + xhr.responseJSON.message;
+                        	}
                             if ((xhr.status === 401) || (xhr.status === 403)) {
-                                console.error("Access Denied on OBIO");
+                                console.error("Access Denied on OBIO"+msg);
                                 // force login
                                 squid_api.model.login.set({"login": null});
+                            } else if (xhr.status === 404) {
+                                console.error(msg);                         	
+                            	me.clearLogin();
                             } else {
-                                console.error("failed to get serverURL from OBIO");
+                                console.error("An error has occured in OB.io"+msg);
+                            	me.clearLogin();
                             }
                             dfd.reject();
                         });
