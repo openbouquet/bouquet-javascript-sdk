@@ -228,7 +228,7 @@
                 d = new Date();
                 d.setTime(d.getTime() + (exp * 60 * 1000));
             }
-            var nc = name + "=" + escape(v) + ((d === null) ? "" : ";expires=" + d.toUTCString()) + "; path=/;";
+            var nc = name + "=" + escape(v) + ((d === null) ? "" : ";expires=" + d.toUTCString()) + "; path=/;secure";
             if (dom) {
                 nc = nc + " domain=" + dom;
             }
@@ -1070,10 +1070,14 @@
 
         initStep2: function (args, shortcut, bookmark) {
             // set the config
+        	var project = squid_api.defaultConfig.project;
+        	if (typeof args !== "undefined" && args.config !== null) {
+        		project = args.config.project;
+        	}
             if (shortcut) {
                 squid_api.setShortcutId(shortcut);
             } else if (bookmark) {
-                squid_api.setBookmarkId(bookmark, {"project" : args.config.project});
+                squid_api.setBookmarkId(bookmark, {"project" : project});
             } else if (args && args.config) {
                 squid_api.setConfig(args.config);
             } else {
