@@ -1035,7 +1035,9 @@
                 if (err) {
                     var status = err.status;
                     if (status == 401) {
-                        me.utils.clearLogin();
+                    	if (err.responseJSON && err.reponseJSON.type && err.reponseJSON.type !== "InvalidDataSourceCredentialsException") {
+                    		me.utils.clearLogin();
+                    	}
                     }
                 }
             });
