@@ -1159,9 +1159,12 @@
                 d = new Date();
                 d.setTime(d.getTime() + (exp * 60 * 1000));
             }
-            var nc = name + "=" + escape(v) + ((d === null) ? "" : ";expires=" + d.toUTCString()) + "; path=/;secure";
+            var nc = name + "=" + escape(v) + ((d === null) ? "" : ";expires=" + d.toUTCString());
             if (dom) {
                 nc = nc + " domain=" + dom;
+            }
+            if (document.location && document.location.protocol === "https:") {
+                nc = nc +"; secure";
             }
             document.cookie = nc;
         },
