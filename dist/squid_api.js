@@ -951,9 +951,16 @@
             if (authCode) {
                 // store it for future use in same session
                 squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", null, authCode);
+                squid_api.model.login.set("code", authCode);
             } else {
                 // try to retrieve it from storage
                 authCode = squid_api.utils.readCookie(squid_api.utils.authCodeCookiePrefix);
+                if (squid_api.model.login.has("code") === false) {
+                    squid_api.model.login.set("code", authCode);                	
+                }
+            }
+            if (typeof authCode === 'undefined' || !authCode) {
+            	authCode =  squid_api.model.login.get("code");
             }
             return authCode;
         },
@@ -1391,6 +1398,7 @@
             // set the access_token (to start the login model update)
             var code = squid_api.utils.getParamValue("code", null, me.uri);
             if (code) {
+                squid_api.model.login.set("code", code);
                 // remove code parameter from browser history
                 if (window.history) {
                     var uri = new URI(window.location.href);
