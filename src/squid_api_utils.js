@@ -944,12 +944,12 @@
                     if (apiUrl.indexOf("://") < 0) {
                         apiUrl = "https://" + apiUrl;
                     }
-                    this.apiBaseURL = apiUrl + "/" + api + "/" + version;
+                    this.apiBaseURL = apiUrl + "/" + (api !== ""? api + "/":"") + version;
                     this.setApiURL(this.apiBaseURL + "/rs");
                     this.swaggerURL = this.apiBaseURL + "/swagger.json";
                     if (!squid_api.loginURL) {
                         // building default loginURL
-                        squid_api.loginURL = apiUrl + "/" + api + "/auth/oauth";
+                        squid_api.loginURL = apiUrl + "/" + (api !== ""? api + "/":"") + "/auth/oauth";
                     }
                 }
             }
