@@ -49,7 +49,7 @@
                     var authCode = squid_api.utils.getAuthCode();
                     if (squid_api.obioURL && authCode) {
                         $.ajax({
-                            url: squid_api.obioURL+"/teams/"+squid_api.teamId,
+                            url: squid_api.obioURL+"teams/"+squid_api.teamId,
                             dataType: 'json',
                             headers: {
                                 "Authorization":("Bearer "+authCode)
