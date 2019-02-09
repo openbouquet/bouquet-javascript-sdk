@@ -524,7 +524,7 @@
                     else {
                         redirectUri.setSearch("access_token", "{token}");
                     }
-                    //data.redirect_uri = redirectUri.href();
+                    data.redirect_uri = redirectUri.href();
                 }
                 // fetch the access token
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
