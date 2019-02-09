@@ -46,14 +46,11 @@
                     dfd.resolve(squid_api.apiURL);
                 } else if ((!squid_api.serverURL) && squid_api.teamId) {
                     // we have a team, let's get api url from obio
-                    var authCode = squid_api.utils.getAuthCode();
-                    if (squid_api.obioURL && authCode) {
+                    //var authCode = squid_api.utils.getAuthCode();
+                    if (squid_api.obioURL) {
                         $.ajax({
-                            url: squid_api.obioURL+"teams/"+squid_api.teamId,
+                            url: squid_api.obioURL+"teams/"+squid_api.teamId + "/serviceprovider",
                             dataType: 'json',
-                            headers: {
-                                "Authorization":("Bearer "+authCode)
-                            }
                         }).done(null, function (xhr, status, error) {
                             if (xhr.serverUrl.charAt(xhr.serverUrl.length-1) == '/') {
                                 squid_api.apiBaseURL = xhr.serverUrl.substring(0, xhr.serverUrl.length-1);
@@ -96,25 +93,36 @@
             return dfd;
         },
 
+        getBouquetStatus : function(apiURL) {
+            var dfd = $.Deferred();
+            $.ajax({
+                url: apiURL+"/status"
+            }).done(null, function (xhr) {
+                 dfd.resolve(xhr);
+            }).fail(null, function (xhr) {
+                dfd.reject();
+            });
+            return dfd;
+        },
+            
         getAPIStatus : function() {
             var dfd = $.Deferred();
+            var me = this;
             if (!squid_api.apiVersion) {
                 // not in cache, execute the query
                 var message = "Contacting Open Bouquet Server...";
-                squid_api.utils.getAPIUrl().done(function(apiURL) {
-                    $.ajax({
-                        url: apiURL+"/status"
-                    }).done(null, function (xhr) {
+                squid_api.utils.getAPIUrl().done(function (apiURL) {
+                	me.getBouquetStatus(apiURL).done( function(xhr) {
                         if (squid_api.model.status.get("message") === message) {
                             squid_api.model.status.set({"error" : null, "status" : null, "message" : null});
                         }
                         // put in cache
                         squid_api.apiVersion = xhr;
-                        dfd.resolve(xhr);
+                        dfd.resolve(squid_api.apiVersion);
                     }).fail(null, function (xhr) {
                         dfd.reject();
                     });
-                }).fail(null, function (xhr) {
+               }).fail(null, function (xhr) {
                     dfd.reject();
                 });
                 // set wait status
@@ -272,12 +280,17 @@
             squid_api.model.login.trigger("change:login");
         },
 
-        getLoginUrl : function(redirectURI) {
+        getLoginUrl : function(redirectURI, legacy) {
             if (squid_api.loginURL) {
                 var url = new URI(squid_api.loginURL);
-                url.setQuery("response_type","code");
+                if (typeof legacy === "undefined" || !legacy) {
+                	url.setQuery("response_type","code");
+                }
                 if (squid_api.clientId) {
                     url.setQuery("client_id", squid_api.clientId);
+                }
+                if (squid_api.teamId) {
+                    url.setQuery("teamId", squid_api.teamId);
                 }
 
                 // build redirectUri
@@ -296,11 +309,20 @@
                     rurl.removeQuery("customerId");
                     rurl.removeQuery("tokenFromOBio");
                 }
-                rurl.setQuery("code","auth_code");
-                var rurlString = rurl.toString();
-                // ugly trick to bypass urlencoding of auth_code parameter value
-                rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
-                url.setQuery("redirect_uri",rurlString);
+                var rurlString;
+                if (typeof legacy === "undefined" || !legacy) {
+	                rurl.setQuery("code","auth_code");
+	                rurlString = rurl.toString();
+	                // ugly trick to bypass urlencoding of auth_code parameter value
+	                rurlString = rurlString.replace("code=auth_code","code=${auth_code}");
+	                //url.setQuery("redirect_uri",rurlString);
+                } else {
+	                rurl.setQuery("access_token","token");
+	                rurlString = rurl.toString();
+	                // ugly trick to bypass urlencoding of auth_code parameter value
+	                rurlString = rurlString.replace("access_token=token","access_token=%7Btoken%7D");
+	                url.setQuery("redirect_uri",rurlString);
+                }
                 return url;
             } else {
                 var message = "Unable to get URL from Authentication server";
@@ -427,12 +449,20 @@
             // fetch the token info from server
             var tokenModel = new squid_api.model.TokenModel();
             tokenModel.setParameter("client_id",this.clientId);
+            tokenModel.setParameter("teamId",this.teamId);
             tokenModel.fetch().fail(function (jqXHR, response, options) {
  		        me.loginFailureHandler(deferred, jqXHR);
             }).done(function (model, response, options) {
                 // set the customerId
                 squid_api.customerId = model.customerId;
-
+                //if the team id doesn't match
+                if (typeof model.teamId !== "undefined" && model.teamId !== null) {
+                	if (typeof squid_api.teamId !== "undefined" && squid_api.teamId !== null) {
+                		if (model.teamId !== squid_api.teamId) {
+             		        me.loginFailureHandler(deferred, jqXHR);
+                		}
+                	}
+                }
                 // verify the clientId
                 if (model.clientId != this.clientId) {
                     console.log("WARN : the Token used doesn't match you application's ClientId");
@@ -460,13 +490,24 @@
          * Proceed with the login process by dealing with access token or code.
          * @return a LoginModel within a Promise
          */
-        getLogin : function() {
+        getLogin : function(canGet) {
             var deferred = $.Deferred();
             var me = this;
 
             // set the access_token (to start the login model update)
+            var token = squid_api.utils.getParamValue("access_token", null, me.uri);
             var code = squid_api.utils.getParamValue("code", null, me.uri);
+            var data = {
+                    "grant_type": "authorization_code",
+                    "client_id": squid_api.clientId,
+                    "redirect_uri": null
+                };
+            if (squid_api.teamId) {
+            	data.teamId = squid_api.teamId;
+            }
             if (code) {
+            	data.grant_type = "authorization_code";
+            	data.code = code;
                 squid_api.model.login.set("code", code);
                 // remove code parameter from browser history
                 if (window.history) {
@@ -474,12 +515,86 @@
                     uri.removeQuery("code");
                     window.history.pushState(code, "", uri);
                 }
-                var data = {
+                if (squid_api.teamId) {
+                    data.teamId = squid_api.teamId;
+                    var redirectUri = new URI(window.location.href);
+                    if (!redirectUri.hasSearch("access_token")) {
+                        redirectUri.addSearch("access_token", "{token}");
+                    }
+                    else {
+                        redirectUri.setSearch("access_token", "{token}");
+                    }
+                    //data.redirect_uri = redirectUri.href();
+                }
+                // fetch the access token
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        type: "POST",
+                        url: apiURL + "/token",
+                        dataType: 'json',
+                        data: data
+                    }).fail(function (jqXHR, a1, a2) {
+                    	if (jqXHR.status === 302) {
+        	                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.redirectURL)) {
+        	                	squid_api.model.login.set({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                	deferred.reject({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                } else {
+        		                me.loginFailureHandler(deferred, jqXHR);
+        	    			}            
+                        } else if (jqXHR.status > 0) {
+        		        	me.loginFailureHandler(deferred, jqXHR);
+        	    		}
+                   }).done(function (data) {
+                        var token = data.oid;
+                        me.getLoginFromToken(token).done( function(login) {
+                            deferred.resolve(login);
+                        }).fail( function() {
+                            deferred.reject();
+                        });
+                    });
+                }).fail(function () {
+                    deferred.reject();
+                });
+            } else {
+                me.uri.removeQuery("access_token");
+                history.pushState({}, null, me.uri);
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    me.getLoginFromToken(token).done( function(login) {
+                        deferred.resolve(login);
+                    }).fail( function() {
+                        deferred.reject();
+                    });
+                }).fail(function () {
+                    deferred.reject();
+                });
+            }
+            return deferred;
+        },
+        /*getLogin : function(canGet) {
+            var deferred = $.Deferred();
+            var me = this;
+
+            // set the access_token (to start the login model update)
+            var token = squid_api.utils.getParamValue("access_token", null, me.uri);
+            var code = squid_api.utils.getParamValue("code", null, me.uri);
+            var data = {
                     "grant_type": "authorization_code",
-                    "code": code,
                     "client_id": squid_api.clientId,
                     "redirect_uri": null
                 };
+            if (squid_api.teamId) {
+            	data.teamId = squid_api.teamId;
+            }
+            if (code) {
+            	data.grant_type = "authorization_code";
+            	data.code = code;
+                squid_api.model.login.set("code", code);
+                // remove code parameter from browser history
+                if (window.history) {
+                    var uri = new URI(window.location.href);
+                    uri.removeQuery("code");
+                    window.history.pushState(code, "", uri);
+                }
                 if (squid_api.teamId) {
                     data.teamId = squid_api.teamId;
                     var redirectUri = new URI(window.location.href);
@@ -491,7 +606,6 @@
                     }
                     data.redirect_uri = redirectUri.href();
                 }
-
                 // fetch the access token
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
                     $.ajax({
@@ -521,8 +635,7 @@
                 }).fail(function () {
                     deferred.reject();
                 });
-            } else {
-                var token = squid_api.utils.getParamValue("access_token", null, me.uri);
+            } else if (token) {
                 me.uri.removeQuery("access_token");
                 history.pushState({}, null, me.uri);
                 squid_api.utils.getAPIUrl().done(function(apiURL) {
@@ -534,9 +647,39 @@
                 }).fail(function () {
                     deferred.reject();
                 });
+            } else if (canGet) {
+                squid_api.utils.getAPIUrl().done(function(apiURL) {
+                    $.ajax({
+                        type: "GET",
+                        url: apiURL + "/token",
+                        dataType: 'json',
+                        data: data
+                    }).fail(function (jqXHR) {
+                    	if (jqXHR.status === 302) {
+        	                if ((jqXHR.responseJSON) && (jqXHR.responseJSON.redirectURL)) {
+        	                	squid_api.model.login.set({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                	deferred.reject({"redirectURL": jqXHR.responseJSON.redirectURL});
+        	                } else {
+        		                me.loginFailureHandler(deferred, jqXHR);
+        	    			}            
+                        } else {
+        		        	me.loginFailureHandler(deferred, jqXHR);
+        	    		}
+                   }).done(function (data) {
+                        var token = data.oid;
+                        me.getLoginFromToken(token).done( function(login) {
+                            deferred.resolve(login);
+                        }).fail( function() {
+                            deferred.reject();
+                        });
+                    });         
+                });
+            } else {
+               squid_api.model.login.set({"login": null});
+               deferred.reject();
             }
             return deferred;
-        },
+        },*/
 
         /**
          * Get a Model object
