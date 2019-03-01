@@ -270,14 +270,16 @@
             return c;
         },
 
-        clearLogin: function () {
+        clearLogin: function (noTrigger) {
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
             // force logout
             squid_api.model.login.set({"error": null});
             squid_api.model.login.set({"login": null}, {"silent":true});
-            squid_api.model.login.trigger("change:login");
+            if (typeof noTrigger === "undefined" || !noTrigger) {
+            	squid_api.model.login.trigger("change:login");
+            }
         },
 
         getLoginUrl : function(redirectURI, legacy) {

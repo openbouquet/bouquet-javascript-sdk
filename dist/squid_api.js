@@ -612,15 +612,22 @@
         /**
          * Logout the current user
          */
-        logout: function (force) {
+        logout: function (force, returnTo) {
             var me = this;
             // set the access token and refresh data
             if (this.get("accessToken")) {
+            	var logoutUrl = "/logout?";
+            	 if (typeof returnTo !== "undefined" && returnTo !== null) {
+            		logoutUrl = logoutUrl + "returnTo=" + encodeURIComponent(returnTo) + "&";
+            	}
                 var request = Backbone.ajax({
                     type: "GET",
-                    url: squid_api.apiURL + "/logout?access_token=" + this.get("accessToken"),
+                    url: squid_api.apiURL + logoutUrl + "access_token=" + this.get("accessToken"),
                     dataType: 'json',
-                    contentType: 'application/json'
+                    contentType: 'application/json',
+                    beforeSend: function(xhr) { 
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); 
+                    }
                 });
     
                 request.done(function (jsonData) {
@@ -628,14 +635,19 @@
                 });
     
                 request.fail(function (jqXHR, textStatus, errorThrown) {
-                    if (!force) {
-                        squid_api.model.status.set("error",{
-                            "dismissible": false,
-                            "message": "Failed to logout from Open Bouquet Server"
-                        });
+                    if (jqXHR.status === 302) {
+                    	squid_api.utils.clearLogin(true);
+                    	document.location.href=jqXHR.responseJSON.redirectURL;
                     } else {
-                        squid_api.utils.clearLogin();
-                    }
+	                    if (!force) {
+	                        squid_api.model.status.set("error",{
+	                            "dismissible": false,
+	                            "message": "Failed to logout from Open Bouquet Server"
+	                        });
+	                    } else {
+	                        squid_api.utils.clearLogin();
+	                    }
+                    } 
                 });
             } else {
                 squid_api.utils.clearLogin();
@@ -1201,14 +1213,16 @@
             return c;
         },
 
-        clearLogin: function () {
+        clearLogin: function (noTrigger) {
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
             // force logout
             squid_api.model.login.set({"error": null});
             squid_api.model.login.set({"login": null}, {"silent":true});
-            squid_api.model.login.trigger("change:login");
+            if (typeof noTrigger === "undefined" || !noTrigger) {
+            	squid_api.model.login.trigger("change:login");
+            }
         },
 
         getLoginUrl : function(redirectURI, legacy) {
