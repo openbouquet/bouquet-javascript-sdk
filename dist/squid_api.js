@@ -1236,6 +1236,17 @@
                 }
                 if (squid_api.teamId) {
                     url.setQuery("teamId", squid_api.teamId);
+                    if (squid_api.obioURL) {
+                        rurl.removeQuery("apiUrl");
+                        rurl.removeQuery("api");
+                        rurl.removeQuery("customerId");
+                        rurl.removeQuery("tokenFromOBio");
+                    }
+                } else {
+                    if (squid_api.obioURL) {
+                        rurl.removeQuery("customerId");
+                        rurl.removeQuery("tokenFromOBio");
+                    }
                 }
 
                 // build redirectUri
@@ -1248,12 +1259,6 @@
                 rurl.removeQuery("access_token");
 
                 //We keep them when not an obio server
-                if (squid_api.obioURL) {
-                    rurl.removeQuery("apiUrl");
-                    rurl.removeQuery("api");
-                    rurl.removeQuery("customerId");
-                    rurl.removeQuery("tokenFromOBio");
-                }
                 var rurlString;
                 if (typeof legacy === "undefined" || !legacy) {
 	                rurl.setQuery("code","auth_code");
