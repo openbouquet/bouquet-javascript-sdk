@@ -1236,16 +1236,16 @@
                 }
                 if (squid_api.teamId) {
                     url.setQuery("teamId", squid_api.teamId);
-                    if (squid_api.obioURL) {
-                        rurl.removeQuery("apiUrl");
-                        rurl.removeQuery("api");
-                        rurl.removeQuery("customerId");
-                        rurl.removeQuery("tokenFromOBio");
+                    if (squid_api.obioURL ) {
+                    	url.removeQuery("apiUrl");
+                    	url.removeQuery("api");
+                    	url.removeQuery("customerId");
+                        url.removeQuery("tokenFromOBio");
                     }
                 } else {
                     if (squid_api.obioURL) {
-                        rurl.removeQuery("customerId");
-                        rurl.removeQuery("tokenFromOBio");
+                    	url.removeQuery("customerId");
+                    	url.removeQuery("tokenFromOBio");
                     }
                 }
 
