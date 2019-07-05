@@ -14,6 +14,7 @@
         getServerUrlDfd : null,
         authCodeCookiePrefix : "obioac_",
         tokenCookiePrefix : "sq-token",
+        localeCookie : "sq-locale",
 
         getAuthCode : function() {
             var authCode = squid_api.utils.getParamValue("code", null, squid_api.uri);
@@ -272,6 +273,7 @@
 
         clearLogin: function (noTrigger) {
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix + "_" + squid_api.customerId, "", -100000, null);
+            squid_api.utils.writeCookie(squid_api.utils.localeCookie, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.tokenCookiePrefix, "", -100000, null);
             squid_api.utils.writeCookie(squid_api.utils.authCodeCookiePrefix, "", -100000, null);
             // force logout
