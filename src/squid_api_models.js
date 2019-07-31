@@ -6,12 +6,12 @@
         factory(root.Backbone, _, root.squid_api);
     }
 }(this, function (Backbone, _, squid_api) {
-    
+
     // override Backbone ajax to handle bouquet session id header
     Backbone.ajax = function() {
         arguments[0].headers = {};
         arguments[0].headers[squid_api.constants.HEADER_BOUQUET_SESSIONID] = squid_api.bouquetSessionId;
-        return Backbone.$.ajax.apply(Backbone.$, arguments);      
+        return Backbone.$.ajax.apply(Backbone.$, arguments);
     };
 
     // setup squid_api.model
@@ -28,7 +28,7 @@
             }
             return c;
         },
-        
+
         addParameter: function (name, value) {
             if ((typeof value !== 'undefined') && (value !== null)) {
                 if (!this.parameters) {
@@ -131,12 +131,12 @@
                 this.setParameter("timeout", this.timeoutMillis());
             }
             this.setParameter("access_token", squid_api.model.login.get("accessToken"));
-            
+
             // build uri
             var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
             return url.toString();
         },
-        
+
         error: null,
 
         optionsFilter: function (options) {
@@ -204,7 +204,7 @@
         addParameter: function (name, value) {
             this.parameters.push({"name": name, "value": value});
         },
-        
+
         setParameter: function (name, value) {
             var index = null;
             if (!this.parameters) {
@@ -249,12 +249,12 @@
                 this.setParameter("timeout", this.timeoutMillis());
             }
             this.setParameter("access_token", squid_api.model.login.get("accessToken"));
-            
+
             // build uri
             var url = squid_api.utils.buildApiUrl(this.urlRoot(), null, this.parameters);
             return url;
         },
-        
+
         addParam: function (url, name, value) {
             if (value) {
                 var delim;
@@ -272,7 +272,7 @@
          * Getter for a Model or a Collection of Models.
          * This method will perform a fetch only if the requested object is not in the object cache.
          * @param oid if set, will return a Model with the corresponding oid.
-         * @param forceRefresh if set and true : object in cache will be fetched and non child attributes 
+         * @param forceRefresh if set and true : object in cache will be fetched and non child attributes
          * will be updated.
          * @return a Promise
          */
@@ -390,15 +390,15 @@
                     url: squid_api.apiURL + logoutUrl + "access_token=" + this.get("accessToken"),
                     dataType: 'json',
                     contentType: 'application/json',
-                    beforeSend: function(xhr) { 
-                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); 
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                     }
                 });
-    
+
                 request.done(function (jsonData) {
                     squid_api.utils.clearLogin();
                 });
-    
+
                 request.fail(function (jqXHR, textStatus, errorThrown) {
                     if (jqXHR.status === 302) {
                     	squid_api.utils.clearLogin(true);
@@ -412,7 +412,7 @@
 	                    } else {
 	                        squid_api.utils.clearLogin();
 	                    }
-                    } 
+                    }
                 });
             } else {
                 squid_api.utils.clearLogin();
@@ -494,7 +494,7 @@
             return this.baseRoot() + "/clients/" + this.getOid("clientId");
         }
     });
-    
+
     squid_api.model.ClientCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.ClientModel,
         urlRoot: function () {
@@ -553,7 +553,7 @@
             return this.baseRoot() + "/users/" + this.getOid("userId");
         }
     });
-    
+
     squid_api.model.GroupModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/usergroups/" + this.getOid("groupId");
@@ -573,13 +573,13 @@
             return this.baseRoot() + "/users";
         }
     });
-    
+
     squid_api.model.BookmarkfolderModel = squid_api.model.BaseModel.extend({
         urlRoot: function () {
             return this.baseRoot() + "/bookmarkfolders/" + this.getOid("bookmarkfolderId");
         }
     });
-    
+
     squid_api.model.BookmarkfolderCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.BookmarkfolderModel,
         urlRoot: function () {
@@ -596,7 +596,7 @@
     squid_api.model.DomainCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DomainModel,
         urlRoot: function () {
-            return this.parent.urlRoot() + "/domains";
+            return this.parent ? this.parent.urlRoot() + "/domains" : this.baseRoot();
         }
     });
 
@@ -609,7 +609,7 @@
     squid_api.model.RelationCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.RelationModel,
         urlRoot: function () {
-            return this.parent.urlRoot() + "/relations";
+            return this.parent ? this.parent.urlRoot() + "/relations" : this.baseRoot();
         }
     });
 
@@ -622,7 +622,7 @@
     squid_api.model.DimensionCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.DimensionModel,
         urlRoot: function () {
-            return this.parent.urlRoot() + "/dimensions";
+            return this.parent ? this.parent.urlRoot() + "/dimensions" : this.baseRoot();
         }
     });
 
@@ -635,7 +635,7 @@
     squid_api.model.MetricCollection = squid_api.model.BaseCollection.extend({
         model: squid_api.model.MetricModel,
         urlRoot: function () {
-            return this.parent.urlRoot() + "/metrics";
+            return this.parent ? this.parent.urlRoot() + "/metrics" : this.baseRoot();
         }
     });
 
@@ -648,7 +648,7 @@
     squid_api.model.BookmarkCollection = squid_api.model.BaseCollection.extend({
         model : squid_api.model.BookmarkModel,
         urlRoot: function() {
-            return this.parent.urlRoot() + "/bookmarks";
+            return this.parent ? this.parent.urlRoot() + "/bookmarks" : this.baseRoot();
         }
     });
 
@@ -673,7 +673,7 @@
         "dimensions" : squid_api.model.DimensionCollection,
         "metrics" : squid_api.model.MetricCollection
     };
-    
+
     squid_api.model.BookmarkfolderModel.prototype.relations = {
         "folders" : squid_api.model.BookmarkfolderCollection
     };
@@ -702,6 +702,6 @@
 
         return dfd.promise();
     };
-    
+
     return squid_api;
 }));
