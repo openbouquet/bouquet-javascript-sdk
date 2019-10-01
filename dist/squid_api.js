@@ -140,6 +140,9 @@
                     if (facets) {
                         for (var is = 0; is < facets.length; is++) {
                             var facet = facets[is];
+                            if (!facet) {
+                                continue;
+                            }
                             if (facet.selectedItems && (facet.selectedItems.length > 0)) {
                                 var newFacet = {
                                     "selectedItems": facet.selectedItems,
@@ -169,7 +172,7 @@
                 }
                 return selection;
             },
-            
+
             /**
              * http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
              */
@@ -183,7 +186,7 @@
                 }
                 return hash;
             },
-            
+
             idToPath : function(id) {
                 var path = "";
                 for(var oid in id) {
@@ -191,7 +194,7 @@
                 }
                 return path;
             },
-            
+
             formatTime: function(v, d3Formatter, format) {
             	if (v!== 'undefined' && v) {
             		if (typeof v === 'string' || v instanceof String) {
@@ -3089,6 +3092,9 @@
                 var facets = selection.facets;
                 for (var i = 0; i < facets.length; i++) {
                     var facet = facets[i];
+                    if (!facet) {
+                        continue;
+                    }
                     // V2 way
                     if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
                         timeFacets.push(facet);
