@@ -3092,6 +3092,9 @@
                 var facets = selection.facets;
                 for (var i = 0; i < facets.length; i++) {
                     var facet = facets[i];
+                    if (!facet) {
+                        continue;
+                    }
                     // V2 way
                     if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
                         timeFacets.push(facet);
