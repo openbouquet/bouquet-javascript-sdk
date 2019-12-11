@@ -641,6 +641,8 @@
                     if (jqXHR.status === 302) {
                     	squid_api.utils.clearLogin(true);
                     	document.location.href=jqXHR.responseJSON.redirectURL;
+                    } else if (jqXHR.status === 401 || jqXHR.status === 403) {
+                    	squid_api.utils.clearLogin();
                     } else {
 	                    if (!force) {
 	                        squid_api.model.status.set("error",{
