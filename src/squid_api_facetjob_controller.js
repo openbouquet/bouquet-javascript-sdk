@@ -216,7 +216,7 @@
                     // V2 way
                     if (facet.dimension.valueType && (facet.dimension.valueType === "DATE")) {
                         timeFacets.push(facet);
-                    } else if (facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
+                    } else if (facet.selectedItems && facet.selectedItems[0] && (facet.selectedItems[0].lowerBound || facet.selectedItems[0].upperBound)) {
                         // V1 way
                         timeFacets.push(facet);
                     }
